@@ -91,4 +91,32 @@ void main() {
     expect(c.merits.map((m) => m.name), contains('Chanceux'));
     expect(budgetOf(c).merits, 2);
   });
+
+  testWidgets('étape 9 : achat d’une compétence, coût affiché, retrait', (tester) async {
+    final c = valid();
+    await pumpStep(tester, 9, c);
+    await tester.tap(find.byKey(const Key('buy-kind')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Compétence').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('buy-name-skill')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Informatique').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajouter'));
+    await tester.pump();
+    expect(find.text('3 XP'), findsWidgets);
+    expect(levelOf(c, Buy.skill, 'Informatique'), 3);
+    await tester.tap(find.byTooltip('Retirer l’achat'));
+    await tester.pump();
+    expect(levelOf(c, Buy.skill, 'Informatique'), 2);
+  });
+
+  testWidgets('étape 10 : récit et traits dérivés', (tester) async {
+    final c = valid();
+    await pumpStep(tester, 10, c);
+    expect(find.text('10 · 1 par tour'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('field-Récit du personnage — visible par vous et le conte')), 'Nouveau récit');
+    expect(c.story, 'Nouveau récit');
+  });
 }

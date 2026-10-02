@@ -30,7 +30,8 @@ Widget creationStep(int step, Character c, VoidCallback changed) => switch (step
       6 => _BackgroundsStep(c, changed),
       7 => _DisciplinesStep(c, changed),
       8 => _MeritsStep(c, changed),
-      _ => Text('Étape $step', key: const Key('step-todo')),
+      9 => _PurchasesStep(c, changed),
+      _ => _FinishStep(c, changed),
     };
 
 /// Points gratuits cliquables ; [bought] points achetés affichés en plus.
@@ -531,6 +532,182 @@ class _MeritsStep extends StatelessWidget {
       else ...[merits, const SizedBox(height: 20), flaws],
       const SizedBox(height: 12),
       Text('Avec l’accord du conte, un joueur peut prendre plus de 7 points de handicaps, mais n’en tire jamais plus de 7 XP.', style: t.bodySmall),
+    ]);
+  }
+}
+
+class _PurchasesStep extends StatefulWidget {
+  const _PurchasesStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  State<_PurchasesStep> createState() => _PurchasesStepState();
+}
+
+class _PurchasesStepState extends State<_PurchasesStep> {
+  String _kind = Buy.skill;
+  String? _name;
+
+  static const _kinds = {
+    Buy.attribute: 'Attribut',
+    Buy.skill: 'Compétence',
+    Buy.background: 'Historique',
+    Buy.discipline: 'Discipline',
+    Buy.humanity: 'Humanité',
+  };
+
+  Map<String, String> _names(Character c) => switch (_kind) {
+        Buy.attribute => {for (final a in AttrCategory.values) a.name: a.label},
+        Buy.skill => {for (final s in {...skillNames, ...c.skills.map((s) => s.name)}) s: s},
+        Buy.background => {for (final b in {...backgroundNames, ...c.backgrounds.map((b) => b.name)}) b: b},
+        Buy.discipline => {
+            for (final d in {...c.disciplines.where((d) => d.inClan).map((d) => d.name), ...commonDisciplines}) d: d,
+          },
+        _ => {humanityName: humanityName},
+      };
+
+  String _label(Purchase p) => switch (p.kind) {
+        Buy.attribute => 'Attribut · ${AttrCategory.values.byName(p.name).label}',
+        Buy.skill => 'Compétence · ${p.name}',
+        Buy.background => 'Historique · ${p.name}',
+        Buy.discipline => '${p.name} (${isInClan(widget.c, p.name) ? 'en clan' : 'hors clan'})',
+        _ => p.name,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    final t = Theme.of(context).textTheme;
+    final names = _names(c);
+    final rank = rankFor(c) ?? GenRank.neonate;
+    final factor = rank == GenRank.neonate ? 1 : 2;
+    void buy() {
+      final name = _name;
+      if (name == null) return;
+      final error = addPurchase(c, _kind, name);
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      }
+      widget.changed();
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _section(context, '', [
+        Wrap(spacing: 12, runSpacing: 12, crossAxisAlignment: WrapCrossAlignment.end, children: [
+          SizedBox(
+            width: 200,
+            child: DropdownButtonFormField<String>(
+              key: const Key('buy-kind'),
+              isExpanded: true,
+              initialValue: _kind,
+              decoration: const InputDecoration(labelText: 'Type'),
+              items: [for (final e in _kinds.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+              onChanged: (k) => setState(() {
+                _kind = k ?? _kind;
+                _name = _kind == Buy.humanity ? humanityName : null;
+              }),
+            ),
+          ),
+          SizedBox(
+            width: 260,
+            child: DropdownButtonFormField<String>(
+              key: Key('buy-name-$_kind'),
+              isExpanded: true,
+              initialValue: _name,
+              decoration: const InputDecoration(labelText: 'Élément'),
+              items: [for (final e in names.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+              onChanged: (n) => setState(() => _name = n),
+            ),
+          ),
+          FilledButton(onPressed: _name == null ? null : buy, child: const Text('Ajouter')),
+        ]),
+      ]),
+      const SizedBox(height: 20),
+      _section(context, 'Achats', [
+        if (c.purchases.isEmpty) Text('Aucun achat.', style: t.bodySmall),
+        for (final (i, p) in c.purchases.indexed)
+          Row(children: [
+            Expanded(child: Text(_label(p), style: t.bodyMedium)),
+            Text('→ ${'●' * p.toLevel}', style: const TextStyle(color: AppColors.gold)),
+            const SizedBox(width: 16),
+            SizedBox(width: 60, child: Text('${purchaseCost(c, p.kind, p.name, p.toLevel)} XP', textAlign: TextAlign.right)),
+            IconButton(
+              tooltip: 'Retirer l’achat',
+              onPressed: () {
+                final error = removePurchase(c, i);
+                if (error != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                }
+                widget.changed();
+              },
+              icon: const Icon(Icons.close, size: 18),
+            ),
+          ]),
+        Text('Total dépensé : ${budgetOf(c).purchases} XP en achats, ${budgetOf(c).merits} en atouts', style: t.titleMedium),
+      ]),
+      const SizedBox(height: 20),
+      _section(context, 'Coûts ${rank.label}', [
+        for (final (k, v) in [
+          ('Attribut', '3 XP'),
+          ('Compétence, historique', 'Niveau × $factor'),
+          ('Discipline en clan', 'Niveau × 3'),
+          ('Hors clan (communes, 3 points au plus)', 'Niveau × 4'),
+          ('Génération, Humanité', 'Niveau × 2'),
+        ])
+          Row(children: [Expanded(child: Text(k, style: t.bodyMedium)), Text(v, style: t.bodyMedium)]),
+      ]),
+    ]);
+  }
+}
+
+class _FinishStep extends StatelessWidget {
+  const _FinishStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    Widget derived(String k, String v, String s) => SizedBox(
+          width: 200,
+          child: Panel(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SectionTitle(k),
+              const SizedBox(height: 4),
+              Text(v, style: t.titleMedium),
+              Text(s, style: t.bodySmall),
+            ]),
+          ),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(spacing: 12, runSpacing: 12, children: [
+        derived('Sang', '${c.blood} · ${c.bloodPerTurn} par tour', c.genRank?.label ?? '—'),
+        derived('Volonté', '${c.willpower}', 'Valeur normale'),
+        derived('Santé', c.health, 'Sain · Blessé · Incapacité'),
+        derived('Humanité', '${c.humanity}', 'Moralité de départ'),
+      ]),
+      const SizedBox(height: 20),
+      _section(context, '', [
+        TextFieldRow(
+          label: 'Sire',
+          value: c.sire,
+          onChanged: (v) {
+            c.sire = v;
+            changed();
+          },
+        ),
+        TextFieldRow(
+          label: 'Récit du personnage — visible par vous et le conte',
+          value: c.story,
+          maxLines: 8,
+          onChanged: (v) {
+            c.story = v;
+            changed();
+          },
+        ),
+      ]),
     ]);
   }
 }
