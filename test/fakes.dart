@@ -66,10 +66,14 @@ class FakeCharacterRepository implements CharacterRepository {
   /// Dernier brouillon reçu par saveDraft.
   Character? lastDraft;
 
+  /// Si défini, saveDraft attend ce futur (enregistrement en cours).
+  Future<void>? saveGate;
+
   @override
   Future<void> saveDraft(Character c) async {
     calls.add('saveDraft');
     lastDraft = c;
+    if (saveGate != null) await saveGate;
     if (error != null) throw error!;
   }
 

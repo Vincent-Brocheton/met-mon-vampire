@@ -103,7 +103,35 @@ void main() {
     expect(names, containsAll(['Célérité', 'Puissance', 'Présence', 'Auspex']));
     expect(names, isNot(contains('Thaumaturgie')));
     expect(c.disciplines.where((d) => d.inClan).map((d) => d.name).toSet(), {'Célérité', 'Puissance', 'Présence'});
-    expect(blocking(c), contains('Auspex hors clan : uniquement par achat'));
+    // Revue finale : la discipline achetée sort du clan avec ses seuls points achetés, sans impasse.
+    applyDerived(c);
+    expect(levelOf(c, Buy.discipline, 'Auspex'), 1);
+    expect(blocking(c).where((t) => t.contains('Auspex')), isEmpty);
+    expect(removePurchase(c, 0), isNull);
+    expect(c.disciplines.map((d) => d.name), isNot(contains('Auspex')));
+  });
+
+  test('changer un niveau gratuit après un achat renumérote l’achat (revue finale)', () {
+    final c = valid();
+    addPurchase(c, Buy.skill, 'Esquive');
+    expect(budgetOf(c).purchases, 2);
+    setFreeLevel(c, Buy.skill, 'Esquive', 4);
+    applyDerived(c);
+    expect(c.purchases.single.toLevel, 5);
+    expect(budgetOf(c).purchases, 5);
+    expect(removePurchase(c, 0), isNull);
+    expect(levelOf(c, Buy.skill, 'Esquive'), 4);
+    addPurchase(c, Buy.attribute, AttrCategory.physical.name);
+    c.attributeRanks = [AttrCategory.physical, AttrCategory.social, AttrCategory.mental];
+    applyDerived(c);
+    expect(removePurchase(c, 0), isNull);
+    applyDerived(c);
+    expect(c.attributes[AttrCategory.physical]!.value, 7);
+  });
+
+  test('valeurs enregistrées falsifiées : bloquant (revue finale)', () {
+    expect(blocking(valid()..xpEarned = 500), contains('Valeurs calculées incohérentes : réenregistrez la fiche depuis l’application'));
+    expect(blocking(valid()..willpower = 10), isNotEmpty);
   });
 
   test('rareté de clan comptée dans les atouts', () {

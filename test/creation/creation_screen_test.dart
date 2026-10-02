@@ -77,6 +77,24 @@ void main() {
     expect((sent.name, sent.xpBonus, sent.version, sent.xpInitial), ('Nikolaï V.', 10, 2, 43));
   });
 
+  testWidgets('quitter pendant un enregistrement en cours : la saisie part après lui (revue finale)', (tester) async {
+    final repo = await pump(tester, valid()
+      ..step = 1
+      ..version = 1);
+    final gate = Completer<void>();
+    repo.saveGate = gate.future;
+    await tester.enterText(find.byKey(const Key('field-Nom du personnage')), 'Nikolaï V.');
+    await tester.pump(const Duration(seconds: 3));
+    expect(repo.calls, ['saveDraft']);
+    await tester.enterText(find.byKey(const Key('field-Nom du personnage')), 'Nikolaï Ve.');
+    await tester.pumpWidget(const SizedBox());
+    repo.saveGate = null;
+    gate.complete();
+    await tester.pump();
+    expect(repo.calls, ['saveDraft', 'saveDraft']);
+    expect((repo.lastDraft!.name, repo.lastDraft!.version), ('Nikolaï Ve.', 2));
+  });
+
   testWidgets('soumission impossible tant qu’un contrôle bloque (Review Focus 5)', (tester) async {
     await pump(tester, valid()..name = '');
     final button = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Soumettre au conte'));

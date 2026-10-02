@@ -48,9 +48,11 @@ void main() {
     await tester.tap(find.text('Demander des corrections'));
     await tester.pump();
     expect(repo.calls, ['decide:draft:Précise le sire.']);
+    // Revue finale : le commentaire ne doit pas suivre sur la fiche suivante.
+    expect(tester.widget<TextField>(find.byKey(const Key('decision-comment'))).controller!.text, isEmpty);
     await tester.tap(find.text('Valider et activer la fiche'));
     await tester.pump();
-    expect(repo.calls.last, 'decide:active:Précise le sire.');
+    expect(repo.calls.last, 'decide:active:');
   });
 
   testWidgets('sa propre fiche : pas de décision', (tester) async {

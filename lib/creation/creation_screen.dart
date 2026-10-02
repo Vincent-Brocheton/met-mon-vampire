@@ -34,6 +34,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   bool _failed = false;
   DateTime? _savedAt;
   late final CharacterRepository _repo; // ref n'est plus utilisable dans dispose
+  Future<void>? _inFlight;
 
   @override
   void initState() {
@@ -45,8 +46,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   void dispose() {
     _debounce?.cancel();
     if (_pending && _c != null) {
-      // Review Focus 2 : la saisie part même si l'on quitte avant le délai.
-      _repo.saveDraft(_c!.clone()).ignore();
+      // Review Focus 2 : la saisie part même si l'on quitte avant le délai,
+      // après l'enregistrement en cours (sa version devient la base).
+      final draft = _c!.clone();
+      (_inFlight ?? Future<void>.value())
+          .catchError((_) {})
+          .then((_) => _repo.saveDraft(draft..version = _base!.version))
+          .ignore();
     }
     super.dispose();
   }
@@ -71,10 +77,12 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     _pending = false;
     final sent = c.clone();
     try {
-      await _repo.saveDraft(sent);
-      // Le brouillon a pu changer pendant l'envoi : on ne touche qu'à la version.
-      _base = sent.clone()..version = sent.version + 1;
-      c.version = _base!.version;
+      // La base suit l'envoi dans le même futur : dispose() enchaîne dessus.
+      await (_inFlight = _repo.saveDraft(sent).then((_) {
+        // Le brouillon a pu changer pendant l'envoi : on ne touche qu'à la version.
+        _base = sent.clone()..version = sent.version + 1;
+        c.version = _base!.version;
+      }));
       if (mounted) {
         setState(() {
           _failed = false;

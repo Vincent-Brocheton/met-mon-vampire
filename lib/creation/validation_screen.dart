@@ -57,6 +57,9 @@ class _ValidationScreenState extends ConsumerState<ValidationScreen> {
     });
     try {
       await ref.read(characterRepositoryProvider).decide(c, to, _comment.text, by);
+      // La fiche quitte la file : le commentaire ne doit pas suivre sur la suivante.
+      _comment.clear();
+      _selectedId = null;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(switch (to) {
           CharacterStatus.active => '${c.name} est validé et actif.',

@@ -184,7 +184,12 @@ void setClan(Character c, String? name) {
   bool inNew(Discipline d) => info?.disciplines.contains(d.name) ?? false;
   c.disciplines.removeWhere((d) => d.inClan && purchasedCount(c, Buy.discipline, d.name) == 0 && !inNew(d));
   for (final d in c.disciplines) {
-    if (d.inClan && !inNew(d)) d.inClan = false;
+    if (d.inClan && !inNew(d)) {
+      // Hors clan, seuls les points achetés restent (pas de points gratuits).
+      d
+        ..inClan = false
+        ..level = purchasedCount(c, Buy.discipline, d.name);
+    }
   }
   if (info == null) return;
   for (final n in info.disciplines) {
@@ -206,6 +211,19 @@ void setDisciplineFree(Character c, String name, int free) {
   if (d != null) d.level = free + purchasedCount(c, Buy.discipline, name);
 }
 
+/// Les achats d'un trait occupent toujours les niveaux juste au-dessus de ses points gratuits,
+/// même après un changement de niveau gratuit, de catégorie ou de clan.
+void _renumberPurchases(Character c) {
+  final seen = <String, int>{};
+  for (var i = 0; i < c.purchases.length; i++) {
+    final p = c.purchases[i];
+    final key = '${p.kind}/${p.name}';
+    final n = seen[key] = (seen[key] ?? 0) + 1;
+    final to = freeLevelOf(c, p.kind, p.name) + n;
+    if (to != p.toLevel) c.purchases[i] = Purchase(p.kind, p.name, to, purchaseCost(c, p.kind, p.name, to));
+  }
+}
+
 /// Recalcule rang, Sang, Volonté, Humanité, Santé, attributs et compteurs d'XP.
 void applyDerived(Character c) {
   final rank = rankFor(c);
@@ -222,6 +240,7 @@ void applyDerived(Character c) {
     final i = c.attributeRanks.indexOf(cat);
     c.attributes[cat]!.value = (i >= 0 ? attributeSlots[i] : 0) + purchasedCount(c, Buy.attribute, cat.name);
   }
+  _renumberPurchases(c);
   final b = budgetOf(c);
   c
     ..xpInitial = startingXp + c.xpBonus + b.flaws
@@ -336,6 +355,18 @@ List<Check> creationChecks(Character c) {
   } else {
     add(9, CheckLevel.ok, '${b.spent} XP dépensés, ${b.setAside} mis de côté');
     if (b.lost > 0) add(9, CheckLevel.warn, '${b.lost} XP perdus (5 au plus mis de côté)');
+  }
+
+  // Les règles Firestore ne recalculent rien : une fiche écrite hors de l'application se voit ici.
+  final derived = c.clone();
+  applyDerived(derived);
+  String stored(Character x) => [
+        x.xpInitial, x.xpSpent, x.xpEarned, x.blood, x.bloodPerTurn, x.willpower, x.humanity, x.genRank,
+        for (final a in AttrCategory.values) x.attributes[a]!.value,
+        for (final p in x.purchases) '${p.toLevel}:${p.cost}',
+      ].join('|');
+  if (stored(derived) != stored(c)) {
+    add(9, CheckLevel.error, 'Valeurs calculées incohérentes : réenregistrez la fiche depuis l’application');
   }
 
   if ((c.story ?? '').trim().isEmpty) add(10, CheckLevel.warn, 'Récit vide : quelques lignes aideront le conte');
