@@ -24,6 +24,9 @@ const stepIntro = [
 Widget creationStep(int step, Character c, VoidCallback changed) => switch (step) {
       1 => _Inspiration(c, changed),
       2 => _InitialXp(c),
+      3 => _ClanStep(c, changed),
+      4 => _AttributesStep(c, changed),
+      5 => _SkillsStep(c, changed),
       _ => Text('Étape $step', key: const Key('step-todo')),
     };
 
@@ -121,4 +124,221 @@ class _InitialXp extends StatelessWidget {
       _section(context, 'À savoir', [for (final r in rules) Text('• $r', style: t.bodyMedium)]),
     ]);
   }
+}
+
+class _ClanStep extends StatelessWidget {
+  const _ClanStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    Widget card(ClanInfo k) {
+      final selected = c.clan == k.name;
+      return SizedBox(
+        width: 220,
+        child: Material(
+          color: selected ? AppColors.navActive : AppColors.card,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: selected ? AppColors.accent : AppColors.border),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              setClan(c, k.name);
+              changed();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(k.name, style: t.headlineSmall),
+                const SizedBox(height: 4),
+                Text(k.disciplines.isEmpty ? '3 disciplines communes au choix' : k.disciplines.join(' · '), style: t.bodySmall),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget group(ClanRarity r, String title, String cost) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [SectionTitle(title), const SizedBox(width: 12), Text(cost, style: t.bodySmall)]),
+          const SizedBox(height: 10),
+          Wrap(spacing: 12, runSpacing: 12, children: [for (final k in clans.where((k) => k.rarity == r)) card(k)]),
+        ]);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      group(ClanRarity.common, 'Clans communs', 'Gratuit'),
+      const SizedBox(height: 20),
+      group(ClanRarity.uncommon, 'Clans peu communs', 'Atout Clan peu commun · 2 points'),
+      const SizedBox(height: 20),
+      group(ClanRarity.rare, 'Clans rares', 'Atout Clan rare · 4 points, avec l’accord du conte'),
+      const SizedBox(height: 20),
+      TextFieldRow(
+        label: 'Lignée — facultatif, se paie en atout',
+        value: c.lineage,
+        onChanged: (v) {
+          c.lineage = v;
+          changed();
+        },
+      ),
+    ]);
+  }
+}
+
+class _AttributesStep extends StatelessWidget {
+  const _AttributesStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    const ranks = ['Primaire · 7', 'Secondaire · 5', 'Tertiaire · 3'];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _section(context, 'Catégorie', [
+        for (var i = 0; i < 3; i++)
+          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            SizedBox(width: 130, child: Text(ranks[i])),
+            for (final cat in AttrCategory.values)
+              ChoiceChip(
+                key: Key('rank-$i-${cat.name}'),
+                label: Text(cat.label),
+                selected: c.attributeRanks[i] == cat,
+                selectedColor: AppColors.navActive,
+                onSelected: (_) {
+                  for (var j = 0; j < 3; j++) {
+                    if (c.attributeRanks[j] == cat) c.attributeRanks[j] = null;
+                  }
+                  c.attributeRanks[i] = cat;
+                  changed();
+                },
+              ),
+          ]),
+      ]),
+      const SizedBox(height: 20),
+      _section(context, 'Focus', [
+        for (final cat in AttrCategory.values)
+          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            SizedBox(width: 130, child: Text('${cat.label} · ${c.attributes[cat]!.value}')),
+            for (final f in focuses[cat]!)
+              ChoiceChip(
+                label: Text(f),
+                selected: c.attributes[cat]!.focus == f,
+                selectedColor: AppColors.navActive,
+                onSelected: (_) {
+                  c.attributes[cat]!.focus = f;
+                  changed();
+                },
+              ),
+          ]),
+      ]),
+    ]);
+  }
+}
+
+/// Liste à niveaux gratuits (compétences, historiques) avec précision par ligne.
+class _FreeLevels extends StatelessWidget {
+  const _FreeLevels({
+    required this.c,
+    required this.kind,
+    required this.names,
+    required this.max,
+    required this.noteLabel,
+    required this.needsNote,
+    required this.changed,
+  });
+
+  final Character c;
+  final String kind;
+  final List<String> names;
+  final int max;
+  final String noteLabel;
+  final bool Function(String) needsNote;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final list = kind == Buy.skill ? c.skills : c.backgrounds;
+    final all = [...names, for (final t in list) if (!names.contains(t.name)) t.name];
+    return Panel(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        for (final name in all)
+          Container(
+            key: ValueKey(name),
+            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                Expanded(child: Text(name, style: Theme.of(context).textTheme.bodyMedium)),
+                DotPicker(
+                  label: name,
+                  value: freeLevelOf(c, kind, name),
+                  max: max,
+                  bought: purchasedCount(c, kind, name),
+                  onChanged: (v) {
+                    setFreeLevel(c, kind, name, v);
+                    changed();
+                  },
+                ),
+              ]),
+              if (levelOf(c, kind, name) > 0 && needsNote(name))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TextFieldRow(
+                    label: '$noteLabel de $name',
+                    value: list.firstWhere((t) => t.name == name).note,
+                    onChanged: (v) {
+                      list.firstWhere((t) => t.name == name).note = v;
+                      changed();
+                    },
+                  ),
+                ),
+            ]),
+          ),
+      ]),
+    );
+  }
+}
+
+Widget _slotChips(BuildContext context, List<int> slots, List<int> placed) => Wrap(spacing: 10, runSpacing: 10, children: [
+      for (final level in slots.toSet())
+        Builder(builder: (context) {
+          final expected = slots.where((s) => s == level).length;
+          final actual = placed.where((p) => p == level).length;
+          final ok = actual == expected;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              border: Border.all(color: ok ? AppColors.border : AppColors.gold),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${'●' * level}  $actual / $expected',
+              style: TextStyle(color: ok ? AppColors.success : AppColors.goldLight, fontWeight: FontWeight.w600),
+            ),
+          );
+        }),
+    ]);
+
+class _SkillsStep extends StatelessWidget {
+  const _SkillsStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _slotChips(context, skillSlots, [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)]),
+        const SizedBox(height: 16),
+        _FreeLevels(
+          c: c,
+          kind: Buy.skill,
+          names: skillNames,
+          max: 4,
+          noteLabel: 'Domaine',
+          needsNote: domainSkills.contains,
+          changed: changed,
+        ),
+      ]);
 }
