@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'auth/forgot_password_screen.dart';
+import 'auth/login_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
 import 'core/empty_state.dart';
@@ -48,8 +50,11 @@ GoRouter router(Ref ref) {
     routes: [
       page('/', const LoadingScreen()),
       page('/chargement', const LoadingScreen()),
-      GoRoute(path: '/connexion', builder: (_, _) => later('Connexion')),
-      GoRoute(path: '/mot-de-passe', builder: (_, _) => later('Mot de passe oublié')),
+      GoRoute(
+        path: '/connexion',
+        builder: (_, state) => LoginScreen(disabled: state.uri.queryParameters['desactive'] == '1'),
+      ),
+      page('/mot-de-passe', const ForgotPasswordScreen()),
       GoRoute(path: '/demande-acces', builder: (_, _) => later('Demander un accès')),
       GoRoute(path: '/attente', builder: (_, _) => later('En attente')),
       ShellRoute(
