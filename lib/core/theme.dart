@@ -23,6 +23,9 @@ abstract final class AppColors {
   static const narrator = Color(0xFFC3B5F0);
   static const offline = Color(0xFF8FB8E0);
   static const staffAvatar = Color(0xFF4A2226);
+  static const activeBg = Color(0xFF1E3A31);
+  static const reviewBg = Color(0xFF3A3020);
+  static const deadBg = Color(0xFF3A1D20);
 }
 
 /// Largeur à partir de laquelle on affiche la mise en page Web.
