@@ -27,6 +27,9 @@ Widget creationStep(int step, Character c, VoidCallback changed) => switch (step
       3 => _ClanStep(c, changed),
       4 => _AttributesStep(c, changed),
       5 => _SkillsStep(c, changed),
+      6 => _BackgroundsStep(c, changed),
+      7 => _DisciplinesStep(c, changed),
+      8 => _MeritsStep(c, changed),
       _ => Text('Étape $step', key: const Key('step-todo')),
     };
 
@@ -341,4 +344,193 @@ class _SkillsStep extends StatelessWidget {
           changed: changed,
         ),
       ]);
+}
+
+class _BackgroundsStep extends StatelessWidget {
+  const _BackgroundsStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final rank = rankFor(c);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _slotChips(context, backgroundSlots, [for (final b in c.backgrounds) freeLevelOf(c, Buy.background, b.name)]),
+      const SizedBox(height: 16),
+      _FreeLevels(
+        c: c,
+        kind: Buy.background,
+        names: backgroundNames,
+        max: 3,
+        noteLabel: 'Précisions',
+        needsNote: (n) => n != generationName,
+        changed: changed,
+      ),
+      const SizedBox(height: 20),
+      _section(context, 'Génération', [
+        Text(
+          rank == null
+              ? 'Aucun point de Génération : le personnage serait un mortel.'
+              : '${rank.label} · Sang ${bloodByRank[rank]!.$1}, ${bloodByRank[rank]!.$2} par tour',
+          style: t.bodyMedium,
+        ),
+        if (rank != null)
+          DropdownButtonFormField<int?>(
+            key: const Key('generation-number'),
+            initialValue: c.genNumber,
+            decoration: const InputDecoration(labelText: 'Génération'),
+            items: [for (final n in generationNumbers[rank]!) DropdownMenuItem<int?>(value: n, child: Text('${n}e'))],
+            onChanged: (n) {
+              c.genNumber = n;
+              changed();
+            },
+          ),
+        Text('Monter en Génération se paie en XP à l’étape 9 et n’est plus possible ensuite.', style: t.bodySmall),
+      ]),
+    ]);
+  }
+}
+
+class _DisciplinesStep extends StatelessWidget {
+  const _DisciplinesStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final caitiff = clanInfo(c.clan)?.name == 'Caïtiff';
+    final inClan = c.disciplines.where((d) => d.inClan).toList();
+    final two = inClan.where((d) => freeLevelOf(c, Buy.discipline, d.name) == 2).map((d) => d.name).firstOrNull;
+    void pickTwo(String name) {
+      for (final d in inClan) {
+        setDisciplineFree(c, d.name, d.name == name ? 2 : 1);
+      }
+      changed();
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (c.clan == null) Text('Choisissez d’abord un clan (étape 3).', style: t.bodyMedium),
+      if (caitiff)
+        _section(context, 'Trois disciplines communes', [
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final name in commonDisciplines)
+              FilterChip(
+                label: Text(name),
+                selected: inClan.any((d) => d.name == name),
+                onSelected: (on) {
+                  if (on && inClan.length < 3) {
+                    c.disciplines.removeWhere((d) => d.name == name);
+                    c.disciplines.add(Discipline(name, 0, inClan: true));
+                  } else if (!on) {
+                    c.disciplines.removeWhere((d) => d.name == name && purchasedCount(c, Buy.discipline, name) == 0);
+                  }
+                  changed();
+                },
+              ),
+          ]),
+        ]),
+      const SizedBox(height: 16),
+      for (final d in inClan)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Panel(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                Expanded(child: Text(d.name, style: t.titleMedium)),
+                Text('●' * d.level, style: const TextStyle(color: AppColors.gold, letterSpacing: 2)),
+                const SizedBox(width: 12),
+                ChoiceChip(
+                  key: Key('two-${d.name}'),
+                  label: const Text('2 points gratuits'),
+                  selected: two == d.name,
+                  selectedColor: AppColors.navActive,
+                  onSelected: (_) => pickTwo(d.name),
+                ),
+              ]),
+              TextFieldRow(
+                label: 'Pouvoirs de ${d.name}',
+                value: d.powers.join(', '),
+                onChanged: (v) {
+                  d.powers = [for (final p in (v ?? '').split(',')) if (p.trim().isNotEmpty) p.trim()];
+                  changed();
+                },
+              ),
+            ]),
+          ),
+        ),
+      Text(
+        'Des points en plus s’achètent à l’étape 9 : en clan, nouveau niveau × 3 ; hors clan, jusqu’à 3 points dans une discipline commune, nouveau niveau × 4.',
+        style: t.bodySmall,
+      ),
+    ]);
+  }
+}
+
+class _MeritsStep extends StatelessWidget {
+  const _MeritsStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final b = budgetOf(c);
+    final rarity = clanInfo(c.clan)?.rarity.meritPoints ?? 0;
+    Widget column(String title, String counter, List<Trait> chosen, Map<String, int> catalog, String key) {
+      final remaining = catalog.entries.where((e) => !chosen.any((m) => m.name == e.key)).toList();
+      return Panel(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [Expanded(child: SectionTitle(title)), Text(counter, style: t.labelMedium)]),
+          const SizedBox(height: 10),
+          if (title == 'Atouts' && rarity > 0) Text('Rareté du clan · $rarity points', style: t.bodyMedium),
+          if (chosen.isEmpty && !(title == 'Atouts' && rarity > 0)) Text('Aucun pour l’instant', style: t.bodySmall),
+          for (final m in chosen)
+            Row(children: [
+              Expanded(child: Text('${m.name} · ${m.level}', style: t.bodyMedium)),
+              IconButton(
+                tooltip: 'Retirer ${m.name}',
+                onPressed: () {
+                  chosen.remove(m);
+                  changed();
+                },
+                icon: const Icon(Icons.close, size: 18),
+              ),
+            ]),
+          const SizedBox(height: 8),
+          // Clé par taille de liste : le menu repart vide après chaque ajout.
+          KeyedSubtree(
+            key: ValueKey('$key-${chosen.length}'),
+            child: DropdownButtonFormField<String>(
+              key: Key(key),
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Ajouter…'),
+              items: [for (final e in remaining) DropdownMenuItem(value: e.key, child: Text('${e.key} (${e.value})'))],
+              onChanged: (name) {
+                if (name == null) return;
+                chosen.add(Trait(name, catalog[name]!));
+                changed();
+              },
+            ),
+          ),
+        ]),
+      );
+    }
+
+    final merits = column('Atouts', '${b.merits} / $maxMeritPoints points', c.merits, baseMerits, 'add-merit');
+    final flaws = column('Handicaps', '${b.flawsTaken} / $maxFlawXp XP', c.flaws, baseFlaws, 'add-flaw');
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (isWide(context))
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: merits),
+          const SizedBox(width: 20),
+          Expanded(child: flaws),
+        ])
+      else ...[merits, const SizedBox(height: 20), flaws],
+      const SizedBox(height: 12),
+      Text('Avec l’accord du conte, un joueur peut prendre plus de 7 points de handicaps, mais n’en tire jamais plus de 7 XP.', style: t.bodySmall),
+    ]);
+  }
 }

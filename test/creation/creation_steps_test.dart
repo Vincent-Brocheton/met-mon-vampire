@@ -60,4 +60,35 @@ void main() {
     expect(levelOf(c, Buy.skill, 'Représentation'), 1);
     expect(find.byKey(const Key('field-Domaine de Représentation')), findsOneWidget);
   });
+
+  testWidgets('étape 6 : génération proposée selon le rang', (tester) async {
+    final c = valid()..genNumber = null;
+    await pumpStep(tester, 6, c);
+    expect(find.text('Génération'), findsWidgets);
+    await tester.tap(find.byKey(const Key('generation-number')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('13e').last);
+    await tester.pumpAndSettle();
+    expect(c.genNumber, 13);
+  });
+
+  testWidgets('étape 7 : choisir la discipline à 2 points', (tester) async {
+    final c = valid();
+    await pumpStep(tester, 7, c);
+    await tester.tap(find.byKey(const Key('two-Auspex')));
+    await tester.pump();
+    expect(freeLevelOf(c, Buy.discipline, 'Auspex'), 2);
+    expect(freeLevelOf(c, Buy.discipline, 'Thaumaturgie'), 1);
+  });
+
+  testWidgets('étape 8 : ajouter un atout', (tester) async {
+    final c = valid();
+    await pumpStep(tester, 8, c);
+    await tester.tap(find.byKey(const Key('add-merit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chanceux (2)').last);
+    await tester.pumpAndSettle();
+    expect(c.merits.map((m) => m.name), contains('Chanceux'));
+    expect(budgetOf(c).merits, 2);
+  });
 }
