@@ -119,7 +119,8 @@ Chaque sous-projet suivant ajoutera son propre dossier sous `lib/`.
 | `disabled` | déconnexion, puis `/connexion` avec le message « Compte désactivé » |
 | `joueur` | `/joueur/...` ; toute route `/conteur/...` renvoie vers `/joueur` |
 | `narrateur`, `conteur`, `principal` | `/conteur/...` |
-| `principal` et `chronicle/config` absent | `/conteur/demarrage` |
+| `principal` et chronique sans nom (`chronicle/config.name` vide) | `/conteur/demarrage` |
+| session en cours de chargement | `/chargement?de=<destination>`, puis retour à la destination (rafraîchissement d'une page Web) |
 
 `/compte` est accessible à tous les rôles validés.
 
@@ -169,8 +170,9 @@ createdAt: timestamp
 
 1. Formulaire : nom affiché, e-mail, mot de passe (au moins 12 caractères, saisi deux fois), message pour le conte.
 2. L'app crée le compte avec `createUserWithEmailAndPassword`, puis envoie un e-mail de vérification.
-3. S'il existe une invitation pour cet e-mail et que l'e-mail est vérifié, le document `users` reçoit le rôle de l'invitation. Sinon, il reçoit le rôle `pending`.
-4. Sur l'écran `/attente`, le rôle `pending` voit « Un conteur va valider votre compte ». Un bouton « J'ai confirmé mon e-mail » recharge l'utilisateur et applique l'invitation si elle existe.
+3. Le document `users` est créé avec le rôle `pending`.
+4. Sur l'écran `/attente`, le rôle `pending` voit « Un conteur va valider votre compte ». Un bouton « J'ai confirmé mon e-mail » recharge l'utilisateur et applique l'invitation si elle existe et que l'e-mail est vérifié.
+5. Si la création du document `users` a échoué (réseau, deux premiers comptes simultanés), l'écran `/attente` propose « Finaliser ma demande », qui relance la création.
 
 ### Connexion
 
@@ -244,15 +246,15 @@ Le tableau suit C33. La matrice générale est plus floue, on retient l'interpr�
 Fonctions utilitaires : `role()` lit `users/{request.auth.uid}.role` ; `isStaff()` vaut vrai pour conteur ou principal (le narrateur n'accède pas aux comptes, selon C33) ; `isPrincipal()`.
 
 - `chronicle/config`
-  - Lecture : tout utilisateur connecté, quel que soit son rôle, puisque l'écran d'attente affiche le nom de la chronique.
+  - Lecture : publique, sans connexion. L'écran de connexion affiche le nom de la chronique, et le document ne contient rien de sensible.
   - Création : seulement si le document n'existe pas, avec `ownerUid == request.auth.uid` et la création simultanée de `users/{uid}` en `principal` (vérifiée par `getAfter`).
   - Modification : `isPrincipal()` ; `ownerUid` ne change pas.
 - `users/{uid}`
   - Lecture : soi-même, ou `isStaff()`.
   - Création par soi-même, champs `email` et `displayName` cohérents avec le jeton, avec l'un de ces rôles :
     - `pending` ;
-    - le rôle de `invitations/{token.email}`, si `token.email_verified` ;
     - `principal`, dans le cas du premier lancement ci-dessus.
+    - Une invitation ne s'applique jamais à la création, car l'e-mail n'est pas encore vérifié à ce moment-là. Elle s'applique ensuite, par la modification de `pending` vers le rôle invité décrite ci-dessous.
   - Modification par soi-même : uniquement `displayName` et `lastLoginAt`. Exception : passer de `pending` au rôle d'une invitation existante, si l'e-mail est vérifié.
   - Modification par un conteur : `role` de `pending` vers `joueur` ou `disabled`, de `joueur` vers `disabled`, de `disabled` vers `joueur`.
   - Modification par le principal : tout changement de `role`, sauf faire tomber à zéro le nombre de principaux.
