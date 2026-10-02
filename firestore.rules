@@ -1,6 +1,81 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} { allow read, write: if false; }
+
+    function signedIn() { return request.auth != null; }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function configPath() { return /databases/$(database)/documents/chronicle/config; }
+    function myRole() {
+      return exists(userPath(request.auth.uid)) ? get(userPath(request.auth.uid)).data.role : 'none';
+    }
+    function isPrincipal() { return signedIn() && myRole() == 'principal'; }
+    // Conteur ou principal. Le narrateur n'a pas accès aux comptes (C33).
+    function managesAccounts() { return signedIn() && myRole() in ['conteur', 'principal']; }
+    function tokenEmail() { return request.auth.token.email.lower(); }
+    function invitationPath() { return /databases/$(database)/documents/invitations/$(tokenEmail()); }
+    function validName(n) { return n is string && n.size() > 0 && n.size() <= 60; }
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // Premier lancement : users/{uid} en principal + chronicle/config dans le même batch.
+    function isFirstPrincipal() {
+      return request.resource.data.role == 'principal'
+        && !exists(configPath())
+        && getAfter(configPath()).data.ownerUid == request.auth.uid;
+    }
+
+    function selfUpdate(uid) {
+      return request.auth.uid == uid && (
+        (changedOnly(['displayName', 'email', 'lastLoginAt'])
+          && validName(request.resource.data.displayName)
+          && request.resource.data.email == request.auth.token.email)
+        || acceptsInvitation()
+      );
+    }
+
+    function acceptsInvitation() {
+      return resource.data.role == 'pending'
+        && changedOnly(['role'])
+        && request.auth.token.email_verified == true
+        && exists(invitationPath())
+        && request.resource.data.role == get(invitationPath()).data.role;
+    }
+
+    function accountManagerUpdate(uid) {
+      return changedOnly(['role']) && request.auth.uid != uid && (
+        (isPrincipal()
+          && request.resource.data.role in ['joueur', 'narrateur', 'conteur', 'principal', 'disabled'])
+        || (myRole() == 'conteur'
+          && (resource.data.role + '>' + request.resource.data.role)
+            in ['pending>joueur', 'pending>disabled', 'joueur>disabled', 'disabled>joueur'])
+      );
+    }
+
+    match /chronicle/config {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && getAfter(userPath(request.auth.uid)).data.role == 'principal';
+      allow update: if isPrincipal()
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || managesAccounts());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName', 'email', 'role', 'accessMessage', 'createdAt', 'lastLoginAt'])
+        && request.resource.data.email == request.auth.token.email
+        && validName(request.resource.data.displayName)
+        && (request.resource.data.role == 'pending' || isFirstPrincipal());
+      allow update: if signedIn() && (selfUpdate(uid) || accountManagerUpdate(uid));
+    }
+
+    match /invitations/{email} {
+      allow read: if isPrincipal() || (signedIn() && tokenEmail() == email);
+      allow create, update: if isPrincipal()
+        && request.resource.data.role in ['joueur', 'narrateur', 'conteur'];
+      allow delete: if isPrincipal();
+    }
   }
 }
