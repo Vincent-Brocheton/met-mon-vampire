@@ -9,6 +9,7 @@ import 'auth/pending_screen.dart';
 import 'auth/request_access_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
+import 'characters/character_edit_screen.dart';
 import 'characters/character_screen.dart';
 import 'characters/characters_list_screen.dart';
 import 'characters/my_characters_screen.dart';
@@ -94,6 +95,18 @@ GoRouter router(Ref ref) {
           page('/conteur/comptes', const AccountsScreen()),
           page('/conteur/equipe', const TeamScreen()),
           page('/conteur/fiches', const CharactersListScreen()),
+          GoRoute(
+            path: '/conteur/fiches/:id',
+            builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/conteur/fiches/:id/historique',
+            builder: (_, s) => CharacterScreen(
+              id: s.pathParameters['id']!,
+              basePath: '/conteur/fiches/${s.pathParameters['id']}',
+              history: true,
+            ),
+          ),
           page('/conteur/demandes', soon('Demandes')),
           page('/conteur/pnj', soon('PNJ confiés')),
           page('/conteur/xp', soon('XP')),
