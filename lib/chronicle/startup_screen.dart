@@ -77,7 +77,7 @@ class StartupScreen extends ConsumerWidget {
         constraints: const BoxConstraints(maxWidth: 960),
         child: Panel(
           padding: EdgeInsets.zero,
-          child: Column(children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             for (final (i, (n, title, detail, status, button, onTap)) in steps.indexed)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
