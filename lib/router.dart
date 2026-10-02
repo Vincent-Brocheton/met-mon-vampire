@@ -8,6 +8,7 @@ import 'auth/pending_screen.dart';
 import 'auth/request_access_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
+import 'chronicle/accounts_screen.dart';
 import 'chronicle/startup_screen.dart';
 import 'core/empty_state.dart';
 import 'player/welcome_screen.dart';
@@ -71,7 +72,7 @@ GoRouter router(Ref ref) {
           page('/joueur/notifications', soon('Notifications')),
           page('/conteur', const StorytellerHome()),
           page('/conteur/demarrage', const StartupScreen()),
-          GoRoute(path: '/conteur/comptes', builder: (_, _) => soon('Comptes')),
+          page('/conteur/comptes', const AccountsScreen()),
           GoRoute(path: '/conteur/equipe', builder: (_, _) => soon('Équipe de conteurs')),
           page('/conteur/fiches', soon('Fiches')),
           page('/conteur/demandes', soon('Demandes')),
