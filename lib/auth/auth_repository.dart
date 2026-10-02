@@ -2,6 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+/// Nom affiché du profil : celui du compte Auth, sinon le début de l'e-mail.
+String defaultDisplayName(String? name, String email) {
+  final n = name?.trim() ?? '';
+  final result = n.isEmpty ? email.split('@').first : n;
+  return result.length > 60 ? result.substring(0, 60) : result; // règle validName : 60 max
+}
+
 class AuthRepository {
   AuthRepository(this._auth, this._db);
 
@@ -54,10 +61,9 @@ class AuthRepository {
     final config = _db.doc('chronicle/config');
     final first = !(await config.get()).exists;
     final now = FieldValue.serverTimestamp();
-    final name = user.displayName?.trim() ?? '';
     final batch = _db.batch()
       ..set(ref, {
-        'displayName': name.isEmpty ? user.email!.split('@').first : name,
+        'displayName': defaultDisplayName(user.displayName, user.email!),
         'email': user.email,
         'role': first ? 'principal' : 'pending',
         if (message != null && message.trim().isNotEmpty) 'accessMessage': message.trim(),

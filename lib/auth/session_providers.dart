@@ -26,12 +26,14 @@ Stream<User?> authState(Ref ref) => ref.watch(firebaseAuthProvider).userChanges(
 Stream<AppUser?> currentUser(Ref ref) {
   final uid = ref.watch(authStateProvider.select((a) => a.value?.uid));
   if (uid == null) return Stream.value(null);
-  return ref
-      .watch(firestoreProvider)
-      .doc('users/$uid')
-      .snapshots()
-      .map((d) => d.exists ? AppUser.fromDoc(d) : null);
+  return profileStream(ref.watch(firestoreProvider).doc('users/$uid').snapshots());
 }
+
+/// Profil depuis les instantanés Firestore. Un « absent » venu du seul cache
+/// (hors ligne) n'est pas une réponse : on attend le serveur.
+Stream<AppUser?> profileStream(Stream<DocumentSnapshot<Map<String, dynamic>>> snapshots) => snapshots
+    .where((d) => d.exists || !d.metadata.isFromCache)
+    .map((d) => d.exists ? AppUser.fromDoc(d) : null);
 
 /// Lecture publique (règles) : affichée dès l'écran de connexion.
 @Riverpod(keepAlive: true)
@@ -50,7 +52,9 @@ Session session(Ref ref) {
 
   final uid = auth.value?.uid;
   if (pending(auth)) return Session.loadingState;
-  if (uid != null && (pending(user) || pending(chronicle))) return Session.loadingState;
+  // user.isLoading, et non pending(user) : quand le uid change, le flux garde
+  // l'ancienne valeur (null) pendant qu'il se reconstruit.
+  if (uid != null && (user.isLoading || pending(chronicle))) return Session.loadingState;
   return Session(
     uid: uid,
     role: user.value?.role,
