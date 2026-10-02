@@ -23,6 +23,7 @@ class _FakeMeta implements SnapshotMetadata {
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 
+// ignore: subtype_of_sealed_class
 class _FakeSnap implements DocumentSnapshot<Map<String, dynamic>> {
   _FakeSnap({required this.exists, required bool fromCache}) : metadata = _FakeMeta(fromCache);
   @override
