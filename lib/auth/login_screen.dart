@@ -11,10 +11,13 @@ import 'session_providers.dart';
 
 /// Maquettes Main.dc.html (Web) et Connexion-mobile.dc.html.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.disabled = false});
+  const LoginScreen({super.key, this.disabled = false, this.emailLink});
 
   /// Arrivée après désactivation du compte (redirection `?desactive=1`).
   final bool disabled;
+
+  /// URL complète de la page si l'on revient d'un lien de connexion reçu par e-mail.
+  final String? emailLink;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -28,12 +31,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _busy = false;
   String? _error;
 
+  bool _linkSent = false;
+
+  bool get _finishingLink =>
+      widget.emailLink != null && ref.read(authRepositoryProvider).isSignInLink(widget.emailLink!);
+
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
+
+  Future<void> _withBusy(Future<void> Function() action) async {
+    final error = validateEmail(_email.text);
+    if (_busy || error != null) {
+      setState(() => _error = error);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await action();
+    } catch (e) {
+      if (mounted) setState(() => _error = authErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _sendLink() => _withBusy(() async {
+        await ref.read(authRepositoryProvider).sendSignInLink(_email.text);
+        if (mounted) setState(() => _linkSent = true);
+      });
+
+  Future<void> _finishLink() =>
+      _withBusy(() => ref.read(authRepositoryProvider).signInWithLink(_email.text, widget.emailLink!));
 
   Future<void> _submit() async {
     if (_busy || !_form.currentState!.validate()) return;
@@ -92,6 +127,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildForm(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    if (_finishingLink) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text('Terminer la connexion', style: t.headlineLarge),
+        const SizedBox(height: 8),
+        Text('Confirmez l’adresse e-mail à laquelle le lien a été envoyé.',
+            style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+        const SizedBox(height: 28),
+        LabeledField(label: 'Adresse e-mail', controller: _email, keyboardType: TextInputType.emailAddress, onSubmitted: _finishLink),
+        const SizedBox(height: 18),
+        if (_error != null) ...[FormError(_error!), const SizedBox(height: 12)],
+        FilledButton(onPressed: _busy ? null : _finishLink, child: const Text('Se connecter')),
+      ]);
+    }
     return AutofillGroup(
       child: Form(
         key: _form,
@@ -149,6 +197,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   : const Text('Entrer'),
             ),
           ),
+          if (kIsWeb) ...[
+            const SizedBox(height: 20),
+            Row(children: [
+              const Expanded(child: Divider()),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('ou', style: t.bodySmall)),
+              const Expanded(child: Divider()),
+            ]),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _sendLink,
+              icon: const Icon(Icons.mail_outline, size: 18),
+              label: const Text('Recevoir un lien de connexion par e-mail'),
+            ),
+            if (_linkSent) ...[
+              const SizedBox(height: 10),
+              Semantics(
+                liveRegion: true,
+                child: Text('Lien envoyé à ${_email.text.trim()}. Ouvrez-le dans ce navigateur.',
+                    style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+              ),
+            ],
+          ],
           const SizedBox(height: 28),
           Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
             Text('Nouveau joueur ?', style: t.bodyMedium?.copyWith(color: AppColors.textMuted)),

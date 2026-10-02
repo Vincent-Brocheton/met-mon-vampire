@@ -57,7 +57,10 @@ GoRouter router(Ref ref) {
       page('/chargement', const LoadingScreen()),
       GoRoute(
         path: '/connexion',
-        builder: (_, state) => LoginScreen(disabled: state.uri.queryParameters['desactive'] == '1'),
+        builder: (_, state) => LoginScreen(
+          disabled: state.uri.queryParameters['desactive'] == '1',
+          emailLink: state.uri.queryParameters.containsKey('oobCode') ? Uri.base.toString() : null,
+        ),
       ),
       page('/mot-de-passe', const ForgotPasswordScreen()),
       page('/demande-acces', const RequestAccessScreen()),

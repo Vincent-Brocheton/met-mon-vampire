@@ -26,6 +26,12 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
+  bool isSignInLink(String link) => link.contains('mode=signIn');
+
+  @override
+  Future<void> signInWithLink(String email, String link) => _record('signInWithLink:$email');
+
+  @override
   Future<void> signOut() => _record('signOut');
 
   @override

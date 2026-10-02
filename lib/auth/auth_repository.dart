@@ -89,6 +89,20 @@ class AuthRepository {
     return true;
   }
 
+  /// Lien de retour vers /connexion sur le même site (Web uniquement).
+  Future<void> sendSignInLink(String email) => _auth.sendSignInLinkToEmail(
+        email: email.trim(),
+        actionCodeSettings: ActionCodeSettings(url: '${Uri.base.origin}/connexion', handleCodeInApp: true),
+      );
+
+  bool isSignInLink(String link) => _auth.isSignInWithEmailLink(link);
+
+  /// Un lien utilisé sans compte crée le compte Auth : il passe ensuite par /attente → « Finaliser ma demande ».
+  Future<void> signInWithLink(String email, String link) async {
+    final cred = await _auth.signInWithEmailLink(email: email.trim(), emailLink: link);
+    await _touchLogin(cred.user!);
+  }
+
   Future<void> resendVerification() => _auth.currentUser!.sendEmailVerification();
 
   Future<void> signOut() => _auth.signOut();

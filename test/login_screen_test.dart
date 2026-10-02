@@ -9,7 +9,7 @@ import 'package:portail_met/core/theme.dart';
 import 'fakes.dart';
 
 void main() {
-  Future<FakeAuthRepository> pumpLogin(WidgetTester tester, {bool disabled = false}) async {
+  Future<FakeAuthRepository> pumpLogin(WidgetTester tester, {bool disabled = false, String? emailLink}) async {
     tester.view.physicalSize = const Size(1440, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -19,7 +19,7 @@ void main() {
         authRepositoryProvider.overrideWith((ref) => fake),
         chronicleProvider.overrideWith((ref) => Stream.value(null)),
       ],
-      child: MaterialApp(theme: buildTheme(withFonts: false), home: LoginScreen(disabled: disabled)),
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: LoginScreen(disabled: disabled, emailLink: emailLink)),
     ));
     return fake;
   }
@@ -47,5 +47,14 @@ void main() {
   testWidgets('compte désactivé : message affiché', (tester) async {
     await pumpLogin(tester, disabled: true);
     expect(find.textContaining('Ce compte est désactivé'), findsOneWidget);
+  });
+
+  testWidgets('retour d’un lien e-mail : on termine la connexion', (tester) async {
+    final fake = await pumpLogin(tester, emailLink: 'http://localhost/connexion?mode=signIn&oobCode=x');
+    expect(find.text('Terminer la connexion'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'camille@ex.fr');
+    await tester.tap(find.text('Se connecter'));
+    await tester.pumpAndSettle();
+    expect(fake.calls, ['signInWithLink:camille@ex.fr']);
   });
 }
