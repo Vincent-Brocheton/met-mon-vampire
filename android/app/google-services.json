@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "128823857797",
+    "project_id": "met-mon-vampire",
+    "storage_bucket": "met-mon-vampire.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128823857797:android:c8f94c28d993a383860fec",
+        "android_client_info": {
+          "package_name": "fr.portailmet.portail_met"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9UlYp4upQI8uUWZee8ZMP1krPZzoVugw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,14 +1,1 @@
-{
-  "firestore": { "rules": "firestore.rules" },
-  "hosting": {
-    "public": "build/web",
-    "ignore": ["firebase.json", "**/.*"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
-  },
-  "emulators": {
-    "auth": { "port": 9099 },
-    "firestore": { "port": 8080 },
-    "ui": { "enabled": true, "port": 4000 },
-    "singleProjectMode": true
-  }
-}
+{"firestore":{"rules":"firestore.rules"},"hosting":{"public":"build/web","ignore":["firebase.json","**/.*"],"rewrites":[{"source":"**","destination":"/index.html"}]},"emulators":{"auth":{"port":9099},"firestore":{"port":8080},"ui":{"enabled":true,"port":4000},"singleProjectMode":true},"flutter":{"platforms":{"android":{"default":{"projectId":"met-mon-vampire","appId":"1:128823857797:android:c8f94c28d993a383860fec","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"met-mon-vampire","configurations":{"android":"1:128823857797:android:c8f94c28d993a383860fec","web":"1:128823857797:web:7d6b1d058082f42f860fec"}}}}}}
