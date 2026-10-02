@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'account/account_screen.dart';
 import 'auth/forgot_password_screen.dart';
 import 'auth/login_screen.dart';
 import 'auth/pending_screen.dart';
@@ -64,7 +65,7 @@ GoRouter router(Ref ref) {
       ShellRoute(
         builder: (_, state, child) => AppShell(location: state.uri.path, child: child),
         routes: [
-          GoRoute(path: '/compte', builder: (_, _) => soon('Mon compte')),
+          page('/compte', const AccountScreen()),
           page('/joueur', const WelcomeScreen()),
           page('/joueur/personnages', soon('Mes personnages')),
           page('/joueur/pnj', soon('PNJ confiés')),
