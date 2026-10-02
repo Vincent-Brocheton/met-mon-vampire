@@ -9,6 +9,7 @@ import 'auth/request_access_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
 import 'core/empty_state.dart';
+import 'player/welcome_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
 
@@ -61,7 +62,7 @@ GoRouter router(Ref ref) {
         builder: (_, state, child) => AppShell(location: state.uri.path, child: child),
         routes: [
           GoRoute(path: '/compte', builder: (_, _) => soon('Mon compte')),
-          GoRoute(path: '/joueur', builder: (_, _) => soon('Accueil')),
+          page('/joueur', const WelcomeScreen()),
           page('/joueur/personnages', soon('Mes personnages')),
           page('/joueur/pnj', soon('PNJ confiés')),
           page('/joueur/demandes', soon('Mes demandes')),
