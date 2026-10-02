@@ -17,6 +17,14 @@ service cloud.firestore {
     function changedOnly(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
+    function isStaff() { return signedIn() && myRole() in ['narrateur', 'conteur', 'principal']; }
+    function charPath(id) { return /databases/$(database)/documents/characters/$(id); }
+    function histPath(id, h) { return /databases/$(database)/documents/characters/$(id)/history/$(h); }
+    // L'entrée d'historique désignée par la nouvelle version, créée dans le même lot par l'auteur.
+    function historyOk(id, kinds) {
+      let h = getAfter(histPath(id, request.resource.data.lastHistoryId)).data;
+      return h.byUid == request.auth.uid && h.at == request.time && h.kind in kinds;
+    }
 
     // Premier lancement : users/{uid} en principal + chronicle/config dans le même batch.
     function isFirstPrincipal() {
@@ -69,6 +77,50 @@ service cloud.firestore {
         && validName(request.resource.data.displayName)
         && (request.resource.data.role == 'pending' || isFirstPrincipal());
       allow update: if signedIn() && (selfUpdate(uid) || accountManagerUpdate(uid));
+    }
+
+    match /characters/{id} {
+      allow read: if signedIn()
+        && (resource.data.get('playerUid', null) == request.auth.uid || isStaff());
+
+      allow create: if managesAccounts()
+        && request.resource.data.version == 1
+        && historyOk(id, ['creation'])
+        && ((request.resource.data.kind == 'pj' && request.resource.data.status == 'draft'
+              && request.resource.data.playerUid is string
+              && request.resource.data.playerUid != request.auth.uid)
+          || (request.resource.data.kind == 'pnj' && request.resource.data.status == 'active'
+              && request.resource.data.get('playerUid', null) == null));
+
+      // Plan A : édition directe par le conte (C3). Le plan B ajoute les cas du joueur et de la validation.
+      allow update: if signedIn()
+        && request.resource.data.version == resource.data.version + 1
+        && staffEdit(id);
+
+      function staffEdit(id) {
+        return managesAccounts()
+          && resource.data.get('playerUid', null) != request.auth.uid
+          && request.resource.data.get('playerUid', null) != request.auth.uid
+          && (resource.data.kind == 'pnj' || resource.data.status in ['active', 'retired', 'dead'])
+          && (request.resource.data.kind == 'pnj' || request.resource.data.status in ['active', 'retired', 'dead'])
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['kind', 'createdAt'])
+          && historyOk(id, ['edit', 'status'])
+          && getAfter(histPath(id, request.resource.data.lastHistoryId)).data.reason.size() > 0;
+      }
+
+      match /history/{h} {
+        allow read: if signedIn()
+          && (get(charPath(id)).data.get('playerUid', null) == request.auth.uid || isStaff());
+        allow create: if signedIn()
+          && request.resource.data.byUid == request.auth.uid
+          && request.resource.data.at == request.time
+          && getAfter(charPath(id)).data.lastHistoryId == h;
+      }
+
+      match /private/{doc} {
+        allow read, write: if managesAccounts()
+          && get(charPath(id)).data.get('playerUid', null) != request.auth.uid;
+      }
     }
 
     match /invitations/{email} {
