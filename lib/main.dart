@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
+import 'core/theme.dart';
 import 'firebase_options.dart';
+import 'router.dart';
 
 /// `--dart-define=EMULATORS=true` pour travailler sur les émulateurs locaux.
 const useEmulators = bool.fromEnvironment('EMULATORS');
@@ -20,5 +22,17 @@ Future<void> main() async {
     await FirebaseAuth.instance.useAuthEmulator(host, 9099);
     FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
   }
-  runApp(const ProviderScope(child: MaterialApp(home: Scaffold(body: Center(child: Text('Portail MET'))))));
+  runApp(const ProviderScope(child: PortailApp()));
+}
+
+class PortailApp extends ConsumerWidget {
+  const PortailApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => MaterialApp.router(
+        title: 'Portail MET',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        routerConfig: ref.watch(routerProvider),
+      );
 }
