@@ -1,0 +1,59 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:portail_met/auth/session.dart';
+import 'package:portail_met/auth/session_providers.dart';
+import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/characters/characters_list_screen.dart';
+import 'package:portail_met/chronicle/chronicle_repository.dart';
+import 'package:portail_met/core/theme.dart';
+
+import '../fakes.dart';
+
+void main() {
+  testWidgets('C2 : compteur, recherche, création d’un PNJ', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = FakeCharacterRepository();
+    const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        characterRepositoryProvider.overrideWith((ref) => repo),
+        allCharactersProvider.overrideWith((ref) => Stream.value([
+              Character(id: '1', name: 'Isaure', kind: CharacterKind.pj, playerName: 'Camille R.', status: CharacterStatus.active),
+              Character(id: '2', name: 'Bastien Roche', kind: CharacterKind.pj, playerName: 'Karim L.', status: CharacterStatus.active),
+              Character(id: '3', name: 'Sœur Agathe', kind: CharacterKind.pnj, status: CharacterStatus.active),
+            ])),
+      ],
+      child: MaterialApp.router(
+        theme: buildTheme(withFonts: false),
+        routerConfig: GoRouter(routes: [
+          GoRoute(path: '/', builder: (_, _) => const Scaffold(body: CharactersListScreen())),
+          GoRoute(path: '/conteur/fiches/:id', builder: (_, s) => Text('édition ${s.pathParameters['id']}')),
+        ]),
+      ),
+    ));
+    await tester.pump();
+    expect(find.text('3 fiches · 2 PJ actifs · 1 PNJ'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, 'isaure');
+    await tester.pump();
+    expect(find.text('Isaure'), findsOneWidget);
+    expect(find.text('Bastien Roche'), findsNothing);
+
+    await tester.tap(find.text('Nouvelle fiche'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PNJ').last); // le segment de la fenêtre, pas le filtre
+    await tester.pump();
+    await tester.enterText(find.byType(TextFormField).last, 'Le Shérif Ansel');
+    await tester.tap(find.text('Créer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['create:pnj:Le Shérif Ansel']);
+    expect(find.text('édition new-id'), findsOneWidget);
+  });
+}

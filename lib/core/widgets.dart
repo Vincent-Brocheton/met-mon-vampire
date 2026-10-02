@@ -20,15 +20,16 @@ class Panel extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
 
+  // Material (et non Container) : les ListTile et effets d'encre s'y dessinent.
   @override
-  Widget build(BuildContext context) => Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          border: Border.all(color: AppColors.border),
+  Widget build(BuildContext context) => Material(
+        color: AppColors.card,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: AppColors.border),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: child,
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: padding, child: child),
       );
 }
 
