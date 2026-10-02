@@ -1,4 +1,6 @@
 import 'package:portail_met/auth/auth_repository.dart';
+import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/characters/character_repository.dart';
 
 /// Enregistre les appels ; lève [error] s’il est défini.
 class FakeAuthRepository implements AuthRepository {
@@ -33,6 +35,29 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() => _record('signOut');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeCharacterRepository implements CharacterRepository {
+  final calls = <String>[];
+  Object? error;
+
+  @override
+  Future<void> saveEdit(Character before, Character after, String reason, Actor by) async {
+    calls.add('saveEdit:$reason');
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<String> create({required String name, required CharacterKind kind, String? playerUid, String? playerName, required Actor by}) async {
+    calls.add('create:${kind.name}:$name');
+    return 'new-id';
+  }
+
+  @override
+  Future<void> saveNotes(String id, String text, Actor by) async => calls.add('notes:$text');
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
