@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import 'character.dart';
 
 /// Points en pastilles ; 0 s'écrit « — ».
@@ -109,3 +111,16 @@ Map<String, int> xpDelta(Character a, Character b) => {
       'earned': b.xpEarned - a.xpEarned,
       'spent': b.xpSpent - a.xpSpent,
     };
+
+/// Réapplique sur [incoming] les champs que [draft] a changés par rapport à [base].
+/// Granularité : le champ de premier niveau (une liste modifiée des deux côtés garde la version locale).
+Character rebase(Character base, Character draft, Character incoming) {
+  const eq = DeepCollectionEquality();
+  final b = base.toMap(), d = draft.toMap(), n = incoming.toMap();
+  final merged = {for (final k in n.keys) k: eq.equals(b[k], d[k]) ? n[k] : d[k]}
+    ..['version'] = n['version']
+    ..['lastHistoryId'] = n['lastHistoryId'];
+  return Character.fromMap(incoming.id, merged)
+    ..createdAt = incoming.createdAt
+    ..updatedAt = incoming.updatedAt;
+}

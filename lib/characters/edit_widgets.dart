@@ -136,6 +136,7 @@ class TraitListEditor extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       for (final t in items)
         Container(
+          key: ObjectKey(t), // l'état des champs suit la ligne, pas sa position
           padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -209,6 +210,7 @@ class DisciplineListEditor extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       for (final d in items)
         Container(
+          key: ObjectKey(d),
           padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

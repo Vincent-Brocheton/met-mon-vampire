@@ -111,7 +111,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     try {
       await ref.read(characterRepositoryProvider).saveEdit(_base!, _draft!, reason, by);
       if (mounted) {
-        setState(() => _base = _draft!.clone()..version = _base!.version + 1);
+        setState(() {
+          _base = _draft!.clone()..version = _base!.version + 1;
+          _incoming = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
       }
     } catch (_) {
@@ -129,7 +132,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
   Widget build(BuildContext context) {
     ref.listen(characterProvider(widget.id), (_, next) {
       final c = next.value;
-      if (c == null || _base == null || c.version == _base!.version) return;
+      // Pendant son propre enregistrement, Firestore renvoie d'abord l'écriture locale : on l'ignore.
+      if (c == null || _base == null || _saving || c.version == _base!.version) return;
       if (_changes.isEmpty) {
         _reset(c);
       } else {
@@ -162,9 +166,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       final changes = _changes;
       return Column(children: [
         Expanded(
-          child: KeyedSubtree(
-            key: ValueKey(_generation),
-            child: PageBody(children: [
+          child: PageBody(children: [
               CharacterHeader(_base!, basePath: '/conteur/fiches/${latest.id}', history: false),
               const SizedBox(height: 16),
               const _Banner('Mode conteur — les modifications s’appliquent directement et sont tracées dans l’historique, avec un motif.'),
@@ -174,19 +176,21 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
                   'Une nouvelle version a été enregistrée par quelqu’un d’autre.',
                   action: TextButton(
                     onPressed: () => setState(() {
+                      _draft = rebase(_base!, _draft!, _incoming!);
                       _base = _incoming;
                       _incoming = null;
+                      _generation++;
                     }),
                     child: const Text('Repartir de la dernière version'),
                   ),
                 ),
               ],
               const SizedBox(height: 22),
-              _Editor(c: _draft!, onChanged: _touch),
+              // Reconstruit les champs texte après Annuler / Repartir ; les notes restent hors de ce sous-arbre.
+              KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch)),
               const SizedBox(height: 22),
               NotesPanel(id: latest.id),
             ]),
-          ),
         ),
         if (changes.isNotEmpty)
           Container(
