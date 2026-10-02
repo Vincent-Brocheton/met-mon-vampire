@@ -208,7 +208,7 @@ final class CurrentUserProvider
   }
 }
 
-String _$currentUserHash() => r'6b67b6f773bf735e7104b4bacc956e8f4265b70a';
+String _$currentUserHash() => r'99c56cf2201bc2a020a5acb7af21ee6a3b3f3a13';
 
 /// Lecture publique (règles) : affichée dès l'écran de connexion.
 
@@ -293,4 +293,4 @@ final class SessionProvider
   }
 }
 
-String _$sessionHash() => r'33c35710dc775550a5ba12cd343a7ded77af2362';
+String _$sessionHash() => r'd07532c591a47c065d9e06df75d80d0f2bfc3f5b';

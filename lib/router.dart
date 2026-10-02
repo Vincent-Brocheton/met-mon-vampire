@@ -9,11 +9,12 @@ import 'auth/pending_screen.dart';
 import 'auth/request_access_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
+import 'characters/character_screen.dart';
+import 'characters/my_characters_screen.dart';
 import 'chronicle/accounts_screen.dart';
 import 'chronicle/startup_screen.dart';
 import 'chronicle/team_screen.dart';
 import 'core/empty_state.dart';
-import 'player/welcome_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
 
@@ -69,8 +70,20 @@ GoRouter router(Ref ref) {
         builder: (_, state, child) => AppShell(location: state.uri.path, child: child),
         routes: [
           page('/compte', const AccountScreen()),
-          page('/joueur', const WelcomeScreen()),
-          page('/joueur/personnages', soon('Mes personnages')),
+          page('/joueur', const PlayerHome()),
+          page('/joueur/personnages', const MyCharactersScreen()),
+          GoRoute(
+            path: '/joueur/personnages/:id',
+            builder: (_, s) => CharacterScreen(id: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']}'),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/historique',
+            builder: (_, s) => CharacterScreen(
+              id: s.pathParameters['id']!,
+              basePath: '/joueur/personnages/${s.pathParameters['id']}',
+              history: true,
+            ),
+          ),
           page('/joueur/pnj', soon('PNJ confiés')),
           page('/joueur/demandes', soon('Mes demandes')),
           page('/joueur/wiki', soon('Wiki')),
