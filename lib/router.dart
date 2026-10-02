@@ -4,6 +4,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'auth/forgot_password_screen.dart';
 import 'auth/login_screen.dart';
+import 'auth/pending_screen.dart';
+import 'auth/request_access_screen.dart';
 import 'auth/session.dart';
 import 'auth/session_providers.dart';
 import 'core/empty_state.dart';
@@ -31,8 +33,6 @@ GoRouter router(Ref ref) {
 
   GoRoute page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
   Widget soon(String feature) => EmptyState.comingSoon(feature);
-  // Placeholder des écrans du socle, remplacé ligne par ligne aux tâches 8 à 14.
-  Widget later(String screen) => Scaffold(body: EmptyState.comingSoon(screen));
 
   return GoRouter(
     initialLocation: '/',
@@ -55,8 +55,8 @@ GoRouter router(Ref ref) {
         builder: (_, state) => LoginScreen(disabled: state.uri.queryParameters['desactive'] == '1'),
       ),
       page('/mot-de-passe', const ForgotPasswordScreen()),
-      GoRoute(path: '/demande-acces', builder: (_, _) => later('Demander un accès')),
-      GoRoute(path: '/attente', builder: (_, _) => later('En attente')),
+      page('/demande-acces', const RequestAccessScreen()),
+      page('/attente', const PendingScreen()),
       ShellRoute(
         builder: (_, state, child) => AppShell(location: state.uri.path, child: child),
         routes: [
