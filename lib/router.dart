@@ -19,6 +19,7 @@ import 'chronicle/team_screen.dart';
 import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
+import 'creation/validation_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
 
@@ -117,7 +118,7 @@ GoRouter router(Ref ref) {
               history: true,
             ),
           ),
-          page('/conteur/demandes', soon('Demandes')),
+          page('/conteur/demandes', const ValidationScreen()),
           page('/conteur/pnj', soon('PNJ confiés')),
           page('/conteur/xp', soon('XP')),
           page('/conteur/wiki', soon('Wiki')),

@@ -157,6 +157,14 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           CharacterHeader(latest, basePath: '/conteur/fiches/${latest.id}', history: false),
           const SizedBox(height: 16),
           _Banner(readOnlyReason),
+          if (latest.kind == CharacterKind.pj &&
+              latest.status == CharacterStatus.draft &&
+              me != null &&
+              me.role.managesAccounts &&
+              latest.playerUid != me.uid) ...[
+            const SizedBox(height: 16),
+            _BonusPanel(latest),
+          ],
           const SizedBox(height: 22),
           CharacterSheetView(latest),
         ]);
@@ -410,4 +418,43 @@ class _NotesPanelState extends ConsumerState<NotesPanel> {
       ]),
     );
   }
+}
+
+/// Bonus d'XP du conte sur un brouillon (J-Creation-2, « Bonus du conte »).
+class _BonusPanel extends ConsumerStatefulWidget {
+  const _BonusPanel(this.c);
+  final Character c;
+
+  @override
+  ConsumerState<_BonusPanel> createState() => _BonusPanelState();
+}
+
+class _BonusPanelState extends ConsumerState<_BonusPanel> {
+  late int _bonus = widget.c.xpBonus;
+
+  Future<void> _save() async {
+    final by = actorOf(ref.read(currentUserProvider).value);
+    if (by == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(characterRepositoryProvider).setBonus(widget.c, _bonus, by);
+      messenger.showSnackBar(SnackBar(content: Text('Bonus du conte : $_bonus XP.')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Panel(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SectionTitle('Bonus du conte'),
+          const SizedBox(height: 8),
+          Text('Pour un personnage expérimenté : XP ajoutée au budget de création.', style: Theme.of(context).textTheme.bodySmall),
+          PointsField(label: 'Bonus', value: _bonus, max: 500, asDots: false, onChanged: (v) => setState(() => _bonus = v)),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton(onPressed: _bonus == widget.c.xpBonus ? null : _save, child: const Text('Enregistrer le bonus')),
+          ),
+        ]),
+      );
 }

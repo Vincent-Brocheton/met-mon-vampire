@@ -110,18 +110,26 @@ class _CharacterCard extends StatelessWidget {
               stat('Humanité', dots(c.humanity)),
             ]),
           ],
-          if (c.status == CharacterStatus.draft) ...[
+          if (c.status == CharacterStatus.draft && (c.comment ?? '').isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('Brouillon : la création guidée arrive bientôt dans l’application.', style: t.bodySmall),
+            Text('Corrections demandées : « ${c.comment} »', style: t.bodyMedium?.copyWith(color: AppColors.goldLight)),
+          ],
+          if (c.status == CharacterStatus.review) ...[
+            const SizedBox(height: 12),
+            Text('En validation : le conte va répondre.', style: t.bodySmall),
           ],
           const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton(
+          Wrap(spacing: 12, children: [
+            if (c.status == CharacterStatus.draft)
+              FilledButton(
+                onPressed: () => context.go('/joueur/personnages/${c.id}/creation'),
+                child: Text(c.step > 1 ? 'Reprendre la création' : 'Commencer la création'),
+              ),
+            OutlinedButton(
               onPressed: () => context.go('/joueur/personnages/${c.id}'),
               child: const Text('Ouvrir la fiche'),
             ),
-          ),
+          ]),
         ]),
       ),
     );
