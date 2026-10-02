@@ -17,6 +17,8 @@ import 'chronicle/accounts_screen.dart';
 import 'chronicle/startup_screen.dart';
 import 'chronicle/team_screen.dart';
 import 'core/empty_state.dart';
+import 'creation/creation_screen.dart';
+import 'creation/submitted_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
 
@@ -77,6 +79,14 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id',
             builder: (_, s) => CharacterScreen(id: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']}'),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/creation',
+            builder: (_, s) => CreationScreen(id: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/soumise',
+            builder: (_, s) => SubmittedScreen(id: s.pathParameters['id']!),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
