@@ -92,10 +92,9 @@ service cloud.firestore {
           || (request.resource.data.kind == 'pnj' && request.resource.data.status == 'active'
               && request.resource.data.get('playerUid', null) == null));
 
-      // Plan A : édition directe par le conte (C3). Le plan B ajoute les cas du joueur et de la validation.
       allow update: if signedIn()
         && request.resource.data.version == resource.data.version + 1
-        && staffEdit(id);
+        && (staffEdit(id) || playerDraftSave() || playerSubmission(id) || staffBonus(id) || staffDecision(id));
 
       function staffEdit(id) {
         return managesAccounts()
@@ -106,6 +105,49 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['kind', 'createdAt'])
           && historyOk(id, ['edit', 'status'])
           && getAfter(histPath(id, request.resource.data.lastHistoryId)).data.reason.size() > 0;
+      }
+
+      function own() { return resource.data.get('playerUid', null) == request.auth.uid; }
+      function decisionUnchanged() {
+        return request.resource.data.creation.get('decidedAt', null) == resource.data.creation.get('decidedAt', null)
+          && request.resource.data.creation.get('decidedByUid', null) == resource.data.creation.get('decidedByUid', null)
+          && request.resource.data.creation.get('comment', null) == resource.data.creation.get('comment', null);
+      }
+
+      // Le joueur remplit son brouillon : sans historique, sans champ protégé.
+      function playerDraftSave() {
+        return own() && resource.data.status == 'draft' && request.resource.data.status == 'draft'
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId'])
+          && decisionUnchanged();
+      }
+
+      function playerSubmission(id) {
+        let from = resource.data.status;
+        let to = request.resource.data.status;
+        return own()
+          && ((from == 'draft' && to == 'review') || (from == 'review' && to == 'draft'))
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'creation', 'xpInitial', 'xpEarned', 'xpSpent', 'version', 'lastHistoryId', 'updatedAt'])
+          && decisionUnchanged()
+          && historyOk(id, [to == 'review' ? 'submission' : 'withdrawal']);
+      }
+
+      function staffBonus(id) {
+        return managesAccounts() && !own()
+          && resource.data.status == 'draft' && request.resource.data.status == 'draft'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['xpBonus', 'version', 'lastHistoryId', 'updatedAt'])
+          && historyOk(id, ['bonus']);
+      }
+
+      function staffDecision(id) {
+        let to = request.resource.data.status;
+        let kind = to == 'active' ? 'validation' : (to == 'draft' ? 'corrections' : 'rejection');
+        return managesAccounts() && !own()
+          && resource.data.status == 'review' && to in ['active', 'draft', 'rejected']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'creation', 'version', 'lastHistoryId', 'updatedAt'])
+          && historyOk(id, [kind])
+          && (to == 'active' || getAfter(histPath(id, request.resource.data.lastHistoryId)).data.reason.size() > 0);
       }
 
       match /history/{h} {

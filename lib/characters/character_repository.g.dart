@@ -354,3 +354,42 @@ final class CharacterNotesFamily extends $Family
   @override
   String toString() => r'characterNotesProvider';
 }
+
+@ProviderFor(reviewQueue)
+final reviewQueueProvider = ReviewQueueProvider._();
+
+final class ReviewQueueProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Character>>,
+          List<Character>,
+          Stream<List<Character>>
+        >
+    with $FutureModifier<List<Character>>, $StreamProvider<List<Character>> {
+  ReviewQueueProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'reviewQueueProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$reviewQueueHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Character>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Character>> create(Ref ref) {
+    return reviewQueue(ref);
+  }
+}
+
+String _$reviewQueueHash() => r'ad9bc18b2f161d002db6a0d7e43a817ff5d26e5a';

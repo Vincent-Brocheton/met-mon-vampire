@@ -63,6 +63,29 @@ class FakeCharacterRepository implements CharacterRepository {
   @override
   Future<void> saveNotes(String id, String text, Actor by) async => calls.add('notes:$text');
 
+  /// Dernier brouillon reçu par saveDraft.
+  Character? lastDraft;
+
+  @override
+  Future<void> saveDraft(Character c) async {
+    calls.add('saveDraft');
+    lastDraft = c;
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> submit(Character c, Actor by) async => calls.add('submit:${c.name}');
+
+  @override
+  Future<void> withdraw(Character c, Actor by) async => calls.add('withdraw');
+
+  @override
+  Future<void> setBonus(Character c, int bonus, Actor by) async => calls.add('bonus:$bonus');
+
+  @override
+  Future<void> decide(Character c, CharacterStatus to, String comment, Actor by) async =>
+      calls.add('decide:${to.name}:$comment');
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

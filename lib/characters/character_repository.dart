@@ -97,6 +97,73 @@ class CharacterRepository {
         delta: xpDelta(before, after),
       );
 
+  /// Brouillon du joueur : version +1, pas d'historique (règle playerDraftSave).
+  Future<void> saveDraft(Character c) => _col.doc(c.id).update({
+        ...c.toMap(),
+        'version': c.version + 1,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+  Stream<List<Character>> watchReview() => _col.where('status', isEqualTo: CharacterStatus.review.name).snapshots().map(
+        (q) => q.docs.map(Character.fromDoc).toList()
+          ..sort((a, b) => (a.submittedAt ?? DateTime(0)).compareTo(b.submittedAt ?? DateTime(0))),
+      );
+
+  Future<void> submit(Character c, Actor by) => _commit(
+        c.clone()
+          ..status = CharacterStatus.review
+          ..submittedAt = DateTime.now(),
+        fromVersion: c.version,
+        by: by,
+        kind: 'submission',
+        summary: ['Fiche soumise au conte'],
+        reason: '',
+      );
+
+  Future<void> withdraw(Character c, Actor by) => _commit(
+        c.clone()
+          ..status = CharacterStatus.draft
+          ..submittedAt = null,
+        fromVersion: c.version,
+        by: by,
+        kind: 'withdrawal',
+        summary: ['Soumission retirée'],
+        reason: '',
+      );
+
+  Future<void> setBonus(Character c, int bonus, Actor by) => _commit(
+        c.clone()..xpBonus = bonus,
+        fromVersion: c.version,
+        by: by,
+        kind: 'bonus',
+        summary: ['Bonus du conte : ${c.xpBonus} → $bonus'],
+        reason: '',
+      );
+
+  /// Validation (active), corrections (draft) ou refus (rejected) d'une fiche soumise.
+  Future<void> decide(Character c, CharacterStatus to, String comment, Actor by) => _commit(
+        c.clone()
+          ..status = to
+          ..decidedAt = DateTime.now()
+          ..decidedByUid = by.uid
+          ..comment = comment.trim().isEmpty ? null : comment.trim(),
+        fromVersion: c.version,
+        by: by,
+        kind: switch (to) {
+          CharacterStatus.active => 'validation',
+          CharacterStatus.draft => 'corrections',
+          _ => 'rejection',
+        },
+        summary: [
+          switch (to) {
+            CharacterStatus.active => 'Fiche validée et activée',
+            CharacterStatus.draft => 'Corrections demandées',
+            _ => 'Fiche refusée',
+          },
+        ],
+        reason: comment,
+      );
+
   Future<void> _commit(
     Character c, {
     required int fromVersion,
@@ -160,3 +227,6 @@ Stream<List<HistoryEntry>> characterHistory(Ref ref, String id) =>
 
 @riverpod
 Stream<String> characterNotes(Ref ref, String id) => ref.watch(characterRepositoryProvider).watchNotes(id);
+
+@riverpod
+Stream<List<Character>> reviewQueue(Ref ref) => ref.watch(characterRepositoryProvider).watchReview();
