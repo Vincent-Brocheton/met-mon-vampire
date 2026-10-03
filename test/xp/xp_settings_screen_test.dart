@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_settings.dart';
 import 'package:portail_met/xp/xp_settings_screen.dart';
@@ -130,5 +131,21 @@ void main() {
   testWidgets('narrateur : accès refusé', (tester) async {
     await pump(tester, user: julien);
     expect(find.text('Réservé aux conteurs'), findsOneWidget);
+  });
+
+  testWidgets('valeurs de création modifiables, contrôlées', (tester) async {
+    final repo = await pump(tester);
+    await tester.enterText(find.byKey(const Key('creation-startingXp')), '35');
+    await tester.enterText(find.byKey(const Key('creation-attributeSlots')), '8 / 5 / 3');
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pump();
+    expect(repo.lastSettings!.creation.startingXp, 35);
+    expect(repo.lastSettings!.creation.attributeSlots, [8, 5, 3]);
+    expect(repo.lastSettings!.creation.skillSlots, const CreationValues().skillSlots);
+    await tester.enterText(find.byKey(const Key('creation-disciplineSlots')), '2 / 1');
+    await tester.pump();
+    expect(find.text('Disciplines en clan : trois valeurs, par exemple 2 / 1 / 1.'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Enregistrer')).onPressed, isNull);
   });
 }

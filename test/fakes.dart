@@ -135,9 +135,13 @@ class FakeXpRepository implements XpRepository {
   /// Noms refusés renvoyés par payGain et award.
   List<String> refused = const [];
 
+  XpSettings? lastSettings;
+
   @override
-  Future<void> saveSettings(XpSettings s, Actor by) async => calls.add(
-      'settings:${s.monthlyEnabled}:${s.gainSince}:${[for (final t in s.tiers) '${t.months}/${t.xp}/${t.every}'].join(',')}');
+  Future<void> saveSettings(XpSettings s, Actor by) async {
+    lastSettings = s;
+    calls.add('settings:${s.monthlyEnabled}:${s.gainSince}:${[for (final t in s.tiers) '${t.months}/${t.xp}/${t.every}'].join(',')}');
+  }
 
   @override
   Future<List<String>> payGain(List<GainDue> dues, Actor by) async {
