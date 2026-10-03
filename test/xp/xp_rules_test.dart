@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/rulebook/base_rules.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rules/creation_rules.dart' show CheckLevel;
 import 'package:portail_met/xp/xp_request.dart';
 import 'package:portail_met/xp/xp_rules.dart';
@@ -14,9 +17,9 @@ XpItem add(Character c, List<XpItem> items, XpKind k, String name, {String? note
   return i;
 }
 
-String? err(Character c, XpKind k, String name, {String? note, int usable = 100, List<XpItem>? items}) {
+String? err(Character c, XpKind k, String name, {String? note, int usable = 100, List<XpItem>? items, Rulebook rb = const Rulebook()}) {
   final list = items ?? <XpItem>[];
-  return itemError(c, list, draftItem(c, list, k, name, note: note), usable: usable);
+  return itemError(c, list, draftItem(c, list, k, name, note: note, rb: rb), usable: usable, rb: rb);
 }
 
 XpRequest req(List<XpItem> items) =>
@@ -182,5 +185,75 @@ void main() {
     expect(elementOptions(c, XpKind.merit).keys, isNot(contains('Visage angélique')));
     expect(elementOptions(c, XpKind.flawBuyback), {'Curiosité': 'Curiosité (2)'});
     expect(elementOptions(c, XpKind.discipline).keys.take(3), ['Auspex', 'Célérité', 'Présence']);
+  });
+
+  group('référentiel', () {
+    List<RuleEntry> tweak(String cat, String name, void Function(RuleEntry) edit) {
+      final list = baseEntries(cat);
+      edit(list.firstWhere((e) => e.name == name));
+      return list;
+    }
+
+    test('coûts selon la ligne du rang', () {
+      final rb = Rulebook({
+        'generations': [RuleEntry(name: 'Ancilla', data: {'rank': 'ancilla', 'traitFactor': 3, 'outOfClanFactor': 5})],
+      });
+      final c = sample();
+      expect(draftItem(c, const [], XpKind.skill, 'Linguistique', rb: rb).cost, 3);
+      final domination = draftItem(c, const [], XpKind.discipline, 'Domination', rb: rb);
+      expect(domination.cost, 5);
+      expect(ruleText(c, domination, rb: rb), 'Hors clan · nouveau niveau × 5');
+      expect(costTable(c, rb: rb), contains(('Compétence', 'Nouveau niveau × 3')));
+    });
+
+    test('états : élément interdit refusé, accord du conte signalé', () {
+      final skills = [
+        for (final e in baseEntries('skills'))
+          (e..state = switch (e.name) {'Linguistique' => RuleState.forbidden, 'Bagarre' => RuleState.approval, _ => e.state}),
+      ];
+      final rb = Rulebook({'skills': skills});
+      final c = sample();
+      final options = elementOptions(c, XpKind.skill, rb: rb);
+      expect(options, isNot(contains('Linguistique')));
+      expect(options['Bagarre'], 'Bagarre · accord du conte');
+      final forbidden = draftItem(c, const [], XpKind.skill, 'Linguistique', rb: rb);
+      expect(itemError(c, const [], forbidden, usable: 100, rb: rb), 'Linguistique est interdit dans la chronique.');
+      final r = req([draftItem(c, const [], XpKind.skill, 'Bagarre', rb: rb)]);
+      expect(requestChecks(c, r, reservedOthers: 0, rb: rb).map((k) => k.text), contains('Bagarre : accord du conte nécessaire'));
+    });
+
+    test('domaines et plafonds du référentiel', () {
+      final skills = tweak('skills', 'Bagarre', (e) => e.data['domainMode'] = 'optional');
+      skills.firstWhere((e) => e.name == 'Représentation').data['cap'] = 4;
+      final rb = Rulebook({'skills': skills});
+      final c = sample();
+      expect(noteSpec(XpKind.skill, 'Bagarre', rb: rb), ('Domaine', false));
+      expect(noteSpec(XpKind.skill, 'Représentation', rb: rb), ('Domaine', true));
+      expect(noteSpec(XpKind.skill, 'Esquive', rb: rb), isNull);
+      expect(noteSpec(XpKind.background, 'Ressources', rb: rb), ('Détail du nouveau point', true));
+      expect(err(c, XpKind.skill, 'Bagarre', rb: rb), isNull);
+      expect(err(c, XpKind.skill, 'Représentation', note: 'opéra', rb: rb), 'Plafond atteint (4).');
+    });
+
+    test('atout : valeur du référentiel ; valeur changée après l’envoi (Review Focus 4)', () {
+      final c = sample();
+      final sent = req([draftItem(c, const [], XpKind.merit, 'Chanceux')]);
+      final rb = Rulebook({'merits': tweak('merits', 'Chanceux', (e) => e.data['cost'] = 3)});
+      expect(draftItem(c, const [], XpKind.merit, 'Chanceux', rb: rb).toLevel, 3);
+      final errors = [for (final k in requestChecks(c, sent, reservedOthers: 0, rb: rb)) if (k.level == CheckLevel.error) k.text];
+      expect(errors, ['Achat invalide : Atout · Chanceux vaut 3 points, la demande en compte 2']);
+    });
+
+    test('rareté par secte et disciplines du clan du référentiel', () {
+      final clans = tweak('clans', 'Toreador', (e) => e.data
+        ..['rarity'] = {'Camarilla': 'rare'}
+        ..['disciplines'] = ['Auspex', 'Domination', 'Présence']);
+      final rb = Rulebook({'clans': clans});
+      final c = sample();
+      expect(meritPoints(c, const [], rb: rb), 5);
+      final after = applyRequest(c, [draftItem(c, const [], XpKind.discipline, 'Domination', rb: rb)], rb: rb);
+      expect(after.disciplines.firstWhere((d) => d.name == 'Domination').inClan, isTrue);
+      expect(after.xpSpent, c.xpSpent + 3);
+    });
   });
 }

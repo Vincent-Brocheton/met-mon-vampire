@@ -6,6 +6,7 @@ import '../auth/session_providers.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart';
+import '../rulebook/rulebook.dart';
 import 'xp_corrections.dart';
 import 'xp_gain.dart';
 import 'xp_request.dart';
@@ -169,12 +170,12 @@ class XpRepository {
       });
 
   /// Décision du conte. Validée : la fiche [c] reçoit les achats dans le même lot (règle staffRequestDecision).
-  Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by) {
+  Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by, {Rulebook rb = const Rulebook()}) {
     final text = comment.trim();
     final message = text.isEmpty ? null : XpMessage(by.uid, by.name, nowMs(), text);
     final batch = _db.batch()..update(_col.doc(r.id), decisionUpdate(r, to, message, by.uid, FieldValue.serverTimestamp()));
     if (to == RequestStatus.accepted) {
-      final after = applyRequest(c, r.items);
+      final after = applyRequest(c, r.items, rb: rb);
       _characters.stageEdit(
         batch,
         after,

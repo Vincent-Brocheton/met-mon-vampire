@@ -8,6 +8,8 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart' show Check, CheckLevel;
 import 'xp_repository.dart';
 import 'xp_request.dart';
@@ -63,7 +65,7 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
     super.dispose();
   }
 
-  Future<void> _decide(Character c, RequestStatus to) async {
+  Future<void> _decide(Character c, RequestStatus to, Rulebook rb) async {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null || _busy) return;
     if (to != RequestStatus.accepted && _comment.text.trim().isEmpty) {
@@ -90,7 +92,7 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
     });
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(xpRepositoryProvider).decide(widget.r, c, to, _comment.text, by);
+      await ref.read(xpRepositoryProvider).decide(widget.r, c, to, _comment.text, by, rb: rb);
       _comment.clear();
       messenger.showSnackBar(SnackBar(content: Text(switch (to) {
         RequestStatus.accepted => 'Dépense validée : ${widget.r.characterName}.',
@@ -116,10 +118,12 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
         return const EmptyState(kind: EmptyKind.notFound, title: 'Fiche introuvable', message: 'Elle a pu être retirée.');
       }
       return asyncView(ref.watch(characterRequestsProvider(r.characterId)), (all) {
+        final rb = ref.watch(rulebookProvider);
+        if (rb == null) return const Center(child: CircularProgressIndicator());
         final reservedOthers = reservedBy(all, c.id, exceptId: r.id);
-        final checks = requestChecks(c, r, reservedOthers: reservedOthers);
+        final checks = requestChecks(c, r, reservedOthers: reservedOthers, rb: rb);
         final blocked = checks.any((k) => k.level == CheckLevel.error);
-        final total = recomputedTotal(c, r.items);
+        final total = recomputedTotal(c, r.items, rb: rb);
         final after = c.xpAvailable - reservedOthers - total;
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Wrap(spacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [
@@ -148,8 +152,8 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
                       width: 110,
                       child: Text('${levelText(i.kind, i.fromLevel)} → ${levelText(i.kind, i.toLevel)}', style: const TextStyle(color: AppColors.gold)),
                     ),
-                    SizedBox(width: 60, child: Text('${costOf(c, i)} XP', textAlign: TextAlign.right, style: t.titleSmall)),
-                    Text(ruleText(c, i), style: t.bodySmall),
+                    SizedBox(width: 60, child: Text('${costOf(c, i, rb: rb)} XP', textAlign: TextAlign.right, style: t.titleSmall)),
+                    Text(ruleText(c, i, rb: rb), style: t.bodySmall),
                   ]),
                 ),
             ]),
@@ -196,11 +200,11 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
                 const SizedBox(height: 12),
                 Wrap(spacing: 12, runSpacing: 12, children: [
                   FilledButton(
-                    onPressed: blocked || _busy ? null : () => _decide(c, RequestStatus.accepted),
+                    onPressed: blocked || _busy ? null : () => _decide(c, RequestStatus.accepted, rb),
                     child: const Text('Valider la dépense'),
                   ),
-                  OutlinedButton(onPressed: _busy ? null : () => _decide(c, RequestStatus.changes), child: const Text('Demander des compléments')),
-                  TextButton(onPressed: _busy ? null : () => _decide(c, RequestStatus.rejected), child: const Text('Refuser')),
+                  OutlinedButton(onPressed: _busy ? null : () => _decide(c, RequestStatus.changes, rb), child: const Text('Demander des compléments')),
+                  TextButton(onPressed: _busy ? null : () => _decide(c, RequestStatus.rejected, rb), child: const Text('Refuser')),
                 ]),
               ]),
             ),

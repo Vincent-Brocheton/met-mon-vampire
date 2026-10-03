@@ -127,7 +127,7 @@ class FakeXpRepository implements XpRepository {
   Future<void> cancel(XpRequest r) async => calls.add('cancel:${r.id}');
 
   @override
-  Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by) async {
+  Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by, {Rulebook rb = const Rulebook()}) async {
     calls.add('decide:${to.name}:$comment');
     if (error != null) throw error!;
   }

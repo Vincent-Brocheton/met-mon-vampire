@@ -7,6 +7,10 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/base_rules.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/xp/spend_screen.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
@@ -27,13 +31,14 @@ void main() {
         items: [const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)],
       );
 
-  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet, String? requestId}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet, String? requestId, Rulebook rb = const Rulebook()}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repo = FakeXpRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        rulebookProvider.overrideWith((ref) => rb),
         currentUserProvider.overrideWith((ref) => Stream.value(camille)),
         characterProvider('x').overrideWith((ref) => Stream.value(sheet ?? sample())),
         myRequestsProvider.overrideWith((ref) => Stream.value(requests)),
@@ -161,5 +166,19 @@ void main() {
   testWidgets('fiche d’un autre joueur : refus', (tester) async {
     await pump(tester, sheet: sample()..playerUid = 'u2');
     expect(find.text('Cette fiche n’est pas la vôtre'), findsOneWidget);
+  });
+
+  testWidgets('élément en accord du conte : badge, règle du conte, domaine facultatif', (tester) async {
+    final skills = baseEntries('skills');
+    skills.firstWhere((e) => e.name == 'Bagarre')
+      ..state = RuleState.approval
+      ..description = 'Combat à mains nues.'
+      ..data['domainMode'] = 'optional';
+    await pump(tester, rb: Rulebook({'skills': skills}));
+    await choose(tester, const ValueKey('xp-name-skill'), 'Bagarre · accord du conte');
+    expect(find.text('Accord du conte'), findsOneWidget);
+    expect(find.text('Combat à mains nues.'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Domaine (facultatif)'), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Ajouter à la demande')).onPressed, isNotNull);
   });
 }

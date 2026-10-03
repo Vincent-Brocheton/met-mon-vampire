@@ -8,6 +8,9 @@ import '../characters/character_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rule_hint.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart' show humanityName;
 import 'xp_repository.dart';
 import 'xp_request.dart';
@@ -116,6 +119,8 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
           onAction: () => context.go('/joueur/personnages/${c.id}'),
         );
       }
+      final rb = ref.watch(rulebookProvider);
+      if (rb == null) return const Center(child: CircularProgressIndicator());
       return asyncView(ref.watch(myRequestsProvider), (requests) {
         if (_r == null) {
           if (widget.requestId == null) {
@@ -135,21 +140,21 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
             _why.text = existing.justification;
           }
         }
-        return _body(context, c, requests);
+        return _body(context, c, requests, rb);
       }, onRetry: () => ref.invalidate(myRequestsProvider));
     }, onRetry: () => ref.invalidate(characterProvider(widget.characterId)));
   }
 
-  Widget _body(BuildContext context, Character c, List<XpRequest> requests) {
+  Widget _body(BuildContext context, Character c, List<XpRequest> requests, Rulebook rb) {
     final t = Theme.of(context).textTheme;
     final r = _r!;
     final others = [for (final x in requests) if (x.characterId == c.id && x.status.open && x.id != r.id) x];
     final usable = c.xpAvailable - others.fold<int>(0, (s, x) => s + x.total);
     final name = _kind == XpKind.humanity ? humanityName : _name;
-    final item = name == null ? null : draftItem(c, r.items, _kind, name, note: _note.text);
-    final error = item == null ? null : itemError(c, r.items, item, usable: usable);
-    final options = elementOptions(c, _kind);
-    final label = name == null ? null : noteLabel(_kind, name);
+    final item = name == null ? null : draftItem(c, r.items, _kind, name, note: _note.text, rb: rb);
+    final error = item == null ? null : itemError(c, r.items, item, usable: usable, rb: rb);
+    final options = elementOptions(c, _kind, rb: rb);
+    final spec = name == null ? null : noteSpec(_kind, name, rb: rb);
     final rank = (c.genRank ?? GenRank.neonate).label;
     final problems = sendProblems(c, r.items, usable: usable);
     final canSend = r.items.isNotEmpty && problems.isEmpty && _why.text.trim().isNotEmpty && !_busy;
@@ -191,20 +196,21 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
             ),
           if (item != null)
             Text(
-              '${levelText(item.kind, item.fromLevel)} → ${levelText(item.kind, item.toLevel)} · ${item.cost} XP (${ruleText(c, item)})',
+              '${levelText(item.kind, item.fromLevel)} → ${levelText(item.kind, item.toLevel)} · ${item.cost} XP (${ruleText(c, item, rb: rb)})',
               style: t.bodyLarge,
             ),
         ]),
+        if (name != null && ruleCategoryOf(_kind) != null) RuleHint(rb.find(ruleCategoryOf(_kind)!, name)),
         if (_kind == XpKind.flawBuyback) ...[
           const SizedBox(height: 10),
           Text('Coût : 2 fois la valeur du handicap · accord du conte obligatoire', style: t.bodySmall),
         ],
-        if (label != null) ...[
+        if (spec != null) ...[
           const SizedBox(height: 14),
           TextField(
             key: const Key('xp-note'),
             controller: _note,
-            decoration: InputDecoration(labelText: '$label (obligatoire)'),
+            decoration: InputDecoration(labelText: '${spec.$1} (${spec.$2 ? 'obligatoire' : 'facultatif'})'),
             onChanged: (_) => setState(() {}),
           ),
         ],
@@ -244,7 +250,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
                 width: 110,
                 child: Text('${levelText(i.kind, i.fromLevel)} → ${levelText(i.kind, i.toLevel)}', style: const TextStyle(color: AppColors.gold)),
               ),
-              SizedBox(width: 200, child: Text(ruleText(c, i), style: t.bodySmall)),
+              SizedBox(width: 200, child: Text(ruleText(c, i, rb: rb), style: t.bodySmall)),
               SizedBox(width: 60, child: Text('${i.cost} XP', textAlign: TextAlign.right, style: t.titleSmall)),
               IconButton(
                 tooltip: 'Retirer ${i.displayName}',
@@ -353,7 +359,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           SectionTitle('Coûts pour un $rank'),
           const SizedBox(height: 10),
-          for (final (k, v) in costTable(c)) line(k, v),
+          for (final (k, v) in costTable(c, rb: rb)) line(k, v),
           const SizedBox(height: 8),
           Text('La Génération et les atouts de lignée ne s’achètent qu’à la création.', style: t.bodySmall),
         ]),
