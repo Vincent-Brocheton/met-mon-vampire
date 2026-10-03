@@ -12,6 +12,8 @@ import '../characters/describe_changes.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart';
 import 'creation_steps.dart';
 
@@ -58,7 +60,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   }
 
   void _changed() {
-    applyDerived(_c!);
+    applyDerived(_c!, rb: ref.read(rulebookProvider) ?? const Rulebook());
     setState(() {});
     _pending = true;
     _debounce?.cancel();
@@ -140,11 +142,12 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   @override
   Widget build(BuildContext context) {
     final me = ref.watch(currentUserProvider).value;
+    final rb = ref.watch(rulebookProvider);
     return asyncView(ref.watch(characterProvider(widget.id)), (latest) {
       if (latest == null) {
         return const EmptyState(kind: EmptyKind.notFound, title: 'Cette fiche n’existe pas', message: 'Elle a pu être retirée.');
       }
-      if (me == null) return const Center(child: CircularProgressIndicator());
+      if (me == null || rb == null) return const Center(child: CircularProgressIndicator());
       if (latest.playerUid != me.uid || (_c == null && latest.status != CharacterStatus.draft)) {
         return EmptyState(
           kind: EmptyKind.forbidden,
@@ -157,23 +160,23 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
       if (_c == null) {
         _c = latest.clone();
         _base = latest;
-        applyDerived(_c!);
         _step = latest.step.clamp(1, 10);
       } else if (!_saving && latest.version > _base!.version) {
         // Review Focus 1 : autre version (bonus du conte) ; on repart d'elle en gardant la saisie.
         _c = rebase(_base!, _c!, latest);
         _base = latest;
-        applyDerived(_c!);
       }
+      // Le référentiel ou les valeurs de création ont pu changer : les valeurs calculées suivent.
+      applyDerived(_c!, rb: rb);
       final c = _c!;
-      final checks = creationChecks(c);
+      final checks = creationChecks(c, rb: rb);
       final t = Theme.of(context).textTheme;
       final header = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Étape $_step sur 10 · ${c.name.isEmpty ? 'Nouveau personnage' : c.name}', style: t.bodyMedium?.copyWith(color: AppColors.textMuted)),
         const SizedBox(height: 6),
         Text(creationSteps[_step - 1], style: isWide(context) ? t.displaySmall : t.headlineMedium),
         const SizedBox(height: 8),
-        Text(stepIntro[_step - 1], style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+        Text(stepIntroOf(_step, rb.creation), style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
       ]);
       final footer = Container(
         padding: const EdgeInsets.only(top: 16),
@@ -206,12 +209,12 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
       final content = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         header,
         const SizedBox(height: 24),
-        KeyedSubtree(key: ValueKey('step-$_step'), child: creationStep(_step, c, _changed)),
+        KeyedSubtree(key: ValueKey('step-$_step'), child: creationStep(_step, c, _changed, rb: rb)),
         const SizedBox(height: 24),
         footer,
       ]);
       final aside = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _BudgetPanel(c),
+        _BudgetPanel(c, rb),
         const SizedBox(height: 20),
         _ChecksPanel(checks),
       ]);
@@ -283,13 +286,14 @@ class _StepNav extends StatelessWidget {
 }
 
 class _BudgetPanel extends StatelessWidget {
-  const _BudgetPanel(this.c);
+  const _BudgetPanel(this.c, this.rb);
   final Character c;
+  final Rulebook rb;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final b = budgetOf(c);
+    final b = budgetOf(c, rb: rb);
     return Panel(
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -299,9 +303,9 @@ class _BudgetPanel extends StatelessWidget {
           Expanded(child: Text('Restant', style: t.bodyMedium)),
           Text('${b.remaining}', style: t.headlineMedium?.copyWith(color: b.remaining < 0 ? AppColors.linkHover : AppColors.gold)),
         ]),
-        Text('$startingXp de départ · ${b.bonus} bonus · ${b.flaws} via handicaps · ${b.spent} dépensé', style: t.bodySmall),
+        Text('${b.start} de départ · ${b.bonus} bonus · ${b.flaws} via handicaps · ${b.spent} dépensé', style: t.bodySmall),
         const SizedBox(height: 6),
-        Text('5 XP au plus peuvent être mis de côté à la fin de la création.', style: t.bodySmall),
+        Text('${rb.creation.maxSetAside} XP au plus peuvent être mis de côté à la fin de la création.', style: t.bodySmall),
       ]),
     );
   }

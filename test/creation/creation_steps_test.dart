@@ -3,11 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/creation/creation_steps.dart';
+import 'package:portail_met/rulebook/base_rules.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rules/creation_rules.dart';
 
 import 'creation_rules_test.dart' show valid;
 
-Future<void> pumpStep(WidgetTester tester, int step, Character c) async {
+Future<void> pumpStep(WidgetTester tester, int step, Character c, {Rulebook rb = const Rulebook()}) async {
   tester.view.physicalSize = const Size(1200, 3000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -17,9 +20,9 @@ Future<void> pumpStep(WidgetTester tester, int step, Character c) async {
       body: StatefulBuilder(
         builder: (context, setState) => SingleChildScrollView(
           child: creationStep(step, c, () {
-            applyDerived(c);
+            applyDerived(c, rb: rb);
             setState(() {});
-          }),
+          }, rb: rb),
         ),
       ),
     ),
@@ -118,5 +121,18 @@ void main() {
     expect(find.text('10 · 1 par tour'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('field-Récit du personnage — visible par vous et le conte')), 'Nouveau récit');
     expect(c.story, 'Nouveau récit');
+  });
+
+  testWidgets('étape 3 : badge et règle du conte, clan interdit pour la secte absent', (tester) async {
+    final clans = baseEntries('clans');
+    clans.firstWhere((e) => e.name == 'Tremere')
+      ..state = RuleState.approval
+      ..description = 'Pyramide stricte.';
+    clans.firstWhere((e) => e.name == 'Brujah').data['rarity'] = {'Camarilla': 'forbidden'};
+    final c = Character(id: 'n', name: 'N', kind: CharacterKind.pj)..sect = 'Camarilla';
+    await pumpStep(tester, 3, c, rb: Rulebook({'clans': clans}));
+    expect(find.text('Accord du conte'), findsOneWidget);
+    expect(find.text('Pyramide stricte.'), findsOneWidget);
+    expect(find.text('Brujah'), findsNothing);
   });
 }

@@ -1,36 +1,47 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../characters/character.dart';
 import '../characters/edit_widgets.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rule_entry.dart';
+import '../rulebook/rule_hint.dart';
+import '../rulebook/rulebook.dart';
 import '../rules/creation_rules.dart';
-import '../rules/met_lists.dart';
+import '../rules/met_lists.dart' show focuses;
 
-const stepIntro = [
-  'Qui est votre personnage ? Donnez-lui un nom, un concept et un archétype. Le récit complet se rédige à la dernière étape.',
-  'Votre personnage commence avec 30 XP. Vous les dépenserez au fil des étapes suivantes.',
-  'Le clan fixe vos trois disciplines en clan. Un clan peu commun ou rare coûte un atout.',
-  'Classez les trois catégories : 7 points pour la primaire, 5 pour la secondaire, 3 pour la tertiaire. Choisissez ensuite un focus par catégorie.',
-  'Une compétence à 4, deux à 3, trois à 2, quatre à 1. Artisanat, Représentation et Sciences demandent un domaine précis.',
-  'Trois points dans un historique, deux dans un autre, un dans un troisième. Sans aucun point de Génération, le personnage est un mortel.',
-  'Choisissez la discipline en clan qui reçoit 2 points ; les deux autres en reçoivent 1.',
-  'Les atouts se paient en XP, 7 points au plus (rareté de clan comprise). Les handicaps rapportent de l’XP, 7 au plus.',
-  'Dépensez l’XP restante. Les coûts dépendent de votre génération ; ils sont calculés automatiquement.',
-  'Les traits dérivés sont calculés automatiquement. Ajoutez le récit du personnage, puis soumettez la fiche au conte.',
-];
+/// Introduction de l'étape [step], selon les valeurs de création de la chronique.
+String stepIntroOf(int step, CreationValues v) {
+  final a = v.attributeSlots, d = v.disciplineSlots;
+  return switch (step) {
+    1 => 'Qui est votre personnage ? Donnez-lui un nom, un concept et un archétype. Le récit complet se rédige à la dernière étape.',
+    2 => 'Votre personnage commence avec ${v.startingXp + v.defaultBonus} XP. Vous les dépenserez au fil des étapes suivantes.',
+    3 => 'Le clan fixe vos trois disciplines en clan. Un clan peu commun ou rare coûte un atout.',
+    4 => 'Classez les trois catégories : ${a[0]} points pour la primaire, ${a[1]} pour la secondaire, ${a[2]} pour la tertiaire. '
+        'Choisissez ensuite un focus par catégorie.',
+    5 => 'Répartissez vos points gratuits : ${slotsText(v.skillSlots)}. Certaines compétences demandent un domaine précis.',
+    6 => 'Répartissez vos points gratuits : ${v.backgroundSlots.join(' / ')}. Sans aucun point de Génération, le personnage est un mortel.',
+    7 => 'Choisissez la discipline en clan qui reçoit ${d[0]} points ; les deux autres en reçoivent ${d[1]} et ${d[2]}.',
+    8 => 'Les atouts se paient en XP, $maxMeritPoints points au plus (rareté de clan comprise). '
+        'Les handicaps rapportent de l’XP, ${v.maxFlawXp} au plus.',
+    9 => 'Dépensez l’XP restante. Les coûts dépendent de votre génération ; ils sont calculés automatiquement.',
+    _ => 'Les traits dérivés sont calculés automatiquement. Ajoutez le récit du personnage, puis soumettez la fiche au conte.',
+  };
+}
 
 /// Contenu de l'étape [step] ; [changed] après chaque modification de [c].
-Widget creationStep(int step, Character c, VoidCallback changed) => switch (step) {
-      1 => _Inspiration(c, changed),
-      2 => _InitialXp(c),
-      3 => _ClanStep(c, changed),
-      4 => _AttributesStep(c, changed),
-      5 => _SkillsStep(c, changed),
-      6 => _BackgroundsStep(c, changed),
-      7 => _DisciplinesStep(c, changed),
-      8 => _MeritsStep(c, changed),
-      9 => _PurchasesStep(c, changed),
+Widget creationStep(int step, Character c, VoidCallback changed, {Rulebook rb = const Rulebook()}) => switch (step) {
+      1 => _Inspiration(c, rb, changed),
+      2 => _InitialXp(c, rb),
+      3 => _ClanStep(c, rb, changed),
+      4 => _AttributesStep(c, rb, changed),
+      5 => _SkillsStep(c, rb, changed),
+      6 => _BackgroundsStep(c, rb, changed),
+      7 => _DisciplinesStep(c, rb, changed),
+      8 => _MeritsStep(c, rb, changed),
+      9 => _PurchasesStep(c, rb, changed),
       _ => _FinishStep(c, changed),
     };
 
@@ -64,9 +75,12 @@ Widget _section(BuildContext context, String title, List<Widget> children) => Pa
       ]),
     );
 
+String _approval(Rulebook rb, String cat, String name) => rb.find(cat, name)?.state == RuleState.approval ? ' · accord du conte' : '';
+
 class _Inspiration extends StatelessWidget {
-  const _Inspiration(this.c, this.changed);
+  const _Inspiration(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
@@ -76,12 +90,17 @@ class _Inspiration extends StatelessWidget {
       changed();
     }
 
+    // Un PJ ne choisit pas une secte réservée aux PNJ.
+    final sects = [
+      for (final e in rb.offered('sects'))
+        if (c.kind != CharacterKind.pj || rb.playable(e.name) != 'npcOnly') e.name,
+    ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _section(context, '', [
         TextFieldRow(label: 'Nom du personnage', value: c.name, onChanged: (v) => set(() => c.name = v ?? '')),
         ChoiceField(label: 'Secte', value: c.sect, options: sects, onChanged: (v) => set(() => c.sect = v)),
         TextFieldRow(label: 'Concept — en une phrase', value: c.concept, onChanged: (v) => set(() => c.concept = v)),
-        ChoiceField(label: 'Archétype', value: c.archetype, options: archetypes, onChanged: (v) => set(() => c.archetype = v)),
+        ChoiceField(label: 'Archétype', value: c.archetype, options: rb.offeredNames('archetypes'), onChanged: (v) => set(() => c.archetype = v)),
       ]),
       const SizedBox(height: 20),
       _section(context, 'Trois questions pour vous guider — facultatif', [
@@ -94,13 +113,15 @@ class _Inspiration extends StatelessWidget {
 }
 
 class _InitialXp extends StatelessWidget {
-  const _InitialXp(this.c);
+  const _InitialXp(this.c, this.rb);
   final Character c;
+  final Rulebook rb;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final b = budgetOf(c);
+    final b = budgetOf(c, rb: rb);
+    final v = rb.creation;
     Widget card(String title, String value, String hint) => SizedBox(
           width: 240,
           child: Panel(
@@ -112,17 +133,17 @@ class _InitialXp extends StatelessWidget {
             ]),
           ),
         );
-    const rules = [
-      'Les handicaps choisis à l’étape 8 rapportent de l’XP en plus, 7 au maximum.',
+    final rules = [
+      'Les handicaps choisis à l’étape 8 rapportent de l’XP en plus, ${v.maxFlawXp} au maximum.',
       'Un clan peu commun ou rare se paie en atouts avec cette XP.',
       'La Génération ne s’achète qu’à la création.',
-      'À la fin, 5 XP au plus peuvent être mis de côté ; le surplus est perdu.',
+      'À la fin, ${v.maxSetAside} XP au plus peuvent être mis de côté ; le surplus est perdu.',
     ];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Wrap(spacing: 16, runSpacing: 16, children: [
-        card('XP de départ', '$startingXp', 'Pour tous les personnages'),
+        card('XP de départ', '${b.start}', 'Pour tous les personnages'),
         card('Bonus du conte', '${c.xpBonus}', 'Fixé par un conteur'),
-        card('Handicaps', '+ ${b.flaws}', 'Jusqu’à 7 XP, à l’étape 8'),
+        card('Handicaps', '+ ${b.flaws}', 'Jusqu’à ${v.maxFlawXp} XP, à l’étape 8'),
       ]),
       const SizedBox(height: 20),
       _section(context, 'À savoir', [for (final r in rules) Text('• $r', style: t.bodyMedium)]),
@@ -131,15 +152,17 @@ class _InitialXp extends StatelessWidget {
 }
 
 class _ClanStep extends StatelessWidget {
-  const _ClanStep(this.c, this.changed);
+  const _ClanStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    Widget card(ClanInfo k) {
+    Widget card(RuleEntry k) {
       final selected = c.clan == k.name;
+      final disciplines = rb.clanDisciplines(k.name);
       return SizedBox(
         width: 220,
         child: Material(
@@ -151,7 +174,7 @@ class _ClanStep extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () {
-              setClan(c, k.name);
+              setClan(c, k.name, rb: rb);
               changed();
             },
             child: Padding(
@@ -159,7 +182,8 @@ class _ClanStep extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(k.name, style: t.headlineSmall),
                 const SizedBox(height: 4),
-                Text(k.disciplines.isEmpty ? '3 disciplines communes au choix' : k.disciplines.join(' · '), style: t.bodySmall),
+                Text(disciplines.isEmpty ? '3 disciplines communes au choix' : disciplines.join(' · '), style: t.bodySmall),
+                RuleHint(k, maxLines: 3),
               ]),
             ),
           ),
@@ -167,18 +191,35 @@ class _ClanStep extends StatelessWidget {
       );
     }
 
-    Widget group(ClanRarity r, String title, String cost) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    // Rareté lue pour la secte du personnage ; un clan interdit pour elle n'est pas proposé.
+    final clans = [for (final k in rb.offered('clans')) if (rb.rarity(k.name, c.sect) != 'forbidden') k];
+    Widget group(String rarity, String title, String cost) {
+      final list = [for (final k in clans) if (rb.rarity(k.name, c.sect) == rarity) k];
+      if (list.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [SectionTitle(title), const SizedBox(width: 12), Text(cost, style: t.bodySmall)]),
           const SizedBox(height: 10),
-          Wrap(spacing: 12, runSpacing: 12, children: [for (final k in clans.where((k) => k.rarity == r)) card(k)]),
-        ]);
+          Wrap(spacing: 12, runSpacing: 12, children: [for (final k in list) card(k)]),
+        ]),
+      );
+    }
+
+    final bloodlines = [
+      for (final r in (rb.find('clans', c.clan)?.data['bloodlines'] as List?) ?? const [])
+        if (r is Map && r['name'] != null) r,
+    ];
+    String bloodline(Map r) {
+      final merit = r['merit'];
+      if (merit is! String || merit.isEmpty) return '${r['name']}';
+      return '${r['name']} (${rb.cost('merits', merit) ?? '?'} points)';
+    }
+
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      group(ClanRarity.common, 'Clans communs', 'Gratuit'),
-      const SizedBox(height: 20),
-      group(ClanRarity.uncommon, 'Clans peu communs', 'Atout Clan peu commun · 2 points'),
-      const SizedBox(height: 20),
-      group(ClanRarity.rare, 'Clans rares', 'Atout Clan rare · 4 points, avec l’accord du conte'),
-      const SizedBox(height: 20),
+      group('common', 'Clans communs', 'Gratuit'),
+      group('uncommon', 'Clans peu communs', 'Atout Clan peu commun · 2 points'),
+      group('rare', 'Clans rares', 'Atout Clan rare · 4 points, avec l’accord du conte'),
       TextFieldRow(
         label: 'Lignée — facultatif, se paie en atout',
         value: c.lineage,
@@ -187,18 +228,24 @@ class _ClanStep extends StatelessWidget {
           changed();
         },
       ),
+      if (bloodlines.isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Text('Lignées du clan : ${[for (final r in bloodlines) bloodline(r)].join(' · ')}', style: t.bodySmall),
+      ],
     ]);
   }
 }
 
 class _AttributesStep extends StatelessWidget {
-  const _AttributesStep(this.c, this.changed);
+  const _AttributesStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
   Widget build(BuildContext context) {
-    const ranks = ['Primaire · 7', 'Secondaire · 5', 'Tertiaire · 3'];
+    final s = rb.creation.attributeSlots;
+    final ranks = ['Primaire · ${s[0]}', 'Secondaire · ${s[1]}', 'Tertiaire · ${s[2]}'];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _section(context, 'Catégorie', [
         for (var i = 0; i < 3; i++)
@@ -245,6 +292,7 @@ class _AttributesStep extends StatelessWidget {
 class _FreeLevels extends StatelessWidget {
   const _FreeLevels({
     required this.c,
+    required this.rb,
     required this.kind,
     required this.names,
     required this.max,
@@ -254,6 +302,7 @@ class _FreeLevels extends StatelessWidget {
   });
 
   final Character c;
+  final Rulebook rb;
   final String kind;
   final List<String> names;
   final int max;
@@ -264,6 +313,7 @@ class _FreeLevels extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = kind == Buy.skill ? c.skills : c.backgrounds;
+    final cat = kind == Buy.skill ? 'skills' : 'backgrounds';
     final all = [...names, for (final t in list) if (!names.contains(t.name)) t.name];
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -274,14 +324,14 @@ class _FreeLevels extends StatelessWidget {
             decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
-                Expanded(child: Text(name, style: Theme.of(context).textTheme.bodyMedium)),
+                Expanded(child: Text('$name${_approval(rb, cat, name)}', style: Theme.of(context).textTheme.bodyMedium)),
                 DotPicker(
                   label: name,
                   value: freeLevelOf(c, kind, name),
                   max: max,
                   bought: purchasedCount(c, kind, name),
                   onChanged: (v) {
-                    setFreeLevel(c, kind, name, v);
+                    setFreeLevel(c, kind, name, v, rb: rb);
                     changed();
                   },
                 ),
@@ -327,61 +377,70 @@ Widget _slotChips(BuildContext context, List<int> slots, List<int> placed) => Wr
     ]);
 
 class _SkillsStep extends StatelessWidget {
-  const _SkillsStep(this.c, this.changed);
+  const _SkillsStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _slotChips(context, skillSlots, [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)]),
-        const SizedBox(height: 16),
-        _FreeLevels(
-          c: c,
-          kind: Buy.skill,
-          names: skillNames,
-          max: 4,
-          noteLabel: 'Domaine',
-          needsNote: domainSkills.contains,
-          changed: changed,
-        ),
-      ]);
+  Widget build(BuildContext context) {
+    final slots = rb.creation.skillSlots;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _slotChips(context, slots, [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)]),
+      const SizedBox(height: 16),
+      _FreeLevels(
+        c: c,
+        rb: rb,
+        kind: Buy.skill,
+        names: rb.offeredNames('skills'),
+        max: slots.reduce(max),
+        noteLabel: 'Domaine',
+        needsNote: (n) => rb.domainMode(n) != 'none',
+        changed: changed,
+      ),
+    ]);
+  }
 }
 
 class _BackgroundsStep extends StatelessWidget {
-  const _BackgroundsStep(this.c, this.changed);
+  const _BackgroundsStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final rank = rankFor(c);
+    final row = rank == null ? null : rb.gen(rank);
+    final slots = rb.creation.backgroundSlots;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      _slotChips(context, backgroundSlots, [for (final b in c.backgrounds) freeLevelOf(c, Buy.background, b.name)]),
+      _slotChips(context, slots, [for (final b in c.backgrounds) freeLevelOf(c, Buy.background, b.name)]),
       const SizedBox(height: 16),
       _FreeLevels(
         c: c,
+        rb: rb,
         kind: Buy.background,
-        names: backgroundNames,
-        max: 3,
+        names: rb.offeredNames('backgrounds'),
+        max: slots.reduce(max),
         noteLabel: 'Précisions',
-        needsNote: (n) => n != generationName,
+        needsNote: (n) => n != generationName && rb.backgroundAsk(n) != null,
         changed: changed,
       ),
       const SizedBox(height: 20),
       _section(context, 'Génération', [
         Text(
-          rank == null
+          rank == null || row == null
               ? 'Aucun point de Génération : le personnage serait un mortel.'
-              : '${rank.label} · Sang ${bloodByRank[rank]!.$1}, ${bloodByRank[rank]!.$2} par tour',
+              : '${rank.label} · Sang ${row.blood}, ${row.bloodPerTurn} par tour',
           style: t.bodyMedium,
         ),
-        if (rank != null)
+        if (row != null)
           DropdownButtonFormField<int?>(
             key: const Key('generation-number'),
-            initialValue: c.genNumber,
+            initialValue: row.numbers.contains(c.genNumber) ? c.genNumber : null,
             decoration: const InputDecoration(labelText: 'Génération'),
-            items: [for (final n in generationNumbers[rank]!) DropdownMenuItem<int?>(value: n, child: Text('${n}e'))],
+            items: [for (final n in row.numbers) DropdownMenuItem<int?>(value: n, child: Text('${n}e'))],
             onChanged: (n) {
               c.genNumber = n;
               changed();
@@ -394,29 +453,34 @@ class _BackgroundsStep extends StatelessWidget {
 }
 
 class _DisciplinesStep extends StatelessWidget {
-  const _DisciplinesStep(this.c, this.changed);
+  const _DisciplinesStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final caitiff = clanInfo(c.clan)?.name == 'Caïtiff';
+    final slots = rb.creation.disciplineSlots;
+    // Clan sans disciplines propres (Caïtiff) : trois disciplines communes au choix.
+    final choose = rb.find('clans', c.clan) != null && rb.clanDisciplines(c.clan).isEmpty;
     final inClan = c.disciplines.where((d) => d.inClan).toList();
-    final two = inClan.where((d) => freeLevelOf(c, Buy.discipline, d.name) == 2).map((d) => d.name).firstOrNull;
-    void pickTwo(String name) {
+    final first = inClan.where((d) => freeLevelOf(c, Buy.discipline, d.name) == slots[0]).map((d) => d.name).firstOrNull;
+    void pickFirst(String name) {
+      final rest = slots.skip(1).iterator;
       for (final d in inClan) {
-        setDisciplineFree(c, d.name, d.name == name ? 2 : 1);
+        setDisciplineFree(c, d.name, d.name == name ? slots[0] : (rest.moveNext() ? rest.current : 0));
       }
       changed();
     }
 
+    final outFactor = rb.gen(rankFor(c) ?? GenRank.neonate).outOfClanFactor;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (c.clan == null) Text('Choisissez d’abord un clan (étape 3).', style: t.bodyMedium),
-      if (caitiff)
+      if (choose)
         _section(context, 'Trois disciplines communes', [
           Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final name in commonDisciplines)
+            for (final name in rb.commonDisciplines())
               FilterChip(
                 label: Text(name),
                 selected: inClan.any((d) => d.name == name),
@@ -445,10 +509,10 @@ class _DisciplinesStep extends StatelessWidget {
                 const SizedBox(width: 12),
                 ChoiceChip(
                   key: Key('two-${d.name}'),
-                  label: const Text('2 points gratuits'),
-                  selected: two == d.name,
+                  label: Text('${slots[0]} points gratuits'),
+                  selected: first == d.name,
                   selectedColor: AppColors.navActive,
-                  onSelected: (_) => pickTwo(d.name),
+                  onSelected: (_) => pickFirst(d.name),
                 ),
               ]),
               TextFieldRow(
@@ -463,7 +527,8 @@ class _DisciplinesStep extends StatelessWidget {
           ),
         ),
       Text(
-        'Des points en plus s’achètent à l’étape 9 : en clan, nouveau niveau × 3 ; hors clan, jusqu’à 3 points dans une discipline commune, nouveau niveau × 4.',
+        'Des points en plus s’achètent à l’étape 9 : en clan, nouveau niveau × 3 ; hors clan, jusqu’à $maxOutOfClanDots points '
+        'dans une discipline commune, nouveau niveau × $outFactor.',
         style: t.bodySmall,
       ),
     ]);
@@ -471,34 +536,47 @@ class _DisciplinesStep extends StatelessWidget {
 }
 
 class _MeritsStep extends StatelessWidget {
-  const _MeritsStep(this.c, this.changed);
+  const _MeritsStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final b = budgetOf(c);
-    final rarity = clanInfo(c.clan)?.rarity.meritPoints ?? 0;
-    Widget column(String title, String counter, List<Trait> chosen, Map<String, int> catalog, String key) {
-      final remaining = catalog.entries.where((e) => !chosen.any((m) => m.name == e.key)).toList();
+    final v = rb.creation;
+    final b = budgetOf(c, rb: rb);
+    final rarity = rb.rarityCost(c.clan, c.sect);
+    final lineage = lineageCost(c, rb: rb);
+    Widget column(String title, String counter, List<Trait> chosen, String cat, String key) {
+      // Proposés à la création, avec une valeur.
+      final catalog = {
+        for (final e in rb.offered(cat))
+          if (e.data['atCreation'] == true && rb.cost(cat, e.name) != null) e.name: rb.cost(cat, e.name)!,
+      };
+      final remaining = catalog.entries.where((e) => !chosen.any((m) => nameKey(m.name) == nameKey(e.key))).toList();
+      final merits = title == 'Atouts';
       return Panel(
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [Expanded(child: SectionTitle(title)), Text(counter, style: t.labelMedium)]),
           const SizedBox(height: 10),
-          if (title == 'Atouts' && rarity > 0) Text('Rareté du clan · $rarity points', style: t.bodyMedium),
-          if (chosen.isEmpty && !(title == 'Atouts' && rarity > 0)) Text('Aucun pour l’instant', style: t.bodySmall),
+          if (merits && rarity > 0) Text('Rareté du clan · $rarity points', style: t.bodyMedium),
+          if (merits && lineage > 0) Text('Lignée ${c.lineage} · $lineage points', style: t.bodyMedium),
+          if (chosen.isEmpty && !(merits && rarity + lineage > 0)) Text('Aucun pour l’instant', style: t.bodySmall),
           for (final m in chosen)
-            Row(children: [
-              Expanded(child: Text('${m.name} · ${m.level}', style: t.bodyMedium)),
-              IconButton(
-                tooltip: 'Retirer ${m.name}',
-                onPressed: () {
-                  chosen.remove(m);
-                  changed();
-                },
-                icon: const Icon(Icons.close, size: 18),
-              ),
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
+                Expanded(child: Text('${m.name} · ${m.level}', style: t.bodyMedium)),
+                IconButton(
+                  tooltip: 'Retirer ${m.name}',
+                  onPressed: () {
+                    chosen.remove(m);
+                    changed();
+                  },
+                  icon: const Icon(Icons.close, size: 18),
+                ),
+              ]),
+              RuleHint(rb.find(cat, m.name), maxLines: 3),
             ]),
           const SizedBox(height: 8),
           // Clé par taille de liste : le menu repart vide après chaque ajout.
@@ -508,7 +586,9 @@ class _MeritsStep extends StatelessWidget {
               key: Key(key),
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Ajouter…'),
-              items: [for (final e in remaining) DropdownMenuItem(value: e.key, child: Text('${e.key} (${e.value})'))],
+              items: [
+                for (final e in remaining) DropdownMenuItem(value: e.key, child: Text('${e.key} (${e.value})${_approval(rb, cat, e.key)}')),
+              ],
               onChanged: (name) {
                 if (name == null) return;
                 chosen.add(Trait(name, catalog[name]!));
@@ -520,8 +600,8 @@ class _MeritsStep extends StatelessWidget {
       );
     }
 
-    final merits = column('Atouts', '${b.merits} / $maxMeritPoints points', c.merits, baseMerits, 'add-merit');
-    final flaws = column('Handicaps', '${b.flawsTaken} / $maxFlawXp XP', c.flaws, baseFlaws, 'add-flaw');
+    final merits = column('Atouts', '${b.merits} / $maxMeritPoints points', c.merits, 'merits', 'add-merit');
+    final flaws = column('Handicaps', '${b.flawsTaken} / ${v.maxFlawXp} XP', c.flaws, 'flaws', 'add-flaw');
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (isWide(context))
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -531,14 +611,19 @@ class _MeritsStep extends StatelessWidget {
         ])
       else ...[merits, const SizedBox(height: 20), flaws],
       const SizedBox(height: 12),
-      Text('Avec l’accord du conte, un joueur peut prendre plus de 7 points de handicaps, mais n’en tire jamais plus de 7 XP.', style: t.bodySmall),
+      Text(
+        'Avec l’accord du conte, un joueur peut prendre plus de ${v.maxFlawXp} points de handicaps, '
+        'mais n’en tire jamais plus de ${v.maxFlawXp} XP.',
+        style: t.bodySmall,
+      ),
     ]);
   }
 }
 
 class _PurchasesStep extends StatefulWidget {
-  const _PurchasesStep(this.c, this.changed);
+  const _PurchasesStep(this.c, this.rb, this.changed);
   final Character c;
+  final Rulebook rb;
   final VoidCallback changed;
 
   @override
@@ -557,12 +642,19 @@ class _PurchasesStepState extends State<_PurchasesStep> {
     Buy.humanity: 'Humanité',
   };
 
-  Map<String, String> _names(Character c) => switch (_kind) {
+  String? get _cat => switch (_kind) {
+        Buy.skill => 'skills',
+        Buy.background => 'backgrounds',
+        Buy.discipline => 'disciplines',
+        _ => null,
+      };
+
+  Map<String, String> _names(Character c, Rulebook rb) => switch (_kind) {
         Buy.attribute => {for (final a in AttrCategory.values) a.name: a.label},
-        Buy.skill => {for (final s in {...skillNames, ...c.skills.map((s) => s.name)}) s: s},
-        Buy.background => {for (final b in {...backgroundNames, ...c.backgrounds.map((b) => b.name)}) b: b},
+        Buy.skill => {for (final s in {...rb.offeredNames('skills'), ...c.skills.map((s) => s.name)}) s: s},
+        Buy.background => {for (final b in {...rb.offeredNames('backgrounds'), ...c.backgrounds.map((b) => b.name)}) b: b},
         Buy.discipline => {
-            for (final d in {...c.disciplines.where((d) => d.inClan).map((d) => d.name), ...commonDisciplines}) d: d,
+            for (final d in {...c.disciplines.where((d) => d.inClan).map((d) => d.name), ...rb.commonDisciplines()}) d: d,
           },
         _ => {humanityName: humanityName},
       };
@@ -571,21 +663,23 @@ class _PurchasesStepState extends State<_PurchasesStep> {
         Buy.attribute => 'Attribut · ${AttrCategory.values.byName(p.name).label}',
         Buy.skill => 'Compétence · ${p.name}',
         Buy.background => 'Historique · ${p.name}',
-        Buy.discipline => '${p.name} (${isInClan(widget.c, p.name) ? 'en clan' : 'hors clan'})',
+        Buy.discipline => '${p.name} (${isInClan(widget.c, p.name, rb: widget.rb) ? 'en clan' : 'hors clan'})',
         _ => p.name,
       };
 
   @override
   Widget build(BuildContext context) {
     final c = widget.c;
+    final rb = widget.rb;
     final t = Theme.of(context).textTheme;
-    final names = _names(c);
+    final names = _names(c, rb);
     final rank = rankFor(c) ?? GenRank.neonate;
-    final factor = rank == GenRank.neonate ? 1 : 2;
+    final row = rb.gen(rank);
+    final cat = _cat;
     void buy() {
       final name = _name;
       if (name == null) return;
-      final error = addPurchase(c, _kind, name);
+      final error = addPurchase(c, _kind, name, rb: rb);
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
       }
@@ -622,6 +716,7 @@ class _PurchasesStepState extends State<_PurchasesStep> {
           ),
           FilledButton(onPressed: _name == null ? null : buy, child: const Text('Ajouter')),
         ]),
+        if (cat != null && _name != null) RuleHint(rb.find(cat, _name)),
       ]),
       const SizedBox(height: 20),
       _section(context, 'Achats', [
@@ -631,11 +726,11 @@ class _PurchasesStepState extends State<_PurchasesStep> {
             Expanded(child: Text(_label(p), style: t.bodyMedium)),
             Text('→ ${'●' * p.toLevel}', style: const TextStyle(color: AppColors.gold)),
             const SizedBox(width: 16),
-            SizedBox(width: 60, child: Text('${purchaseCost(c, p.kind, p.name, p.toLevel)} XP', textAlign: TextAlign.right)),
+            SizedBox(width: 60, child: Text('${purchaseCost(c, p.kind, p.name, p.toLevel, rb: rb)} XP', textAlign: TextAlign.right)),
             IconButton(
               tooltip: 'Retirer l’achat',
               onPressed: () {
-                final error = removePurchase(c, i);
+                final error = removePurchase(c, i, rb: rb);
                 if (error != null) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
                 }
@@ -644,15 +739,15 @@ class _PurchasesStepState extends State<_PurchasesStep> {
               icon: const Icon(Icons.close, size: 18),
             ),
           ]),
-        Text('Total dépensé : ${budgetOf(c).purchases} XP en achats, ${budgetOf(c).merits} en atouts', style: t.titleMedium),
+        Text('Total dépensé : ${budgetOf(c, rb: rb).purchases} XP en achats, ${budgetOf(c, rb: rb).merits} en atouts', style: t.titleMedium),
       ]),
       const SizedBox(height: 20),
       _section(context, 'Coûts ${rank.label}', [
         for (final (k, v) in [
           ('Attribut', '3 XP'),
-          ('Compétence, historique', 'Niveau × $factor'),
+          ('Compétence, historique', 'Niveau × ${row.traitFactor}'),
           ('Discipline en clan', 'Niveau × 3'),
-          ('Hors clan (communes, 3 points au plus)', 'Niveau × 4'),
+          ('Hors clan (communes, $maxOutOfClanDots points au plus)', 'Niveau × ${row.outOfClanFactor}'),
           ('Génération', 'Niveau × 2'),
           ('Humanité', '10 XP le point, 6 au plus'),
         ])

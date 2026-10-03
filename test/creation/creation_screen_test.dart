@@ -10,6 +10,8 @@ import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/creation/creation_screen.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 
 import '../fakes.dart';
 import 'creation_rules_test.dart' show valid;
@@ -17,13 +19,14 @@ import 'creation_rules_test.dart' show valid;
 void main() {
   const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {Stream<Character?>? source}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {Stream<Character?>? source, bool loading = false}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repo = FakeCharacterRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        rulebookProvider.overrideWith((ref) => loading ? null : const Rulebook()),
         currentUserProvider.overrideWith((ref) => Stream.value(zoe)),
         characterRepositoryProvider.overrideWith((ref) => repo),
         characterProvider('n').overrideWith((ref) => source ?? Stream.value(c)),
@@ -114,5 +117,11 @@ void main() {
   testWidgets('fiche hors brouillon : pas d’édition', (tester) async {
     await pump(tester, valid()..status = CharacterStatus.review);
     expect(find.text('Cette fiche n’est pas en brouillon'), findsOneWidget);
+  });
+
+  testWidgets('référentiel en chargement : la création attend (Review Focus 5)', (tester) async {
+    await pump(tester, valid()..step = 1, loading: true);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Suivant : XP initiale'), findsNothing);
   });
 }

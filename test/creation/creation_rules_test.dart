@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/rulebook/base_rules.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rules/creation_rules.dart';
 
 /// Nikolaï Vesk (maquettes) : Tremere Neonate, répartitions gratuites complètes, 3 XP de handicaps.
@@ -24,6 +27,9 @@ Character valid() {
   setFreeLevel(c, Buy.background, 'Alliés', 3);
   setFreeLevel(c, Buy.background, 'Ressources', 2);
   setFreeLevel(c, Buy.background, generationName, 1);
+  for (final b in c.backgrounds) {
+    if (b.name != generationName) b.note = 'Précisé';
+  }
   c.genNumber = 12;
   setDisciplineFree(c, 'Thaumaturgie', 2);
   setDisciplineFree(c, 'Auspex', 1);
@@ -185,5 +191,145 @@ void main() {
     expect([for (var s = 1; s <= 10; s++) stepComplete(c, s, creationChecks(c))], everyElement(isTrue));
     final fresh = Character(id: 'f', name: '', kind: CharacterKind.pj);
     expect(stepComplete(fresh, 1, creationChecks(fresh)), isFalse);
+  });
+
+  group('référentiel', () {
+    List<String> blockingWith(Character c, Rulebook rb) => [
+          for (final k in creationChecks(c, rb: rb))
+            if (k.level == CheckLevel.todo || k.level == CheckLevel.error) k.text,
+        ];
+    List<String> warnings(Character c, Rulebook rb) => [for (final k in creationChecks(c, rb: rb)) if (k.level == CheckLevel.warn) k.text];
+
+    /// Catégorie de base, avec [edit] appliqué à l'élément [name].
+    List<RuleEntry> tweak(String cat, String name, void Function(RuleEntry) edit) {
+      final list = baseEntries(cat);
+      edit(list.firstWhere((e) => e.name == name));
+      return list;
+    }
+
+    test('référentiel à moitié rempli : clans et compétences de base (Review Focus 1)', () {
+      final rb = Rulebook({
+        'merits': [RuleEntry(name: 'Mécène', data: {'cost': 3, 'atCreation': true})],
+      });
+      final c = valid();
+      applyDerived(c, rb: rb);
+      expect(blockingWith(c, rb), isEmpty);
+      c.merits = [Trait('Chanceux', 2)];
+      expect(warnings(c, rb), contains('Atout Chanceux hors liste : à confirmer par le conte'));
+    });
+
+    test('états : accord du conte, interdit, hors liste', () {
+      final skills = [
+        for (final e in baseEntries('skills'))
+          if (e.name != 'Vigilance')
+            (e..state = switch (e.name) {'Occultisme' => RuleState.approval, 'Érudition' => RuleState.forbidden, _ => e.state}),
+      ];
+      final rb = Rulebook({'skills': skills});
+      final c = valid();
+      expect(warnings(c, rb), containsAll(['Occultisme : accord du conte nécessaire', 'Compétence Vigilance hors liste : à confirmer par le conte']));
+      expect(blockingWith(c, rb), ['Érudition est interdit dans la chronique']);
+    });
+
+    test('clan interdit pour la secte : erreur, fiche inchangée (Review Focus 2)', () {
+      final rb = Rulebook({'clans': tweak('clans', 'Tremere', (e) => e.data['rarity'] = {'Camarilla': 'forbidden'})});
+      final c = valid();
+      final before = c.toMap();
+      expect(blockingWith(c, rb), ['Clan Tremere : interdit pour la secte Camarilla']);
+      expect(c.toMap(), before);
+    });
+
+    test('rareté lue pour la secte de la fiche', () {
+      final rb = Rulebook({'clans': tweak('clans', 'Lasombra', (e) => e.data['rarity'] = {'Camarilla': 'rare', 'Sabbat': 'common'})});
+      final c = valid();
+      setClan(c, 'Lasombra', rb: rb);
+      expect(budgetOf(c, rb: rb).merits, 4);
+      c.sect = 'Sabbat';
+      expect(budgetOf(c, rb: rb).merits, 0);
+      c.sect = 'Anarchs';
+      expect(budgetOf(c, rb: rb).merits, 4, reason: 'secte absente : celle par défaut');
+    });
+
+    test('atout de lignée compté une seule fois', () {
+      final rb = Rulebook({
+        'clans': tweak('clans', 'Tremere', (e) => e.data['bloodlines'] = [
+              {'name': 'Telyav', 'merit': 'Lignée Telyav'},
+            ]),
+        'merits': [RuleEntry(name: 'Lignée Telyav', data: {'cost': 2, 'atCreation': true})],
+      });
+      final c = valid()..lineage = 'telyav';
+      expect(budgetOf(c, rb: rb).merits, 2);
+      c.merits = [Trait('Lignée Telyav', 2)];
+      expect(budgetOf(c, rb: rb).merits, 2);
+    });
+
+    test('sectes jouables', () {
+      final rb = Rulebook({
+        'sects': [
+          RuleEntry(name: 'Camarilla', data: {'playable': 'all', 'isDefault': true}),
+          RuleEntry(name: 'Sabbat', data: {'playable': 'npcOnly'}),
+          RuleEntry(name: 'Anarchs', data: {'playable': 'pjOnApproval'}),
+        ],
+      });
+      expect(blockingWith(valid()..sect = 'Sabbat', rb), ['Secte Sabbat : réservée aux PNJ']);
+      expect(warnings(valid()..sect = 'Anarchs', rb), contains('Secte Anarchs : PJ sur accord du conte'));
+      expect(blockingWith(valid()..sect = 'Sabbat'..kind = CharacterKind.pnj, rb), isEmpty);
+    });
+
+    test('domaines selon la compétence', () {
+      final multiple = Rulebook({'skills': tweak('skills', 'Occultisme', (e) => e.data['domainMode'] = 'multiple')});
+      expect(blockingWith(valid(), multiple), ['Précisez le domaine de Occultisme']);
+      final optional = Rulebook({'skills': tweak('skills', 'Occultisme', (e) => e.data['domainMode'] = 'optional')});
+      expect(blockingWith(valid(), optional), isEmpty);
+    });
+
+    test('historiques : précision, plafond, barème', () {
+      final backgrounds = tweak('backgrounds', 'Ressources', (e) => e.data.addAll({'ask': 'monthly', 'scale': ['500 €', '1 000 €']}));
+      backgrounds.firstWhere((e) => e.name == 'Alliés').data['cap'] = 2;
+      final rb = Rulebook({'backgrounds': backgrounds});
+      final c = valid();
+      expect(blockingWith(c, rb), ['Alliés : 2 au plus']);
+      expect(warnings(c, rb), contains('Ressources : montant hors barème, à valider par le conte'));
+      final resources = c.backgrounds.firstWhere((t) => t.name == 'Ressources');
+      resources.note = '1 000 €';
+      expect(warnings(c, rb), isNot(contains('Ressources : montant hors barème, à valider par le conte')));
+      resources.note = null;
+      expect(blockingWith(c, rb), contains('Précisez Ressources'));
+    });
+
+    test('générations : coûts, Sang et plafonds du référentiel', () {
+      final rb = Rulebook({
+        'generations': [
+          RuleEntry(name: 'Neonate', data: {'rank': 'neonate', 'numbers': ['12'], 'blood': 11, 'traitFactor': 2, 'outOfClanFactor': 5, 'skillCap': 4}),
+        ],
+      });
+      final c = valid();
+      applyDerived(c, rb: rb);
+      expect((c.blood, c.bloodPerTurn, c.genNumber), (11, 1, 12));
+      expect(purchaseCost(c, Buy.skill, 'Informatique', 3, rb: rb), 6);
+      expect(addPurchase(c, Buy.discipline, 'Présence', rb: rb), isNull);
+      expect(c.purchases.last.cost, 5);
+      expect(addPurchase(c, Buy.skill, 'Occultisme', rb: rb), 'Plafond atteint (4).');
+      final other = valid()..genNumber = 13;
+      applyDerived(other, rb: rb);
+      expect(other.genNumber, isNull);
+    });
+
+    test('valeurs de création ; fiche soumise avant le changement (Review Focus 3)', () {
+      const values = CreationValues(attributeSlots: [8, 5, 3], startingXp: 35, defaultBonus: 2, maxSetAside: 3);
+      const rb = Rulebook({}, values);
+      expect(blockingWith(valid(), rb), contains('Valeurs calculées incohérentes : réenregistrez la fiche depuis l’application'));
+      final c = valid();
+      applyDerived(c, rb: rb);
+      final b = budgetOf(c, rb: rb);
+      expect((b.total, b.setAside, c.xpInitial), (40, 3, 40));
+      expect(c.attributes[AttrCategory.mental]!.value, 8);
+      expect(creationChecks(c, rb: rb).map((k) => k.text), contains('Attributs répartis 8 / 5 / 3, un focus chacun'));
+      expect(blockingWith(c, rb), isEmpty);
+    });
+
+    test('disciplines communes lues dans le référentiel', () {
+      final rb = Rulebook({'disciplines': tweak('disciplines', 'Présence', (e) => e.data['common'] = false)});
+      expect(addPurchase(valid(), Buy.discipline, 'Présence', rb: rb), contains('communes'));
+    });
   });
 }

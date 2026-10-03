@@ -4,6 +4,8 @@ import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/rulebook/rules_repository.dart';
 import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_gain.dart';
@@ -201,3 +203,6 @@ class FakeRulesRepository implements RulesRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+/// Référentiel de base, sans Firestore.
+final baseRulebook = rulebookProvider.overrideWith((ref) => const Rulebook());

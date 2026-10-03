@@ -1,17 +1,11 @@
 import 'dart:math';
 
 import '../characters/character.dart';
-import 'met_lists.dart';
+import '../rulebook/rule_entry.dart';
+import '../rulebook/rulebook.dart';
 
-const startingXp = 30;
-const maxFlawXp = 7;
 const maxMeritPoints = 7;
-const maxSetAside = 5;
 const maxOutOfClanDots = 3;
-const attributeSlots = [7, 5, 3];
-const skillSlots = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
-const backgroundSlots = [3, 2, 1];
-const disciplineSlots = [2, 1, 1];
 const generationName = 'Génération';
 const humanityName = 'Humanité';
 
@@ -68,56 +62,89 @@ int levelOf(Character c, String kind, String name) => switch (kind) {
 
 int freeLevelOf(Character c, String kind, String name) => levelOf(c, kind, name) - purchasedCount(c, kind, name);
 
-bool isInClan(Character c, String discipline) =>
-    _findD(c.disciplines, discipline)?.inClan ?? (clanInfo(c.clan)?.disciplines.contains(discipline) ?? false);
+bool isInClan(Character c, String discipline, {Rulebook rb = const Rulebook()}) =>
+    _findD(c.disciplines, discipline)?.inClan ?? rb.clanDisciplines(c.clan).contains(discipline);
 
 /// Coût d'un achat au niveau [toLevel], selon le rang actuel (recalculé à chaque changement de Génération).
-int purchaseCost(Character c, String kind, String name, int toLevel) {
-  final cheap = (rankFor(c) ?? GenRank.neonate) == GenRank.neonate;
+int purchaseCost(Character c, String kind, String name, int toLevel, {Rulebook rb = const Rulebook()}) {
+  final row = rb.gen(rankFor(c) ?? GenRank.neonate);
   return switch (kind) {
     Buy.attribute => 3,
-    Buy.skill => toLevel * (cheap ? 1 : 2),
-    Buy.background => name == generationName ? toLevel * 2 : toLevel * (cheap ? 1 : 2),
-    Buy.discipline => toLevel * (isInClan(c, name) ? 3 : 4),
+    Buy.skill => toLevel * row.traitFactor,
+    Buy.background => toLevel * (name == generationName ? 2 : row.traitFactor),
+    Buy.discipline => toLevel * (isInClan(c, name, rb: rb) ? 3 : row.outOfClanFactor),
     Buy.humanity => 10,
     _ => 0,
   };
 }
 
-class Budget {
-  const Budget({required this.bonus, required this.flaws, required this.flawsTaken, required this.merits, required this.purchases});
+/// Plafond d'un trait à la création.
+int capFor(Character c, String kind, String name, {Rulebook rb = const Rulebook()}) => switch (kind) {
+      Buy.attribute => 10,
+      Buy.humanity => 6,
+      Buy.background when name == generationName => 3,
+      Buy.skill => rb.skillCap(name, rankFor(c)),
+      Buy.background => rb.backgroundCap(name),
+      _ => 5,
+    };
 
+/// Valeur de l'atout de lignée, s'il n'est pas déjà pris comme atout.
+int lineageCost(Character c, {Rulebook rb = const Rulebook()}) {
+  final m = rb.lineageMerit(c.clan, c.lineage);
+  if (m == null || c.merits.any((t) => nameKey(t.name) == nameKey(m.$1))) return 0;
+  return m.$2;
+}
+
+class Budget {
+  const Budget({
+    required this.start,
+    required this.bonus,
+    required this.flaws,
+    required this.flawsTaken,
+    required this.merits,
+    required this.purchases,
+    required this.setAsideCap,
+  });
+
+  /// XP de départ de la chronique, bonus de départ par défaut compris.
+  final int start;
   final int bonus;
 
-  /// XP rapportée par les handicaps (7 au plus).
+  /// XP rapportée par les handicaps (plafonnée).
   final int flaws;
 
-  /// Points de handicaps pris (peuvent dépasser 7).
+  /// Points de handicaps pris (peuvent dépasser le plafond).
   final int flawsTaken;
 
-  /// Points d'atouts, rareté de clan comprise.
+  /// Points d'atouts, rareté de clan et atout de lignée compris.
   final int merits;
   final int purchases;
 
-  int get total => startingXp + bonus + flaws;
+  /// XP qui peut être mise de côté à la fin de la création.
+  final int setAsideCap;
+
+  int get total => start + bonus + flaws;
   int get spent => merits + purchases;
   int get remaining => total - spent;
-  int get setAside => remaining.clamp(0, maxSetAside);
-  int get lost => remaining > maxSetAside ? remaining - maxSetAside : 0;
+  int get setAside => remaining.clamp(0, setAsideCap);
+  int get lost => remaining > setAsideCap ? remaining - setAsideCap : 0;
 }
 
-Budget budgetOf(Character c) {
+Budget budgetOf(Character c, {Rulebook rb = const Rulebook()}) {
+  final v = rb.creation;
   final flaws = _sum(c.flaws.map((t) => t.level));
   return Budget(
+    start: v.startingXp + v.defaultBonus,
     bonus: c.xpBonus,
-    flaws: min(flaws, maxFlawXp),
+    flaws: min(flaws, v.maxFlawXp),
     flawsTaken: flaws,
-    merits: _sum(c.merits.map((t) => t.level)) + (clanInfo(c.clan)?.rarity.meritPoints ?? 0),
-    purchases: _sum(c.purchases.map((p) => purchaseCost(c, p.kind, p.name, p.toLevel))),
+    merits: _sum(c.merits.map((t) => t.level)) + rb.rarityCost(c.clan, c.sect) + lineageCost(c, rb: rb),
+    purchases: _sum(c.purchases.map((p) => purchaseCost(c, p.kind, p.name, p.toLevel, rb: rb))),
+    setAsideCap: v.maxSetAside,
   );
 }
 
-void _setLevel(Character c, String kind, String name, int level) {
+void _setLevel(Character c, String kind, String name, int level, Rulebook rb) {
   switch (kind) {
     case Buy.attribute:
       c.attributes[AttrCategory.values.byName(name)]!.value = level;
@@ -134,7 +161,7 @@ void _setLevel(Character c, String kind, String name, int level) {
     case Buy.discipline:
       final d = _findD(c.disciplines, name);
       if (d == null) {
-        if (level > 0) c.disciplines.add(Discipline(name, level, inClan: isInClan(c, name)));
+        if (level > 0) c.disciplines.add(Discipline(name, level, inClan: isInClan(c, name, rb: rb)));
       } else if (level <= 0 && !d.inClan) {
         c.disciplines.remove(d);
       } else {
@@ -146,43 +173,38 @@ void _setLevel(Character c, String kind, String name, int level) {
 }
 
 /// Achète un niveau. Renvoie un message si l'achat est impossible.
-String? addPurchase(Character c, String kind, String name) {
+String? addPurchase(Character c, String kind, String name, {Rulebook rb = const Rulebook()}) {
   final to = levelOf(c, kind, name) + 1;
-  final cap = switch (kind) {
-    Buy.attribute => 10,
-    Buy.humanity => 6,
-    Buy.background when name == generationName => 3,
-    _ => 5,
-  };
+  final cap = capFor(c, kind, name, rb: rb);
   if (to > cap) return 'Plafond atteint ($cap).';
-  if (kind == Buy.discipline && !isInClan(c, name)) {
-    if (!commonDisciplines.contains(name)) {
+  if (kind == Buy.discipline && !isInClan(c, name, rb: rb)) {
+    if (!rb.isCommon(name)) {
       return 'Hors clan, seules les disciplines communes s’achètent à la création.';
     }
     final outOfClan = _sum(c.disciplines.where((d) => !d.inClan).map((d) => d.level));
     if (outOfClan + 1 > maxOutOfClanDots) return 'Hors clan : $maxOutOfClanDots points au plus à la création.';
   }
-  final cost = purchaseCost(c, kind, name, to);
-  _setLevel(c, kind, name, to);
+  final cost = purchaseCost(c, kind, name, to, rb: rb);
+  _setLevel(c, kind, name, to, rb);
   c.purchases.add(Purchase(kind, name, to, cost));
   return null;
 }
 
 /// Retire un achat ; seulement le plus haut niveau acheté d'un trait.
-String? removePurchase(Character c, int index) {
+String? removePurchase(Character c, int index, {Rulebook rb = const Rulebook()}) {
   final p = c.purchases[index];
   if (levelOf(c, p.kind, p.name) != p.toLevel) return 'Retirez d’abord l’achat de niveau supérieur.';
   c.purchases.removeAt(index);
-  _setLevel(c, p.kind, p.name, p.toLevel - 1);
+  _setLevel(c, p.kind, p.name, p.toLevel - 1, rb);
   return null;
 }
 
 /// Choix du clan : disciplines en clan du clan ; les anciennes sont retirées, ou passent hors clan si achetées.
-void setClan(Character c, String? name) {
+void setClan(Character c, String? name, {Rulebook rb = const Rulebook()}) {
   if (name == c.clan) return; // Caïtiff : ne pas effacer les disciplines déjà choisies
   c.clan = name;
-  final info = clanInfo(name);
-  bool inNew(Discipline d) => info?.disciplines.contains(d.name) ?? false;
+  final own = rb.clanDisciplines(name);
+  bool inNew(Discipline d) => own.contains(d.name);
   c.disciplines.removeWhere((d) => d.inClan && purchasedCount(c, Buy.discipline, d.name) == 0 && !inNew(d));
   for (final d in c.disciplines) {
     if (d.inClan && !inNew(d)) {
@@ -192,8 +214,7 @@ void setClan(Character c, String? name) {
         ..level = purchasedCount(c, Buy.discipline, d.name);
     }
   }
-  if (info == null) return;
-  for (final n in info.disciplines) {
+  for (final n in own) {
     final d = _findD(c.disciplines, n);
     if (d == null) {
       c.disciplines.add(Discipline(n, 0, inClan: true));
@@ -204,8 +225,8 @@ void setClan(Character c, String? name) {
 }
 
 /// Niveau gratuit d'une compétence ou d'un historique (le niveau final ajoute les achats).
-void setFreeLevel(Character c, String kind, String name, int free) =>
-    _setLevel(c, kind, name, free + purchasedCount(c, kind, name));
+void setFreeLevel(Character c, String kind, String name, int free, {Rulebook rb = const Rulebook()}) =>
+    _setLevel(c, kind, name, free + purchasedCount(c, kind, name), rb);
 
 void setDisciplineFree(Character c, String name, int free) {
   final d = _findD(c.disciplines, name);
@@ -214,37 +235,38 @@ void setDisciplineFree(Character c, String name, int free) {
 
 /// Les achats d'un trait occupent toujours les niveaux juste au-dessus de ses points gratuits,
 /// même après un changement de niveau gratuit, de catégorie ou de clan.
-void _renumberPurchases(Character c) {
+void _renumberPurchases(Character c, Rulebook rb) {
   final seen = <String, int>{};
   for (var i = 0; i < c.purchases.length; i++) {
     final p = c.purchases[i];
     final key = '${p.kind}/${p.name}';
     final n = seen[key] = (seen[key] ?? 0) + 1;
     final to = freeLevelOf(c, p.kind, p.name) + n;
-    if (to != p.toLevel) c.purchases[i] = Purchase(p.kind, p.name, to, purchaseCost(c, p.kind, p.name, to));
+    if (to != p.toLevel) c.purchases[i] = Purchase(p.kind, p.name, to, purchaseCost(c, p.kind, p.name, to, rb: rb));
   }
 }
 
 /// Recalcule rang, Sang, Volonté, Humanité, Santé, attributs et compteurs d'XP.
-void applyDerived(Character c) {
+void applyDerived(Character c, {Rulebook rb = const Rulebook()}) {
   final rank = rankFor(c);
   c.genRank = rank;
-  if (rank == null || !generationNumbers[rank]!.contains(c.genNumber)) c.genNumber = null;
-  final (blood, perTurn) = rank == null ? (0, 0) : bloodByRank[rank]!;
+  final row = rank == null ? null : rb.gen(rank);
+  if (row == null || !row.numbers.contains(c.genNumber)) c.genNumber = null;
   c
-    ..blood = blood
-    ..bloodPerTurn = perTurn
+    ..blood = row?.blood ?? 0
+    ..bloodPerTurn = row?.bloodPerTurn ?? 0
     ..willpower = 6
     ..humanity = levelOf(c, Buy.humanity, humanityName)
     ..health = '3 · 3 · 3';
+  final slots = rb.creation.attributeSlots;
   for (final cat in AttrCategory.values) {
     final i = c.attributeRanks.indexOf(cat);
-    c.attributes[cat]!.value = (i >= 0 ? attributeSlots[i] : 0) + purchasedCount(c, Buy.attribute, cat.name);
+    c.attributes[cat]!.value = (i >= 0 ? slots[i] : 0) + purchasedCount(c, Buy.attribute, cat.name);
   }
-  _renumberPurchases(c);
-  final b = budgetOf(c);
+  _renumberPurchases(c, rb);
+  final b = budgetOf(c, rb: rb);
   c
-    ..xpInitial = startingXp + c.xpBonus + b.flaws
+    ..xpInitial = b.start + c.xpBonus + b.flaws
     ..xpSpent = b.spent
     ..xpEarned = b.setAside;
 }
@@ -256,6 +278,16 @@ class Check {
   final int step;
   final CheckLevel level;
   final String text;
+}
+
+/// État dans le référentiel d'un nom porté par la fiche : hors liste ou accord du conte (avertissement),
+/// interdit ou brouillon (erreur) ; null si rien à signaler.
+Check? stateCheck(Rulebook rb, String cat, String noun, String name, int step) {
+  final e = rb.find(cat, name);
+  if (e == null) return Check(step, CheckLevel.warn, '$noun $name hors liste : à confirmer par le conte');
+  if (!e.state.offered) return Check(step, CheckLevel.error, '$name est interdit dans la chronique');
+  if (e.state == RuleState.approval) return Check(step, CheckLevel.warn, '$name : accord du conte nécessaire');
+  return null;
 }
 
 String _plural(int n, String one, String many) => n > 1 ? many : one;
@@ -284,48 +316,78 @@ void _slots(List<Check> out, int step, (String, String) noun, List<int> free, Li
 }
 
 /// Contrôles des maquettes (étapes 4 et 10, C4). Bloquants : todo et error.
-List<Check> creationChecks(Character c) {
+List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   final out = <Check>[];
   void add(int step, CheckLevel level, String text) => out.add(Check(step, level, text));
+  void state(int step, String cat, String noun, String? name) {
+    final k = name == null ? null : stateCheck(rb, cat, noun, name, step);
+    if (k != null) out.add(k);
+  }
+
+  final v = rb.creation;
 
   final identity = [c.name, c.concept, c.archetype, c.sect].every((s) => (s ?? '').trim().isNotEmpty);
   add(1, identity ? CheckLevel.ok : CheckLevel.todo,
       identity ? 'Nom, concept, archétype et secte renseignés' : 'Renseignez le nom, le concept, l’archétype et la secte');
-  if (c.archetype != null && !archetypes.contains(c.archetype)) {
-    add(1, CheckLevel.warn, 'Archétype hors liste : à confirmer par le conte');
+  state(1, 'archetypes', 'Archétype', c.archetype);
+  state(1, 'sects', 'Secte', c.sect);
+  if (c.kind == CharacterKind.pj && c.sect != null) {
+    final playable = rb.playable(c.sect);
+    if (playable == 'npcOnly') add(1, CheckLevel.error, 'Secte ${c.sect} : réservée aux PNJ');
+    if (playable == 'pjOnApproval') add(1, CheckLevel.warn, 'Secte ${c.sect} : PJ sur accord du conte');
   }
 
-  final clan = clanInfo(c.clan);
+  final clan = rb.find('clans', c.clan);
   if (c.clan == null) {
     add(3, CheckLevel.todo, 'Choisissez un clan');
   } else if (clan == null) {
     add(3, CheckLevel.warn, 'Clan ${c.clan} hors liste : à confirmer par le conte');
   } else {
-    add(
-      3,
-      clan.rarity == ClanRarity.rare ? CheckLevel.warn : CheckLevel.ok,
-      switch (clan.rarity) {
-        ClanRarity.common => 'Clan ${clan.name} : commun, aucun atout de rareté',
-        ClanRarity.uncommon => 'Clan ${clan.name} : peu commun, atout de 2 points',
-        ClanRarity.rare => 'Clan ${clan.name} : rare, atout de 4 points, accord du conte nécessaire',
-      },
-    );
+    state(3, 'clans', 'Clan', c.clan);
+    switch (rb.rarity(c.clan, c.sect)) {
+      case 'forbidden':
+        add(3, CheckLevel.error, 'Clan ${c.clan} : interdit pour la secte ${c.sect ?? 'choisie'}');
+      case 'uncommon':
+        add(3, CheckLevel.ok, 'Clan ${c.clan} : peu commun, atout de 2 points');
+      case 'rare':
+        add(3, CheckLevel.warn, 'Clan ${c.clan} : rare, atout de 4 points, accord du conte nécessaire');
+      default:
+        add(3, CheckLevel.ok, 'Clan ${c.clan} : commun, aucun atout de rareté');
+    }
   }
 
   final ranked = c.attributeRanks.whereType<AttrCategory>().toSet().length == 3;
   final focused = AttrCategory.values.every((a) => (c.attributes[a]!.focus ?? '').isNotEmpty);
+  final attributes = v.attributeSlots.join(' / ');
   add(4, ranked && focused ? CheckLevel.ok : CheckLevel.todo,
-      ranked && focused ? 'Attributs répartis 7 / 5 / 3, un focus chacun' : 'Classez les attributs 7 / 5 / 3 et choisissez un focus par catégorie');
+      ranked && focused ? 'Attributs répartis $attributes, un focus chacun' : 'Classez les attributs $attributes et choisissez un focus par catégorie');
 
-  _slots(out, 5, ('compétence', 'compétences'), [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)], skillSlots,
-      'Compétences 4 / 3-3 / 2-2-2 / 1-1-1-1');
+  _slots(out, 5, ('compétence', 'compétences'), [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)], v.skillSlots,
+      'Compétences ${slotsText(v.skillSlots)}');
   for (final s in c.skills) {
-    if (domainSkills.contains(s.name) && (s.note ?? '').trim().isEmpty) add(5, CheckLevel.todo, 'Précisez le domaine de ${s.name}');
-    if (!skillNames.contains(s.name)) add(5, CheckLevel.warn, 'Compétence ${s.name} hors liste : à confirmer par le conte');
+    final mode = rb.domainMode(s.name);
+    if ((mode == 'perDot' || mode == 'multiple') && (s.note ?? '').trim().isEmpty) add(5, CheckLevel.todo, 'Précisez le domaine de ${s.name}');
+    state(5, 'skills', 'Compétence', s.name);
+    final cap = rb.skillCap(s.name, rankFor(c));
+    if (s.level > cap) add(5, CheckLevel.error, '${s.name} : $cap au plus');
   }
 
   _slots(out, 6, ('historique', 'historiques'), [for (final b in c.backgrounds) freeLevelOf(c, Buy.background, b.name)],
-      backgroundSlots, 'Historiques 3 / 2 / 1');
+      v.backgroundSlots, 'Historiques ${v.backgroundSlots.join(' / ')}');
+  for (final b in c.backgrounds) {
+    if (b.name == generationName) continue;
+    state(6, 'backgrounds', 'Historique', b.name);
+    final note = (b.note ?? '').trim();
+    final ask = rb.backgroundAsk(b.name);
+    if (ask != null && note.isEmpty) add(6, CheckLevel.todo, 'Précisez ${b.name}');
+    final scale = rb.backgroundScale(b.name);
+    if (ask == 'monthly' && note.isNotEmpty && b.level >= 1 && b.level <= scale.length && nameKey(note) != nameKey(scale[b.level - 1])) {
+      add(6, CheckLevel.warn, '${b.name} : montant hors barème, à valider par le conte');
+    }
+    if (rb.backgroundApproval(b.name)) add(6, CheckLevel.warn, '${b.name} : montant à valider par le conte');
+    final cap = rb.backgroundCap(b.name);
+    if (b.level > cap) add(6, CheckLevel.error, '${b.name} : $cap au plus');
+  }
   if (generationLevel(c) == 0) {
     add(6, CheckLevel.error, 'Sans point de Génération, le personnage est un mortel');
   } else if (c.genNumber == null) {
@@ -334,22 +396,34 @@ List<Check> creationChecks(Character c) {
 
   final inClan = c.disciplines.where((d) => d.inClan).toList();
   if (inClan.length != 3) {
-    add(7, CheckLevel.todo, clan?.name == 'Caïtiff' ? 'Choisissez trois disciplines communes' : 'Trois disciplines en clan attendues');
+    final choose = clan != null && rb.clanDisciplines(c.clan).isEmpty;
+    add(7, CheckLevel.todo, choose ? 'Choisissez trois disciplines communes' : 'Trois disciplines en clan attendues');
   } else {
-    _slots(out, 7, ('discipline en clan', 'disciplines en clan'),
-        [for (final d in inClan) freeLevelOf(c, Buy.discipline, d.name)], disciplineSlots, 'Disciplines en clan 2 / 1 / 1');
+    _slots(out, 7, ('discipline en clan', 'disciplines en clan'), [for (final d in inClan) freeLevelOf(c, Buy.discipline, d.name)],
+        v.disciplineSlots, 'Disciplines en clan ${v.disciplineSlots.join(' / ')}');
+  }
+  for (final d in c.disciplines) {
+    state(7, 'disciplines', 'Discipline', d.name);
   }
   for (final d in c.disciplines.where((d) => !d.inClan)) {
     if (freeLevelOf(c, Buy.discipline, d.name) > 0) add(7, CheckLevel.error, '${d.name} hors clan : uniquement par achat');
+    if (d.level > 0 && !rb.isCommon(d.name)) add(7, CheckLevel.error, '${d.name} hors clan : seules les disciplines communes à la création');
   }
 
-  final b = budgetOf(c);
+  final b = budgetOf(c, rb: rb);
   if (b.merits > maxMeritPoints) {
     add(8, CheckLevel.error, 'Atouts : ${b.merits} / $maxMeritPoints points');
   } else {
-    add(8, CheckLevel.ok, 'Atouts ${b.merits} / $maxMeritPoints · handicaps ${b.flawsTaken} / $maxFlawXp XP');
+    add(8, CheckLevel.ok, 'Atouts ${b.merits} / $maxMeritPoints · handicaps ${b.flawsTaken} / ${v.maxFlawXp} XP');
   }
-  if (b.flawsTaken > maxFlawXp) add(8, CheckLevel.warn, 'Handicaps au-delà de 7 : pas d’XP en plus');
+  if (b.flawsTaken > v.maxFlawXp) add(8, CheckLevel.warn, 'Handicaps au-delà de ${v.maxFlawXp} : pas d’XP en plus');
+  for (final (cat, noun, list) in [('merits', 'Atout', c.merits), ('flaws', 'Handicap', c.flaws)]) {
+    for (final t in list) {
+      state(8, cat, noun, t.name);
+      final value = rb.cost(cat, t.name);
+      if (value != null && value != t.level) add(8, CheckLevel.warn, '${t.name} : $value points dans le référentiel, ${t.level} sur la fiche');
+    }
+  }
 
   // Plafond du livre (p. 300) ; un brouillon d'avant ce plafond a pu aller au-delà.
   if (c.humanity > 6) add(9, CheckLevel.error, 'Humanité : 6 au plus.');
@@ -357,12 +431,13 @@ List<Check> creationChecks(Character c) {
     add(9, CheckLevel.error, 'Budget dépassé de ${-b.remaining} XP');
   } else {
     add(9, CheckLevel.ok, '${b.spent} XP dépensés, ${b.setAside} mis de côté');
-    if (b.lost > 0) add(9, CheckLevel.warn, '${b.lost} XP perdus (5 au plus mis de côté)');
+    if (b.lost > 0) add(9, CheckLevel.warn, '${b.lost} XP perdus (${v.maxSetAside} au plus mis de côté)');
   }
 
-  // Les règles Firestore ne recalculent rien : une fiche écrite hors de l'application se voit ici.
+  // Les règles Firestore ne recalculent rien : une fiche écrite hors de l'application, ou calculée
+  // avant un changement des valeurs de création, se voit ici (Review Focus 3).
   final derived = c.clone();
-  applyDerived(derived);
+  applyDerived(derived, rb: rb);
   String stored(Character x) => [
         x.xpInitial, x.xpSpent, x.xpEarned, x.blood, x.bloodPerTurn, x.willpower, x.humanity, x.genRank,
         for (final a in AttrCategory.values) x.attributes[a]!.value,

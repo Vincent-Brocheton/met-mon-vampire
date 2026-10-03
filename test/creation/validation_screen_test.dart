@@ -45,6 +45,7 @@ void main() {
     final xp = FakeXpRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         characterRepositoryProvider.overrideWith((ref) => repo),
         xpRepositoryProvider.overrideWith((ref) => xp),

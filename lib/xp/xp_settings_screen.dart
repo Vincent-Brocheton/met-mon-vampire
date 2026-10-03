@@ -9,7 +9,7 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
-import '../rules/creation_rules.dart' show maxFlawXp, maxSetAside, startingXp;
+import '../rulebook/rulebook.dart';
 import 'xp_gain.dart';
 import 'xp_repository.dart';
 import 'xp_settings.dart';
@@ -178,9 +178,9 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const SectionTitle('XP de création'),
           const SizedBox(height: 10),
-          const InfoRow('XP de départ', '$startingXp'),
-          const InfoRow('Maximum via handicaps', '$maxFlawXp'),
-          const InfoRow('Maximum mis de côté', '$maxSetAside'),
+          InfoRow('XP de départ', '${(_saved?.creation ?? const CreationValues()).startingXp}'),
+          InfoRow('Maximum via handicaps', '${(_saved?.creation ?? const CreationValues()).maxFlawXp}'),
+          InfoRow('Maximum mis de côté', '${(_saved?.creation ?? const CreationValues()).maxSetAside}'),
           const SizedBox(height: 6),
           Text('Modifiables avec le référentiel des règles (à venir).', style: t.bodySmall),
         ]),

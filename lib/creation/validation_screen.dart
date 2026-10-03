@@ -9,6 +9,7 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart';
 import '../xp/request_review.dart';
 import '../xp/xp_repository.dart';
@@ -182,7 +183,9 @@ class _ValidationScreenState extends ConsumerState<ValidationScreen> {
 
   Widget _creationDetail(BuildContext context, Character selected, AppUser? me) {
     final t = Theme.of(context).textTheme;
-    final checks = creationChecks(selected);
+    final rb = ref.watch(rulebookProvider);
+    if (rb == null) return const Center(child: CircularProgressIndicator());
+    final checks = creationChecks(selected, rb: rb);
     final own = selected.playerUid == me?.uid;
     final canDecide = me?.role.managesAccounts ?? false;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
