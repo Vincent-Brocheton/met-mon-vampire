@@ -41,6 +41,13 @@ class CharacterScreen extends ConsumerWidget {
       return PageBody(children: [
         CharacterHeader(c, basePath: basePath, history: history),
         const SizedBox(height: 22),
+        if (!history && basePath.startsWith('/joueur') && c.kind == CharacterKind.pj && c.status == CharacterStatus.active) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton(onPressed: () => context.go('$basePath/xp'), child: const Text('Dépenser de l’XP')),
+          ),
+          const SizedBox(height: 22),
+        ],
         if (history) HistoryView(id: id, c: c) else CharacterSheetView(c),
       ]);
     }, onRetry: () => ref.invalidate(characterProvider(id)));
@@ -116,7 +123,7 @@ enum HistoryFilter {
         HistoryFilter.all => true,
         HistoryFilter.xp => e.touchesXp,
         HistoryFilter.edits => e.kind == 'edit' || e.kind == 'creation',
-        HistoryFilter.status => !{'edit', 'creation', 'bonus'}.contains(e.kind),
+        HistoryFilter.status => !{'edit', 'creation', 'bonus', 'xp', 'award', 'gain', 'correction'}.contains(e.kind),
       };
 }
 

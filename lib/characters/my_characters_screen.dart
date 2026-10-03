@@ -6,6 +6,9 @@ import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../player/welcome_screen.dart';
+import '../xp/xp_repository.dart';
+import '../xp/xp_request.dart';
+import '../xp/xp_rules.dart';
 import 'character.dart';
 import 'character_repository.dart';
 import 'describe_changes.dart';
@@ -62,13 +65,16 @@ class _MyCharactersList extends StatelessWidget {
   }
 }
 
-class _CharacterCard extends StatelessWidget {
+class _CharacterCard extends ConsumerWidget {
   const _CharacterCard(this.c);
   final Character c;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
+    final requests = ref.watch(myRequestsProvider).value ?? const <XpRequest>[];
+    final reserved = reservedBy(requests, c.id);
+    final ongoing = requests.where((r) => r.characterId == c.id && (r.status == RequestStatus.draft || r.status.open)).length;
     final closed = _order(c.status) == 3;
     Widget stat(String label, String value) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label.toUpperCase(), style: const TextStyle(fontSize: 12, letterSpacing: 1.2, color: AppColors.textMuted)),
@@ -104,7 +110,7 @@ class _CharacterCard extends StatelessWidget {
           if (c.status == CharacterStatus.active) ...[
             const SizedBox(height: 16),
             Wrap(spacing: 28, runSpacing: 12, children: [
-              stat('XP dispo.', '${c.xpAvailable}'),
+              stat('XP utilisable', reserved == 0 ? '${c.xpAvailable}' : '${c.xpAvailable - reserved} (${c.xpAvailable} − $reserved réservés)'),
               stat('Sang', '${c.blood} · ${c.bloodPerTurn}/tour'),
               stat('Volonté', '${c.willpower}'),
               stat('Humanité', dots(c.humanity)),
@@ -125,10 +131,17 @@ class _CharacterCard extends StatelessWidget {
                 onPressed: () => context.go('/joueur/personnages/${c.id}/creation'),
                 child: Text(c.step > 1 ? 'Reprendre la création' : 'Commencer la création'),
               ),
+            if (c.status == CharacterStatus.active && c.kind == CharacterKind.pj)
+              FilledButton(onPressed: () => context.go('/joueur/personnages/${c.id}/xp'), child: const Text('Dépenser de l’XP')),
             OutlinedButton(
               onPressed: () => context.go('/joueur/personnages/${c.id}'),
               child: const Text('Ouvrir la fiche'),
             ),
+            if (ongoing > 0)
+              TextButton(
+                onPressed: () => context.go('/joueur/demandes'),
+                child: Text(ongoing == 1 ? '1 demande en cours' : '$ongoing demandes en cours'),
+              ),
           ]),
         ]),
       ),

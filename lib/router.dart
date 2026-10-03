@@ -22,6 +22,7 @@ import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
+import 'xp/my_requests_screen.dart';
 import 'xp/spend_screen.dart';
 
 part 'router.g.dart';
@@ -106,7 +107,10 @@ GoRouter router(Ref ref) {
             ),
           ),
           page('/joueur/pnj', soon('PNJ confiés')),
-          page('/joueur/demandes', soon('Mes demandes')),
+          GoRoute(
+            path: '/joueur/demandes',
+            builder: (_, s) => MyRequestsScreen(selectedId: s.uri.queryParameters['d']),
+          ),
           page('/joueur/wiki', soon('Wiki')),
           page('/joueur/notifications', soon('Notifications')),
           page('/conteur', const StorytellerHome()),
