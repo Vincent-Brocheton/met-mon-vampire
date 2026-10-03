@@ -174,6 +174,7 @@ class CharacterRepository {
     required List<String> summary,
     required String reason,
     Map<String, int> delta = const {'initial': 0, 'earned': 0, 'spent': 0},
+    Map<String, Object?> extra = const {},
   }) {
     final ref = _col.doc(c.id);
     final h = ref.collection('history').doc();
@@ -183,6 +184,7 @@ class CharacterRepository {
         'version': fromVersion + 1,
         'lastHistoryId': h.id,
         'updatedAt': FieldValue.serverTimestamp(),
+        ...extra,
       })
       ..set(h, _entry(by, kind, summary, reason, delta));
   }

@@ -202,3 +202,82 @@ final class CharacterRequestsFamily extends $Family
   @override
   String toString() => r'characterRequestsProvider';
 }
+
+@ProviderFor(xpSettings)
+final xpSettingsProvider = XpSettingsProvider._();
+
+final class XpSettingsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<XpSettings>,
+          XpSettings,
+          Stream<XpSettings>
+        >
+    with $FutureModifier<XpSettings>, $StreamProvider<XpSettings> {
+  XpSettingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'xpSettingsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$xpSettingsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<XpSettings> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<XpSettings> create(Ref ref) {
+    return xpSettings(ref);
+  }
+}
+
+String _$xpSettingsHash() => r'2c3f7dc64ec973a2a056b01bac643de41bd2f090';
+
+@ProviderFor(corrections)
+final correctionsProvider = CorrectionsProvider._();
+
+final class CorrectionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<CorrectionEntry>>,
+          List<CorrectionEntry>,
+          Stream<List<CorrectionEntry>>
+        >
+    with
+        $FutureModifier<List<CorrectionEntry>>,
+        $StreamProvider<List<CorrectionEntry>> {
+  CorrectionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'correctionsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$correctionsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<CorrectionEntry>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<CorrectionEntry>> create(Ref ref) {
+    return corrections(ref);
+  }
+}
+
+String _$correctionsHash() => r'44cb04546d4b0f8a133ae2f930ac6714584c60d9';

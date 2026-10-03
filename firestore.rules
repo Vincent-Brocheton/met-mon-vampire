@@ -69,6 +69,17 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid;
     }
 
+    // Paramètres d'expérience (sous-projet 4) : gain mensuel et paliers.
+    match /chronicle/xp {
+      allow read: if signedIn();
+      allow write: if managesAccounts();
+    }
+
+    // Historiques de toutes les fiches (liste des corrections) : l'équipe seulement.
+    match /{path=**}/history/{h} {
+      allow read: if isStaff();
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || managesAccounts());
       allow create: if signedIn() && request.auth.uid == uid
@@ -122,7 +133,7 @@ service cloud.firestore {
       function playerDraftSave() {
         return own() && resource.data.status == 'draft' && request.resource.data.status == 'draft'
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId'])
+               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough'])
           && decisionUnchanged();
       }
 

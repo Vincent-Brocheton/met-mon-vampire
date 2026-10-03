@@ -1,8 +1,11 @@
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/xp/xp_corrections.dart';
+import 'package:portail_met/xp/xp_gain.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
+import 'package:portail_met/xp/xp_settings.dart';
 
 /// Enregistre les appels ; lève [error] s’il est défini.
 class FakeAuthRepository implements AuthRepository {
@@ -122,6 +125,29 @@ class FakeXpRepository implements XpRepository {
     calls.add('decide:${to.name}:$comment');
     if (error != null) throw error!;
   }
+
+  /// Noms refusés renvoyés par payGain et award.
+  List<String> refused = const [];
+
+  @override
+  Future<void> saveSettings(XpSettings s, Actor by) async => calls.add(
+      'settings:${s.monthlyEnabled}:${s.gainSince}:${[for (final t in s.tiers) '${t.months}/${t.xp}/${t.every}'].join(',')}');
+
+  @override
+  Future<List<String>> payGain(List<GainDue> dues, Actor by) async {
+    calls.add('gain:${[for (final d in dues) '${d.c.id}=${d.xp}@${d.through}'].join(',')}');
+    return refused;
+  }
+
+  @override
+  Future<List<String>> award(List<(Character, int)> items, String reason, Actor by) async {
+    calls.add('award:$reason:${[for (final (c, n) in items) '${c.id}=$n'].join(',')}');
+    return refused;
+  }
+
+  @override
+  Future<void> correct(Character before, Character after, CorrectionKind k, String reason, Actor by) async =>
+      calls.add('correction:${k.name}:${before.xpSpent}→${after.xpSpent}:$reason');
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
