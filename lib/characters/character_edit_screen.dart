@@ -7,7 +7,9 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
-import '../rules/met_lists.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
+import '../rules/met_lists.dart' show focuses;
 import 'character.dart';
 import 'character_repository.dart';
 import 'character_screen.dart';
@@ -252,6 +254,8 @@ class _Editor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final rb = ref.watch(rulebookProvider) ?? const Rulebook();
+    List<String> names(String cat) => [for (final e in rb.all(cat)) e.name];
     void set(void Function() change) {
       change();
       onChanged();
@@ -290,9 +294,9 @@ class _Editor extends ConsumerWidget {
             c.playerName = u.displayName;
           }),
         ),
-      ChoiceField(label: 'Clan', value: c.clan, options: [for (final k in clans) k.name], onChanged: (v) => set(() => c.clan = v)),
+      ChoiceField(label: 'Clan', value: c.clan, options: names('clans'), onChanged: (v) => set(() => c.clan = v)),
       TextFieldRow(label: 'Lignée', value: c.lineage, onChanged: (v) => set(() => c.lineage = v)),
-      ChoiceField(label: 'Secte', value: c.sect, options: sects, onChanged: (v) => set(() => c.sect = v)),
+      ChoiceField(label: 'Secte', value: c.sect, options: names('sects'), onChanged: (v) => set(() => c.sect = v)),
       DropdownButtonFormField<GenRank?>(
         initialValue: c.genRank,
         decoration: const InputDecoration(labelText: 'Rang de génération'),
@@ -302,7 +306,7 @@ class _Editor extends ConsumerWidget {
         ],
         onChanged: (g) => set(() {
           c.genRank = g;
-          if (g == null || !(generationNumbers[g] ?? const []).contains(c.genNumber)) c.genNumber = null;
+          if (g == null || !rb.gen(g).numbers.contains(c.genNumber)) c.genNumber = null;
         }),
       ),
       if (c.genRank != null)
@@ -311,11 +315,11 @@ class _Editor extends ConsumerWidget {
           decoration: const InputDecoration(labelText: 'Génération'),
           items: [
             const DropdownMenuItem<int?>(value: null, child: Text('—')),
-            for (final n in generationNumbers[c.genRank]!) DropdownMenuItem<int?>(value: n, child: Text('${n}e')),
+            for (final n in rb.gen(c.genRank!).numbers) DropdownMenuItem<int?>(value: n, child: Text('${n}e')),
           ],
           onChanged: (n) => set(() => c.genNumber = n),
         ),
-      ChoiceField(label: 'Archétype', value: c.archetype, options: archetypes, onChanged: (v) => set(() => c.archetype = v)),
+      ChoiceField(label: 'Archétype', value: c.archetype, options: names('archetypes'), onChanged: (v) => set(() => c.archetype = v)),
       TextFieldRow(label: 'Concept', value: c.concept, onChanged: (v) => set(() => c.concept = v)),
       TextFieldRow(label: 'Sire', value: c.sire, onChanged: (v) => set(() => c.sire = v)),
       TextFieldRow(label: 'Titre', value: c.title, onChanged: (v) => set(() => c.title = v)),
@@ -351,11 +355,11 @@ class _Editor extends ConsumerWidget {
     ]);
 
     final lists = [
-      section('Compétences', [TraitListEditor(items: c.skills, options: skillNames, noteLabel: 'Domaine', onChanged: onChanged)]),
-      section('Historiques', [TraitListEditor(items: c.backgrounds, options: backgroundNames, noteLabel: 'Précisions', onChanged: onChanged)]),
-      section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: allDisciplines, onChanged: onChanged)]),
-      section('Atouts', [TraitListEditor(items: c.merits, options: baseMerits.keys.toList(), max: 7, asDots: false, onChanged: onChanged)]),
-      section('Handicaps', [TraitListEditor(items: c.flaws, options: baseFlaws.keys.toList(), max: 7, asDots: false, onChanged: onChanged)]),
+      section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
+      section('Historiques', [TraitListEditor(items: c.backgrounds, options: names('backgrounds'), noteLabel: 'Précisions', onChanged: onChanged)]),
+      section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
+      section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
+      section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),
     ];
 
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

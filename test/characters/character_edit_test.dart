@@ -22,6 +22,7 @@ void main() {
     final repo = FakeCharacterRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(me)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
         characterRepositoryProvider.overrideWith((ref) => repo),

@@ -8,7 +8,8 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
-import '../rules/met_lists.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
 import 'character.dart';
 import 'character_filter.dart';
 import 'character_repository.dart';
@@ -45,11 +46,14 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final canCreate = ref.watch(currentUserProvider).value?.role.managesAccounts ?? false;
+    final rb = ref.watch(rulebookProvider) ?? const Rulebook();
+    final sects = [for (final e in rb.all('sects')) e.name];
+    final clans = [for (final e in rb.all('clans')) e.name];
     return asyncView(ref.watch(allCharactersProvider), (all) {
       final shown = filterCharacters(all, _filter);
       final activePj = all.where((c) => c.kind == CharacterKind.pj && c.status == CharacterStatus.active).length;
       final pnj = all.where((c) => c.kind == CharacterKind.pnj).length;
-      final filters = _Filters(filter: _filter, onChanged: (f) => setState(() => _filter = f));
+      final filters = _Filters(sects: sects, clans: clans, filter: _filter, onChanged: (f) => setState(() => _filter = f));
       final results = shown.isEmpty
           ? const EmptyState(kind: EmptyKind.noResult, title: 'Aucune fiche', message: 'Aucune fiche ne correspond à ces filtres.')
           : Panel(
@@ -87,6 +91,8 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
                   builder: (context, setSheet) => SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: _Filters(
+                      sects: sects,
+                      clans: clans,
                       filter: _filter,
                       showSearch: false,
                       onChanged: (f) {
@@ -110,7 +116,9 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
 }
 
 class _Filters extends StatelessWidget {
-  const _Filters({required this.filter, required this.onChanged, this.showSearch = true});
+  const _Filters({required this.sects, required this.clans, required this.filter, required this.onChanged, this.showSearch = true});
+  final List<String> sects;
+  final List<String> clans;
   final CharacterFilter filter;
   final ValueChanged<CharacterFilter> onChanged;
   final bool showSearch;
@@ -157,7 +165,7 @@ class _Filters extends StatelessWidget {
         const SizedBox(height: 14),
         select('Secte', filter.sect, sects, (v) => onChanged(filter.copyWith(sect: v))),
         const SizedBox(height: 14),
-        select('Clan', filter.clan, [for (final c in clans) c.name], (v) => onChanged(filter.copyWith(clan: v))),
+        select('Clan', filter.clan, clans, (v) => onChanged(filter.copyWith(clan: v))),
         const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,

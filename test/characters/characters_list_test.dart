@@ -9,6 +9,9 @@ import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/characters/characters_list_screen.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 
 import '../fakes.dart';
 
@@ -21,6 +24,7 @@ void main() {
     const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
         characterRepositoryProvider.overrideWith((ref) => repo),
@@ -55,5 +59,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.calls, ['create:pnj:Le Shérif Ansel']);
     expect(find.text('édition new-id'), findsOneWidget);
+  });
+
+  testWidgets('filtres : clans du référentiel', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        rulebookProvider.overrideWith((ref) => Rulebook({
+              'clans': [RuleEntry(name: 'Ishtarri'), RuleEntry(name: 'Toreador')],
+            })),
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        characterRepositoryProvider.overrideWith((ref) => FakeCharacterRepository()),
+        allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
+      ],
+      child: MaterialApp.router(
+        theme: buildTheme(withFonts: false),
+        routerConfig: GoRouter(routes: [
+          GoRoute(path: '/', builder: (_, _) => const Scaffold(body: CharactersListScreen())),
+        ]),
+      ),
+    ));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(DropdownButtonFormField<String?>, 'Clan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ishtarri'), findsWidgets);
   });
 }
