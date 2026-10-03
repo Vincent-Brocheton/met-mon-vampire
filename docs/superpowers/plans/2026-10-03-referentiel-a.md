@@ -99,9 +99,9 @@ import 'package:portail_met/rulebook/usage.dart';
 import '../characters/character_test.dart' show sample;
 
 void main() {
-  test('18 catégories cohérentes', () {
-    expect(ruleCategories.length, 18);
-    expect(ruleCategories.map((c) => c.id).toSet().length, 18);
+  test('20 catégories cohérentes', () {
+    expect(ruleCategories.length, 20);
+    expect(ruleCategories.map((c) => c.id).toSet().length, 20);
     for (final c in ruleCategories) {
       final keys = {for (final f in c.fields) f.key};
       expect(keys.containsAll(c.columns), isTrue, reason: c.id);
