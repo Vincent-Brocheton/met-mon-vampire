@@ -112,7 +112,7 @@ class CharacterRepository {
   Future<void> submit(Character c, Actor by) => _commit(
         c.clone()
           ..status = CharacterStatus.review
-          ..submittedAt = DateTime.now(),
+          ..submittedAt = nowMs(),
         fromVersion: c.version,
         by: by,
         kind: 'submission',
@@ -144,7 +144,7 @@ class CharacterRepository {
   Future<void> decide(Character c, CharacterStatus to, String comment, Actor by) => _commit(
         c.clone()
           ..status = to
-          ..decidedAt = DateTime.now()
+          ..decidedAt = nowMs()
           ..decidedByUid = by.uid
           ..comment = comment.trim().isEmpty ? null : comment.trim(),
         fromVersion: c.version,
@@ -164,7 +164,9 @@ class CharacterRepository {
         reason: comment,
       );
 
-  Future<void> _commit(
+  /// Ajoute à [batch] une modification tracée de la fiche (version + 1, entrée d'historique).
+  void stageEdit(
+    WriteBatch batch,
     Character c, {
     required int fromVersion,
     required Actor by,
@@ -175,16 +177,28 @@ class CharacterRepository {
   }) {
     final ref = _col.doc(c.id);
     final h = ref.collection('history').doc();
-    final data = {
-      ...c.toMap(),
-      'version': fromVersion + 1,
-      'lastHistoryId': h.id,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-    return (_db.batch()
-          ..update(ref, data)
-          ..set(h, _entry(by, kind, summary, reason, delta)))
-        .commit();
+    batch
+      ..update(ref, {
+        ...c.toMap(),
+        'version': fromVersion + 1,
+        'lastHistoryId': h.id,
+        'updatedAt': FieldValue.serverTimestamp(),
+      })
+      ..set(h, _entry(by, kind, summary, reason, delta));
+  }
+
+  Future<void> _commit(
+    Character c, {
+    required int fromVersion,
+    required Actor by,
+    required String kind,
+    required List<String> summary,
+    required String reason,
+    Map<String, int> delta = const {'initial': 0, 'earned': 0, 'spent': 0},
+  }) {
+    final batch = _db.batch();
+    stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta);
+    return batch.commit();
   }
 
   Map<String, dynamic> _entry(

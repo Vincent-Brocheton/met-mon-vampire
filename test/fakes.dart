@@ -1,6 +1,8 @@
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/xp/xp_repository.dart';
+import 'package:portail_met/xp/xp_request.dart';
 
 /// Enregistre les appels ; lève [error] s’il est défini.
 class FakeAuthRepository implements AuthRepository {
@@ -89,6 +91,37 @@ class FakeCharacterRepository implements CharacterRepository {
   @override
   Future<void> decide(Character c, CharacterStatus to, String comment, Actor by) async =>
       calls.add('decide:${to.name}:$comment');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeXpRepository implements XpRepository {
+  final calls = <String>[];
+  Object? error;
+
+  /// Dernière demande reçue par save.
+  XpRequest? lastSaved;
+
+  @override
+  Future<String> save(XpRequest r, {required bool submit}) async {
+    calls.add('save:${submit ? 'submit' : 'draft'}:${r.total}');
+    lastSaved = r;
+    if (error != null) throw error!;
+    return r.id.isEmpty ? 'new-req' : r.id;
+  }
+
+  @override
+  Future<void> reply(XpRequest r, String text, Actor by) async => calls.add('reply:$text');
+
+  @override
+  Future<void> cancel(XpRequest r) async => calls.add('cancel:${r.id}');
+
+  @override
+  Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by) async {
+    calls.add('decide:${to.name}:$comment');
+    if (error != null) throw error!;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
