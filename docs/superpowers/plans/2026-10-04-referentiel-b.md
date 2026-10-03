@@ -163,16 +163,20 @@ void main() {
     expect(rb.lineageMerit('Tremere', ' telyav '), ('Lignée Telyav', 2));
     expect(rb.lineageMerit('Tremere', 'Inconnue'), isNull);
     final ancilla = rb.gen(GenRank.ancilla);
-    expect((ancilla.traitFactor, ancilla.numbers, ancilla.blood, ancilla.eldersAllowed), (3, [10], 12, false));
+    expect((ancilla.traitFactor, ancilla.blood, ancilla.eldersAllowed), (3, 12, false));
+    expect(ancilla.numbers, [10]);
     expect(rb.gen(GenRank.neonate).traitFactor, 1, reason: 'rang absent : valeurs de base');
   });
 
   test('valeurs de création : défauts, invalides, aller-retour', () {
     expect(slotsText([4, 3, 3, 2, 2, 2, 1, 1, 1, 1]), '4 / 3-3 / 2-2-2 / 1-1-1-1');
     const d = CreationValues();
-    expect((d.attributeSlots, d.startingXp, d.maxFlawXp, d.maxSetAside, d.defaultBonus), ([7, 5, 3], 30, 7, 5, 0));
+    expect(d.attributeSlots, [7, 5, 3]);
+    expect((d.startingXp, d.maxFlawXp, d.maxSetAside, d.defaultBonus), (30, 7, 5, 0));
     final bad = CreationValues.fromMap({'attributeSlots': [7, 5], 'skillSlots': [4, 'x'], 'startingXp': -1, 'maxFlawXp': 6});
-    expect((bad.attributeSlots, bad.skillSlots, bad.startingXp, bad.maxFlawXp), ([7, 5, 3], d.skillSlots, 30, 6));
+    expect(bad.attributeSlots, [7, 5, 3]);
+    expect(bad.skillSlots, d.skillSlots);
+    expect((bad.startingXp, bad.maxFlawXp), (30, 6));
     const custom = CreationValues(attributeSlots: [8, 5, 3], startingXp: 35, defaultBonus: 2);
     expect(CreationValues.fromMap(custom.toMap()).toMap(), custom.toMap());
     const s = XpSettings(creation: custom);

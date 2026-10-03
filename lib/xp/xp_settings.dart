@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../rulebook/rulebook.dart';
+
 /// Palier du gain mensuel : pendant [months] mois (null : sans limite), [xp] XP tous les [every] mois.
 class XpTier {
   const XpTier(this.months, this.xp, this.every);
@@ -25,6 +27,7 @@ class XpSettings {
     this.monthlyEnabled = false,
     this.gainSince,
     this.tiers = defaultTiers,
+    this.creation = const CreationValues(),
     this.updatedAt,
     this.updatedByName,
   });
@@ -36,6 +39,7 @@ class XpSettings {
       monthlyEnabled: m['monthlyEnabled'] == true,
       gainSince: m['gainSince'] as String?,
       tiers: tiers.isEmpty ? defaultTiers : tiers,
+      creation: CreationValues.fromMap(m['creation'] is Map ? Map<String, dynamic>.from(m['creation'] as Map) : null),
       updatedAt: (m['updatedAt'] as Timestamp?)?.toDate(),
       updatedByName: m['updatedByName'] as String?,
     );
@@ -46,6 +50,9 @@ class XpSettings {
   /// Premier mois versé ('aaaa-mm').
   final String? gainSince;
   final List<XpTier> tiers;
+
+  /// Valeurs de création (référentiel, sous-projet 5).
+  final CreationValues creation;
   final DateTime? updatedAt;
   final String? updatedByName;
 
@@ -53,5 +60,6 @@ class XpSettings {
         'monthlyEnabled': monthlyEnabled,
         'gainSince': gainSince,
         'tiers': [for (final t in tiers) t.toMap()],
+        'creation': creation.toMap(),
       };
 }

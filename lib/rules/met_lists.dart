@@ -1,6 +1,6 @@
 import '../characters/character.dart';
 
-/// Listes de règles de base (Mind's Eye Theatre). Éditables au sous-projet 5.
+/// Listes de règles de base (Mind's Eye Theatre) : valeurs de base du référentiel (baseEntries).
 enum ClanRarity {
   common(0),
   uncommon(2),
