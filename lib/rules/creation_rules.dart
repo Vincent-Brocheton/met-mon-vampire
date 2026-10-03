@@ -351,6 +351,8 @@ List<Check> creationChecks(Character c) {
   }
   if (b.flawsTaken > maxFlawXp) add(8, CheckLevel.warn, 'Handicaps au-delà de 7 : pas d’XP en plus');
 
+  // Plafond du livre (p. 300) ; un brouillon d'avant ce plafond a pu aller au-delà.
+  if (c.humanity > 6) add(9, CheckLevel.error, 'Humanité : 6 au plus.');
   if (b.remaining < 0) {
     add(9, CheckLevel.error, 'Budget dépassé de ${-b.remaining} XP');
   } else {

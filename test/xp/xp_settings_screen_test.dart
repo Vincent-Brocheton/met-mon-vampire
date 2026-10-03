@@ -14,7 +14,7 @@ void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   const julien = AppUser(uid: 'julien', displayName: 'Julien', email: 'j@ex.fr', role: Role.narrateur);
 
-  Future<FakeXpRepository> pump(WidgetTester tester, {AppUser user = lea}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, {AppUser user = lea, XpSettings settings = const XpSettings(monthlyEnabled: true, gainSince: '2026-10')}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -23,7 +23,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         xpRepositoryProvider.overrideWith((ref) => repo),
-        xpSettingsProvider.overrideWith((ref) => Stream.value(const XpSettings(monthlyEnabled: true, gainSince: '2026-10'))),
+        xpSettingsProvider.overrideWith((ref) => Stream.value(settings)),
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
@@ -61,6 +61,15 @@ void main() {
     await tester.tap(find.text('Enregistrer'));
     await tester.pump();
     expect(repo.calls.single, 'settings:true:2026-10:36/3/1,36/2/1,24/1/1,12/1/2,null/1/2');
+  });
+
+  testWidgets('réactiver le gain : pas de rattrapage des mois désactivés (revue finale)', (tester) async {
+    final repo = await pump(tester, settings: const XpSettings(gainSince: '2026-01'));
+    await tester.tap(find.byKey(const Key('gain-enabled')));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pump();
+    expect(repo.calls.single, startsWith('settings:true:2026-10:'));
   });
 
   testWidgets('narrateur : accès refusé', (tester) async {

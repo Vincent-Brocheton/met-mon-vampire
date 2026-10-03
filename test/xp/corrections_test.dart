@@ -27,7 +27,7 @@ void main() {
         decidedAt: DateTime(2026, 9, 12),
       );
 
-  Future<FakeXpRepository> pump(WidgetTester tester, Character sheet, {List<CorrectionEntry> recent = const []}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, Character sheet, {List<CorrectionEntry> recent = const [], List<Character> others = const []}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -36,7 +36,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         xpRepositoryProvider.overrideWith((ref) => repo),
-        allCharactersProvider.overrideWith((ref) => Stream.value([sheet])),
+        allCharactersProvider.overrideWith((ref) => Stream.value([sheet, ...others])),
         correctionsProvider.overrideWith((ref) => Stream.value(recent)),
         characterRequestsProvider('x').overrideWith((ref) => Stream.value([accepted()])),
       ],
@@ -52,6 +52,16 @@ void main() {
     await tester.tap(find.text(text).last);
     await tester.pumpAndSettle();
   }
+
+  testWidgets('fiches en création : absentes du choix (revue finale)', (tester) async {
+    await pump(tester, sample(), others: [
+      Character(id: 'd', name: 'Mira Kovač', kind: CharacterKind.pj, playerUid: 'u2', playerName: 'Inès T.'),
+    ]);
+    await tester.tap(find.byKey(const Key('corr-sheet')));
+    await tester.pumpAndSettle();
+    expect(find.text('Mira Kovač · Inès T.'), findsNothing);
+    expect(find.text('Isaure de Valcourt · Camille R.'), findsWidgets);
+  });
 
   testWidgets('dernières corrections affichées', (tester) async {
     await pump(tester, sample(), recent: [

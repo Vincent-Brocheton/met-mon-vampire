@@ -135,6 +135,14 @@ void main() {
     expect(blocking(valid()..willpower = 10), isNotEmpty);
   });
 
+  test('Humanité au-delà de 6 (brouillon d’avant le plafond) : bloquant (revue finale)', () {
+    final c = valid()
+      ..purchases.addAll([Purchase(Buy.humanity, humanityName, 6, 10), Purchase(Buy.humanity, humanityName, 7, 10)]);
+    applyDerived(c);
+    expect(c.humanity, 7);
+    expect(blocking(c), contains('Humanité : 6 au plus.'));
+  });
+
   test('rareté de clan comptée dans les atouts', () {
     final c = valid();
     setClan(c, 'Giovanni');

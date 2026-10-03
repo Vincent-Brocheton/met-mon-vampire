@@ -73,7 +73,11 @@ class _CorrectionsScreenState extends ConsumerState<CorrectionsScreen> {
     return asyncView(ref.watch(allCharactersProvider), (chars) {
       final t = Theme.of(context).textTheme;
       final names = {for (final c in chars) c.id: c.name};
-      final options = [for (final c in chars) if (c.playerUid != me.uid) c];
+      // Les règles (staffEdit) n'acceptent une correction que sur un PNJ ou une fiche jouée ou close.
+      final options = [
+        for (final c in chars)
+          if (c.playerUid != me.uid && (c.kind == CharacterKind.pnj || c.status.settled)) c,
+      ];
       final sheet = options.where((c) => c.id == _sheetId).firstOrNull;
 
       final recent = Panel(

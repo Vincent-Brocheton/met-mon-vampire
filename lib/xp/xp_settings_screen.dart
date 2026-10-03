@@ -189,7 +189,12 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Activé'),
             value: _enabled,
-            onChanged: (v) => setState(() => _enabled = v),
+            onChanged: (v) => setState(() {
+              // Réactivé : on repart du mois courant, sans rattraper les mois où le gain était coupé.
+              final current = monthKey(widget.now());
+              if (v && !_enabled && (_since == null || monthIndex(_since!) < monthIndex(current))) _since = current;
+              _enabled = v;
+            }),
           ),
           SizedBox(
             width: 260,
