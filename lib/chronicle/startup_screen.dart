@@ -46,7 +46,7 @@ class StartupScreen extends ConsumerWidget {
           named ? _Status.done : _Status.now, named ? 'Modifier' : 'Nommer',
           principal ? () => showDialog<void>(context: context, builder: (_) => ChronicleNameDialog(config: config)) : null),
       ('2', 'Régler l’expérience', 'XP de création, gain mensuel par paliers, barème des PNJ.', _Status.later, 'Ouvrir',
-          () => open('/conteur/parametres')),
+          () => open('/conteur/parametres/xp')),
       ('3', 'Remplir le référentiel et le wiki', 'Partir des valeurs du livre de base, puis rédiger les pages.',
           _Status.later, 'Ouvrir', () => open('/conteur/wiki')),
       ('4', 'Inviter l’équipe de conteurs', 'Chaque conteur reçoit un rôle et des droits.', _Status.now, 'Inviter',

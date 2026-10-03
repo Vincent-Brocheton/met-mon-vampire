@@ -24,6 +24,7 @@ import 'redirect.dart';
 import 'shell/app_shell.dart';
 import 'xp/my_requests_screen.dart';
 import 'xp/spend_screen.dart';
+import 'xp/xp_settings_screen.dart';
 
 part 'router.g.dart';
 
@@ -135,7 +136,8 @@ GoRouter router(Ref ref) {
           page('/conteur/xp', soon('XP')),
           page('/conteur/wiki', soon('Wiki')),
           page('/conteur/referentiel', soon('Référentiel des règles')),
-          page('/conteur/parametres', soon('Paramètres de la chronique')),
+          page('/conteur/parametres', const ParametersScreen()),
+          page('/conteur/parametres/xp', const XpSettingsScreen()),
           page('/conteur/notifications', soon('Notifications')),
         ],
       ),
