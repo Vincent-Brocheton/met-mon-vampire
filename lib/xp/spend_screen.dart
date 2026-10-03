@@ -145,7 +145,8 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
     final options = elementOptions(c, _kind);
     final label = name == null ? null : noteLabel(_kind, name);
     final rank = (c.genRank ?? GenRank.neonate).label;
-    final canSend = r.items.isNotEmpty && _why.text.trim().isNotEmpty && !_busy;
+    final problems = sendProblems(c, r.items, usable: usable);
+    final canSend = r.items.isNotEmpty && problems.isEmpty && _why.text.trim().isNotEmpty && !_busy;
 
     final addSection = Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -292,6 +293,10 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
         ),
         onChanged: (_) => _change(() {}),
       ),
+      for (final p in problems) ...[
+        const SizedBox(height: 10),
+        Text(p, style: const TextStyle(color: AppColors.linkHover)),
+      ],
       if (_error != null) ...[
         const SizedBox(height: 10),
         Text(_error!, style: const TextStyle(color: AppColors.linkHover)),
@@ -299,10 +304,12 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
       const SizedBox(height: 16),
       Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.end, children: [
         TextButton(onPressed: _leave, child: const Text('Annuler')),
-        OutlinedButton(
-          onPressed: r.items.isEmpty || _busy ? null : () => _save(submit: false),
-          child: Text(r.status == RequestStatus.draft ? 'Enregistrer le brouillon' : 'Enregistrer'),
-        ),
+        // À compléter : seul le renvoi est permis (règles : changes → pending).
+        if (r.status != RequestStatus.changes)
+          OutlinedButton(
+            onPressed: r.items.isEmpty || _busy ? null : () => _save(submit: false),
+            child: Text(r.status == RequestStatus.draft ? 'Enregistrer le brouillon' : 'Enregistrer'),
+          ),
         FilledButton(
           onPressed: canSend ? () => _save(submit: true) : null,
           child: Text('Envoyer au conte · ${r.total} XP'),

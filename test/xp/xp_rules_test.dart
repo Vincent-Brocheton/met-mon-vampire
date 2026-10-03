@@ -117,6 +117,26 @@ void main() {
     expect(requestChecks(sample(), vicissitude, reservedOthers: 0).any((k) => k.text.startsWith('Mentor nécessaire')), isTrue);
   });
 
+  test('achats truqués : forme vérifiée à la validation (revue finale)', () {
+    String? invalid(XpItem i) =>
+        requestChecks(sample(), req([i]), reservedOthers: 0).where((k) => k.level == CheckLevel.error).map((k) => k.text).firstOrNull;
+    expect(invalid(const XpItem(XpKind.skill, 'Linguistique', 0, 5, 5)), 'Achat invalide : Compétence · Linguistique (— → ●●●●●)');
+    expect(invalid(const XpItem(XpKind.attribute, 'mental', 0, 10, 3)), startsWith('Achat invalide'));
+    expect(invalid(const XpItem(XpKind.merit, 'Chanceux', 0, 1, 1)), startsWith('Achat invalide'));
+    expect(invalid(const XpItem(XpKind.flawBuyback, 'Curiosité', 2, 1, 4)), startsWith('Achat invalide'));
+    expect(invalid(const XpItem(XpKind.attribute, 'occulte', 0, 1, 3)), startsWith('Achat invalide'));
+    expect(const XpItem(XpKind.attribute, 'occulte', 0, 1, 3).displayName, 'occulte');
+  });
+
+  test('avant l’envoi : XP insuffisante ou fiche changée (revue finale)', () {
+    final c = sample();
+    expect(sendProblems(c, [const XpItem(XpKind.humanity, 'Humanité', 0, 1, 10)], usable: 8),
+        ['XP libre insuffisante : 10 requis, 8 disponible.']);
+    expect(sendProblems(c, [const XpItem(XpKind.discipline, 'Auspex', 2, 3, 9)], usable: 20),
+        ['La fiche a changé : Auspex est à ●●● (demande faite depuis ●●). Retirez cet achat puis ajoutez-le de nouveau.']);
+    expect(sendProblems(c, [const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)], usable: 20), isEmpty);
+  });
+
   test('appliquer une demande', () {
     final c = sample();
     final items = <XpItem>[];

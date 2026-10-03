@@ -162,16 +162,45 @@ int reservedBy(List<XpRequest> requests, String characterId, {String? exceptId})
 /// Total au barème actuel de la fiche (le rang a pu changer depuis l'envoi).
 int recomputedTotal(Character c, List<XpItem> items) => items.fold(0, (s, i) => s + costOf(c, i));
 
+/// Un achat a la forme produite par draftItem (un niveau, ou la valeur de l'atout, ou un rachat vers 0).
+/// Les règles Firestore ne vérifient rien de cela : une demande écrite hors de l'application passe par ici.
+bool wellFormed(XpItem i) => switch (i.kind) {
+      XpKind.attribute => AttrCategory.values.asNameMap().containsKey(i.name) && i.toLevel == i.fromLevel + 1,
+      XpKind.merit => i.fromLevel == 0 && baseMerits[i.name] != null && i.toLevel == baseMerits[i.name],
+      XpKind.flawBuyback => i.toLevel == 0 && i.fromLevel > 0,
+      _ => i.toLevel == i.fromLevel + 1,
+    };
+
+String _gap(XpItem i, int expected) =>
+    'La fiche a changé : ${i.displayName} est à ${levelText(i.kind, expected)} (demande faite depuis ${levelText(i.kind, i.fromLevel)})';
+
+/// Ce qui empêche le joueur d'envoyer sa demande (brouillon rouvert, fiche changée, XP réservée ailleurs).
+List<String> sendProblems(Character c, List<XpItem> items, {required int usable}) {
+  final out = <String>[];
+  final seen = <XpItem>[];
+  for (final i in items) {
+    final expected = levelWith(c, seen, i.kind, i.name);
+    if (expected != i.fromLevel) out.add('${_gap(i, expected)}. Retirez cet achat puis ajoutez-le de nouveau.');
+    seen.add(i);
+  }
+  final total = items.fold<int>(0, (s, i) => s + i.cost);
+  if (total > usable) out.add('XP libre insuffisante : $total requis, $usable disponible.');
+  return out;
+}
+
 /// Contrôles affichés au conteur avant de valider (C-Validation). Erreur = validation impossible.
 List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers}) {
   final out = <Check>[];
   final seen = <XpItem>[];
   for (final i in r.items) {
-    final expected = levelWith(c, seen, i.kind, i.name);
-    if (expected != i.fromLevel) {
+    if (!wellFormed(i)) {
       out.add(Check(0, CheckLevel.error,
-          'La fiche a changé : ${i.displayName} est à ${levelText(i.kind, expected)} (demande faite depuis ${levelText(i.kind, i.fromLevel)})'));
+          'Achat invalide : ${i.label} (${levelText(i.kind, i.fromLevel)} → ${levelText(i.kind, i.toLevel)})'));
+      seen.add(i);
+      continue;
     }
+    final expected = levelWith(c, seen, i.kind, i.name);
+    if (expected != i.fromLevel) out.add(Check(0, CheckLevel.error, _gap(i, expected)));
     final cost = costOf(c, i);
     if (cost != i.cost) out.add(Check(0, CheckLevel.warn, 'Coût recalculé : $cost XP au lieu de ${i.cost} (${i.label})'));
     if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.toLevel > capOf(i.kind)) {

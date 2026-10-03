@@ -82,6 +82,13 @@ void main() {
     expect(repo.calls, ['reply:Elle chante depuis l’enfance.']);
   });
 
+  testWidgets('demande à compléter : modifiable (revue finale)', (tester) async {
+    await pump(tester, [changes()]);
+    await tester.tap(find.text('Modifier'));
+    await tester.pumpAndSettle();
+    expect(find.text('dépense x r1'), findsOneWidget);
+  });
+
   testWidgets('annuler une demande, avec confirmation', (tester) async {
     final repo = await pump(tester, [changes()]);
     await tester.tap(find.text('Annuler la demande'));

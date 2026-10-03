@@ -27,7 +27,7 @@ void main() {
         items: [const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)],
       );
 
-  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet, String? requestId}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -42,7 +42,7 @@ void main() {
       child: MaterialApp.router(
         theme: buildTheme(withFonts: false),
         routerConfig: GoRouter(routes: [
-          GoRoute(path: '/', builder: (_, _) => const Scaffold(body: SpendScreen(characterId: 'x'))),
+          GoRoute(path: '/', builder: (_, _) => Scaffold(body: SpendScreen(characterId: 'x', requestId: requestId))),
           GoRoute(path: '/joueur/demandes', builder: (_, s) => Text('demandes ${s.uri.queryParameters['d']}')),
         ]),
       ),
@@ -98,6 +98,39 @@ void main() {
     await tester.tap(find.byTooltip('Retirer Linguistique').last);
     await tester.pump();
     expect(find.byTooltip('Retirer Linguistique'), findsOneWidget);
+  });
+
+  testWidgets('brouillon rouvert au-delà de l’XP utilisable : envoi bloqué (revue finale)', (tester) async {
+    final draft = XpRequest(
+      id: 'd1',
+      characterId: 'x',
+      characterName: 'Isaure de Valcourt',
+      playerUid: 'u1',
+      playerName: 'Camille R.',
+      items: [const XpItem(XpKind.humanity, 'Humanité', 0, 1, 10)],
+      justification: 'Rédemption.',
+    );
+    await pump(tester, requests: [pendingAuspex(), draft], requestId: 'd1');
+    expect(find.text('XP libre insuffisante : 10 requis, 8 disponible.'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Envoyer au conte · 10 XP')).onPressed, isNull);
+  });
+
+  testWidgets('demande à compléter : on la renvoie, sans « Enregistrer » (revue finale)', (tester) async {
+    final changes = XpRequest(
+      id: 'c1',
+      characterId: 'x',
+      characterName: 'Isaure de Valcourt',
+      playerUid: 'u1',
+      playerName: 'Camille R.',
+      status: RequestStatus.changes,
+      items: [const XpItem(XpKind.skill, 'Linguistique', 0, 1, 2)],
+      justification: 'Leçons.',
+    );
+    final repo = await pump(tester, requests: [changes], requestId: 'c1');
+    expect(find.text('Enregistrer'), findsNothing);
+    await tester.tap(find.text('Envoyer au conte · 2 XP'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['save:submit:2']);
   });
 
   testWidgets('fiche d’un autre joueur : refus', (tester) async {

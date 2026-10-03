@@ -274,7 +274,7 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
         Wrap(spacing: 10, runSpacing: 10, children: [
           if (r.status == RequestStatus.changes)
             FilledButton(onPressed: _busy ? null : () => _reply(r), child: const Text('Renvoyer au conte')),
-          if (r.status == RequestStatus.draft || r.status == RequestStatus.pending)
+          if (r.status.editable)
             OutlinedButton(
               onPressed: () => context.go('/joueur/personnages/${r.characterId}/xp?demande=${r.id}'),
               child: const Text('Modifier'),

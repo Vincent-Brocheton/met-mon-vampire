@@ -58,7 +58,8 @@ class XpItem {
   final int fromLevel, toLevel, cost;
   final String? note;
 
-  String get displayName => kind == XpKind.attribute ? AttrCategory.values.byName(name).label : name;
+  /// Un nom d'attribut inconnu (demande écrite hors de l'application) reste affiché tel quel.
+  String get displayName => kind == XpKind.attribute ? AttrCategory.values.asNameMap()[name]?.label ?? name : name;
 
   String get label => switch (kind) {
         XpKind.humanity => 'Humanité',
