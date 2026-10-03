@@ -148,4 +148,11 @@ void main() {
     expect(find.text('Disciplines en clan : trois valeurs, par exemple 2 / 1 / 1.'), findsOneWidget);
     expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Enregistrer')).onPressed, isNull);
   });
+
+  testWidgets('répartitions de compétences limitées au plafond de 5 (revue)', (tester) async {
+    await pump(tester);
+    await tester.enterText(find.byKey(const Key('creation-skillSlots')), '6 / 3');
+    await tester.pump();
+    expect(find.text('Compétences : des valeurs de 1 à 5, par exemple 4 / 3-3 / 2-2-2 / 1-1-1-1.'), findsOneWidget);
+  });
 }

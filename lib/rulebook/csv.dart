@@ -203,7 +203,7 @@ ImportPreview previewImport(RuleCategory c, List<RuleEntry> existing, String tex
       continue;
     }
     final old = byName[nameKey(name)];
-    final data = <String, dynamic>{...?old?.data};
+    final data = <String, dynamic>{...(old?.data ?? newEntryData(c.id))};
     String? error;
     for (final f in c.fields) {
       if (!header.contains(f.key)) continue;

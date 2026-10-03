@@ -8,6 +8,9 @@ import 'package:portail_met/characters/character_edit_screen.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rulebook.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 
 import '../fakes.dart';
 import 'character_test.dart' show sample;
@@ -15,14 +18,14 @@ import 'character_test.dart' show sample;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook()}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repo = FakeCharacterRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        baseRulebook,
+        rulebookProvider.overrideWith((ref) => rb),
         currentUserProvider.overrideWith((ref) => Stream.value(me)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
         characterRepositoryProvider.overrideWith((ref) => repo),
@@ -84,5 +87,16 @@ void main() {
     await pump(tester, withHumanity()..playerUid = 'lea');
     expect(find.textContaining('votre propre fiche'), findsOneWidget);
     expect(find.byTooltip('Ajouter un point : Humanité'), findsNothing);
+  });
+
+  testWidgets('génération absente du référentiel ou en double : menu sans erreur (revue)', (tester) async {
+    final rb = Rulebook({
+      'generations': [
+        RuleEntry(name: 'Ancilla', data: {'rank': 'ancilla', 'numbers': ['9', '9']}),
+      ],
+    });
+    await pump(tester, sample()..genNumber = 10, rb: rb);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Rang de génération'), findsOneWidget);
   });
 }

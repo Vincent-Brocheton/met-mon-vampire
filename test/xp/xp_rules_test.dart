@@ -265,4 +265,12 @@ void main() {
     expect(sendProblems(c, items, usable: 100, rb: Rulebook({'merits': merits})),
         ['Atout · Chanceux vaut maintenant 3 points. Retirez cet achat puis ajoutez-le de nouveau.']);
   });
+
+  test('historique sans précision demandée par le référentiel : note facultative (revue)', () {
+    final backgrounds = baseEntries('backgrounds');
+    backgrounds.firstWhere((e) => e.name == 'Ressources').data.remove('ask');
+    final rb = Rulebook({'backgrounds': backgrounds});
+    expect(noteSpec(XpKind.background, 'Ressources', rb: rb), ('Détail du nouveau point', false));
+    expect(err(sample(), XpKind.background, 'Ressources', rb: rb), isNull);
+  });
 }

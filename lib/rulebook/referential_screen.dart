@@ -266,7 +266,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             (query.isEmpty || nameKey(e.name).contains(query) || nameKey(e.vo ?? '').contains(query)))
           e,
     ];
-    final found = _selectedId == null ? null : (_selectedId!.isEmpty ? RuleEntry(name: '') : entries.where((e) => e.id == _selectedId).firstOrNull);
+    final found = _selectedId == null ? null : (_selectedId!.isEmpty ? RuleEntry(name: '', data: newEntryData(cat.id)) : entries.where((e) => e.id == _selectedId).firstOrNull);
     // Supprimé par un autre conteur pendant l'édition : le formulaire reste, enregistrer le recrée.
     final vanished = found == null && (_selectedId?.isNotEmpty ?? false) && _formEntry?.id == _selectedId;
     final selected = vanished ? _formEntry : found;

@@ -332,4 +332,15 @@ void main() {
       expect(addPurchase(valid(), Buy.discipline, 'Présence', rb: rb), contains('communes'));
     });
   });
+
+  test('coût enregistré d’un achat recalculé quand le facteur du rang change (revue)', () {
+    final c = valid();
+    addPurchase(c, Buy.skill, 'Informatique');
+    expect(c.purchases.last.cost, 3);
+    final rb = Rulebook({
+      'generations': [RuleEntry(name: 'Neonate', data: {'rank': 'neonate', 'traitFactor': 2})],
+    });
+    applyDerived(c, rb: rb);
+    expect(c.purchases.last.cost, 6);
+  });
 }

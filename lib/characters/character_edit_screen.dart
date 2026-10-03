@@ -311,11 +311,12 @@ class _Editor extends ConsumerWidget {
       ),
       if (c.genRank != null)
         DropdownButtonFormField<int?>(
-          initialValue: c.genNumber,
+          // Numéro retiré du référentiel ou en double : le menu ne doit pas planter.
+          initialValue: rb.gen(c.genRank!).numbers.contains(c.genNumber) ? c.genNumber : null,
           decoration: const InputDecoration(labelText: 'Génération'),
           items: [
             const DropdownMenuItem<int?>(value: null, child: Text('—')),
-            for (final n in rb.gen(c.genRank!).numbers) DropdownMenuItem<int?>(value: n, child: Text('${n}e')),
+            for (final n in rb.gen(c.genRank!).numbers.toSet()) DropdownMenuItem<int?>(value: n, child: Text('${n}e')),
           ],
           onChanged: (n) => set(() => c.genNumber = n),
         ),

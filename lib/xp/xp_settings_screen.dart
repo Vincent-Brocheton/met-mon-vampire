@@ -130,9 +130,10 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
 
   /// Valeurs de création saisies, ou le premier message d'erreur.
   (CreationValues?, String?) _parseCreation() {
-    List<int>? slots(String k) {
+    // Compétences, historiques et disciplines : 5 au plus, leur plafond.
+    List<int>? slots(String k, int most) {
       final v = [for (final m in RegExp(r'\d+').allMatches(_creation[k]!.text)) int.parse(m.group(0)!)];
-      return v.isEmpty || v.any((x) => x < 1 || x > 10) ? null : v;
+      return v.isEmpty || v.any((x) => x < 1 || x > most) ? null : v;
     }
 
     int? count(String k, int most) {
@@ -140,10 +141,10 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
       return n == null || n < 0 || n > most ? null : n;
     }
 
-    final a = slots('attributeSlots'), s = slots('skillSlots'), b = slots('backgroundSlots'), d = slots('disciplineSlots');
+    final a = slots('attributeSlots', 10), s = slots('skillSlots', 5), b = slots('backgroundSlots', 5), d = slots('disciplineSlots', 5);
     if (a == null || a.length != 3) return (null, 'Attributs : trois valeurs, par exemple 7 / 5 / 3.');
-    if (s == null) return (null, 'Compétences : des valeurs de 1 à 10, par exemple 4 / 3-3 / 2-2-2 / 1-1-1-1.');
-    if (b == null) return (null, 'Historiques : des valeurs de 1 à 10, par exemple 3 / 2 / 1.');
+    if (s == null) return (null, 'Compétences : des valeurs de 1 à 5, par exemple 4 / 3-3 / 2-2-2 / 1-1-1-1.');
+    if (b == null) return (null, 'Historiques : des valeurs de 1 à 5, par exemple 3 / 2 / 1.');
     if (d == null || d.length != 3) return (null, 'Disciplines en clan : trois valeurs, par exemple 2 / 1 / 1.');
     final start = count('startingXp', 200), bonus = count('defaultBonus', 100), flaws = count('maxFlawXp', 50), aside = count('maxSetAside', 50);
     if (start == null || bonus == null || flaws == null || aside == null) return (null, 'XP de création : des nombres entiers positifs.');

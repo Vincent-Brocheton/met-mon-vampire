@@ -316,4 +316,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.calls, ['import:archetypes:20']);
   });
+
+  testWidgets('nouvel atout : proposé à la création et à l’XP par défaut (revue)', (tester) async {
+    final repo = await pump(tester);
+    await tester.tap(find.byKey(const Key('ref-new')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('rf-name')), 'Mécène');
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    expect(repo.lastSaved!.data, {'atCreation': true, 'withXp': true});
+  });
 }

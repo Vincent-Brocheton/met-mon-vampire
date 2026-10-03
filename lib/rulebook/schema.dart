@@ -288,3 +288,11 @@ String displayValue(RuleField f, Object? v) {
     _ => '$v',
   };
 }
+
+/// Données d'un nouvel élément : un atout ou un handicap est proposé aux joueurs dès sa création
+/// (une case décochée n'est pas enregistrée et se lit comme fausse).
+Map<String, dynamic> newEntryData(String cat) => switch (cat) {
+      'merits' => {'atCreation': true, 'withXp': true},
+      'flaws' => {'atCreation': true},
+      _ => {},
+    };

@@ -242,7 +242,8 @@ void _renumberPurchases(Character c, Rulebook rb) {
     final key = '${p.kind}/${p.name}';
     final n = seen[key] = (seen[key] ?? 0) + 1;
     final to = freeLevelOf(c, p.kind, p.name) + n;
-    if (to != p.toLevel) c.purchases[i] = Purchase(p.kind, p.name, to, purchaseCost(c, p.kind, p.name, to, rb: rb));
+    final cost = purchaseCost(c, p.kind, p.name, to, rb: rb);
+    if (to != p.toLevel || cost != p.cost) c.purchases[i] = Purchase(p.kind, p.name, to, cost);
   }
 }
 

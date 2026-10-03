@@ -104,4 +104,9 @@ void main() {
     final e = RuleEntry(name: 'Artisanat', data: {'domains': ['Peinture | huile', 'Chant']});
     expect(previewImport(skills, const [], exportCsv(skills, [e])).news.single.data['domains'], ['Peinture | huile', 'Chant']);
   });
+
+  test('nouvel atout importé : proposé à la création et à l’XP sauf colonne contraire (revue)', () {
+    expect(previewImport(merits, const [], 'name;state;cost\nMécène;available;3').news.single.data, {'cost': 3, 'atCreation': true, 'withXp': true});
+    expect(previewImport(merits, const [], 'name;state;cost;withXp\nMécène;available;3;non').news.single.data['withXp'], isFalse);
+  });
 }

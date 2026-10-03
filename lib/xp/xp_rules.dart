@@ -85,7 +85,7 @@ int capOf(Character c, XpKind k, String name, {Rulebook rb = const Rulebook()}) 
 
 /// Précision demandée pour un nouveau point : (libellé, obligatoire), ou null.
 (String, bool)? noteSpec(XpKind k, String name, {Rulebook rb = const Rulebook()}) => switch (k) {
-      XpKind.background => ('Détail du nouveau point', true),
+      XpKind.background => ('Détail du nouveau point', rb.backgroundAsk(name) != null),
       XpKind.skill => switch (rb.domainMode(name)) {
           'perDot' || 'multiple' => ('Domaine', true),
           'optional' => ('Domaine', false),
