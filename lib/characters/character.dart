@@ -47,6 +47,10 @@ Timestamp? _ts(DateTime? d) => d == null ? null : Timestamp.fromDate(d);
 Map<String, dynamic> _map(Object? v) => v == null ? <String, dynamic>{} : Map<String, dynamic>.from(v as Map);
 List<Map<String, dynamic>> _maps(Object? v) => [for (final e in (v as List?) ?? const []) _map(e)];
 
+/// Maintenant, à la milliseconde : le Web relit les horodatages sans microsecondes,
+/// et une date relue puis réécrite doit rester égale (règles « inchangé »).
+DateTime nowMs() => DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
+
 class Attribute {
   Attribute([this.value = 0, this.focus]);
 
