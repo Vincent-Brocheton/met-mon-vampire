@@ -202,10 +202,15 @@ String _gap(XpItem i, int expected) =>
     'La fiche a changé : ${i.displayName} est à ${levelText(i.kind, expected)} (demande faite depuis ${levelText(i.kind, i.fromLevel)})';
 
 /// Ce qui empêche le joueur d'envoyer sa demande (brouillon rouvert, fiche changée, XP réservée ailleurs).
-List<String> sendProblems(Character c, List<XpItem> items, {required int usable}) {
+List<String> sendProblems(Character c, List<XpItem> items, {required int usable, Rulebook rb = const Rulebook()}) {
   final out = <String>[];
   final seen = <XpItem>[];
   for (final i in items) {
+    // Demande rouverte après un changement du référentiel : le conte la bloquerait de nouveau.
+    final value = i.kind == XpKind.merit ? rb.cost('merits', i.name) : null;
+    if (value != null && i.fromLevel == 0 && value != i.toLevel) {
+      out.add('${i.label} vaut maintenant $value points. Retirez cet achat puis ajoutez-le de nouveau.');
+    }
     final expected = levelWith(c, seen, i.kind, i.name);
     if (expected != i.fromLevel) out.add('${_gap(i, expected)}. Retirez cet achat puis ajoutez-le de nouveau.');
     seen.add(i);

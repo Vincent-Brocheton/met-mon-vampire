@@ -156,7 +156,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
     final options = elementOptions(c, _kind, rb: rb);
     final spec = name == null ? null : noteSpec(_kind, name, rb: rb);
     final rank = (c.genRank ?? GenRank.neonate).label;
-    final problems = sendProblems(c, r.items, usable: usable);
+    final problems = sendProblems(c, r.items, usable: usable, rb: rb);
     final canSend = r.items.isNotEmpty && problems.isEmpty && _why.text.trim().isNotEmpty && !_busy;
 
     final addSection = Panel(

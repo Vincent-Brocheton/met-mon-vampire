@@ -106,4 +106,20 @@ void main() {
     expect(rb!.creation.startingXp, 35);
     expect(rb.clanDisciplines('Tremere'), ['Auspex', 'Domination', 'Thaumaturgie']);
   });
+
+  test('catégorie sans élément proposé : valeurs de base ; ligne de génération en brouillon ignorée (revue)', () {
+    final rb = Rulebook({
+      'clans': [RuleEntry(name: 'Tremere', state: RuleState.draft, data: {'disciplines': ['Auspex']})],
+      'generations': [RuleEntry(name: 'Neonate', state: RuleState.draft, data: {'rank': 'neonate', 'traitFactor': 3})],
+    });
+    expect(rb.offeredNames('clans'), contains('Brujah'));
+    expect(rb.gen(GenRank.neonate).traitFactor, 1);
+  });
+
+  test('aucune secte marquée par défaut : Camarilla, comme les valeurs de base (revue)', () {
+    final rb = Rulebook({
+      'sects': [RuleEntry(name: 'Camarilla'), RuleEntry(name: 'Sabbat')],
+    });
+    expect(rb.rarity('Lasombra', 'Sabbat'), 'rare');
+  });
 }

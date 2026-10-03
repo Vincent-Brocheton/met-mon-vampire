@@ -256,4 +256,13 @@ void main() {
       expect(after.xpSpent, c.xpSpent + 3);
     });
   });
+
+  test('demande renvoyée au joueur : atout dont la valeur a changé signalé avant l’envoi (revue)', () {
+    final c = sample();
+    final items = [draftItem(c, const [], XpKind.merit, 'Chanceux')];
+    final merits = baseEntries('merits');
+    merits.firstWhere((e) => e.name == 'Chanceux').data['cost'] = 3;
+    expect(sendProblems(c, items, usable: 100, rb: Rulebook({'merits': merits})),
+        ['Atout · Chanceux vaut maintenant 3 points. Retirez cet achat puis ajoutez-le de nouveau.']);
+  });
 }

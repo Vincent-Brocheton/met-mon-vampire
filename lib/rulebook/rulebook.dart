@@ -160,9 +160,11 @@ class Rulebook {
     for (final e in baseEntries('generations')) GenRank.values.byName(e.data['rank'] as String): GenRow.fromData(e.data, GenRow.zero),
   };
 
+  /// Éléments de la catégorie ; sans aucun élément proposé (vide, ou seulement brouillons et interdits) :
+  /// les valeurs de base, pour que les joueurs aient toujours un choix.
   List<RuleEntry> all(String cat) {
     final own = _entries[cat];
-    return own != null && own.isNotEmpty ? own : _base.putIfAbsent(cat, () => baseEntries(cat));
+    return own != null && own.any((e) => e.state.offered) ? own : _base.putIfAbsent(cat, () => baseEntries(cat));
   }
 
   /// Élément de ce nom (sans tenir compte de la casse ni des espaces), quel que soit son état.
@@ -184,7 +186,11 @@ class Rulebook {
 
   List<String> clanDisciplines(String? clan) => [for (final d in (find('clans', clan)?.data['disciplines'] as List?) ?? const []) '$d'];
 
-  String? get defaultSect => all('sects').where((e) => e.data['isDefault'] == true).firstOrNull?.name;
+  /// Secte par défaut ; aucune marquée : celle des valeurs de base (sinon un clan rare deviendrait gratuit).
+  String? get defaultSect =>
+      (all('sects').where((e) => e.data['isDefault'] == true).firstOrNull ??
+              baseEntries('sects').where((e) => e.data['isDefault'] == true).firstOrNull)
+          ?.name;
 
   /// 'common', 'uncommon', 'rare' ou 'forbidden' pour la secte ; à défaut, la rareté de la secte par défaut.
   String rarity(String? clan, String? sect) {
@@ -243,10 +249,10 @@ class Rulebook {
         _ => 'all',
       };
 
-  /// Ligne du rang ; rang absent du référentiel : valeurs de base.
+  /// Ligne du rang ; rang absent du référentiel (ou en brouillon, interdit) : valeurs de base.
   GenRow gen(GenRank rank) {
     final base = _baseRows[rank]!;
-    final e = all('generations').where((e) => e.data['rank'] == rank.name).firstOrNull;
+    final e = all('generations').where((e) => e.state.offered && e.data['rank'] == rank.name).firstOrNull;
     return e == null ? base : GenRow.fromData(e.data, base);
   }
 }
