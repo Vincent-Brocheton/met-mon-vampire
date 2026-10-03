@@ -178,7 +178,8 @@ class Character {
       ..decidedByUid = creation['decidedByUid'] as String?
       ..comment = creation['comment'] as String?
       ..version = _int(m['version'])
-      ..lastHistoryId = m['lastHistoryId'] as String?;
+      ..lastHistoryId = m['lastHistoryId'] as String?
+      ..gainedThrough = m['gainedThrough'] as String?;
   }
 
   final String id;
@@ -209,6 +210,10 @@ class Character {
   String? decidedByUid, comment;
   int version = 0;
   String? lastHistoryId;
+
+  /// Dernier mois de gain mensuel versé ('aaaa-mm'). Écrit seulement par le versement (stageEdit, extra) :
+  /// hors de toMap, car les règles à liste de clés fermée refuseraient une clé nouvelle sur les fiches existantes.
+  String? gainedThrough;
   DateTime? createdAt, updatedAt;
 
   int get xpAvailable => xpInitial + xpEarned - xpSpent;
@@ -265,7 +270,8 @@ class Character {
 
   Character clone() => Character.fromMap(id, toMap())
     ..createdAt = createdAt
-    ..updatedAt = updatedAt;
+    ..updatedAt = updatedAt
+    ..gainedThrough = gainedThrough;
 }
 
 class HistoryEntry {
