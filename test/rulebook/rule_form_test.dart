@@ -81,4 +81,12 @@ void main() {
     expect(find.byKey(const Key('rf-save')), findsNothing);
     expect(tester.widget<TextFormField>(find.byKey(const Key('rf-name'))).enabled, isFalse);
   });
+
+  testWidgets('nombre : lettres refusées (revue)', (tester) async {
+    final saved = await pump(tester, 'merits', RuleEntry(id: 'm', name: 'Volonté de fer', data: {'cost': 3}));
+    await tester.enterText(find.byKey(const Key('rf-cost')), '4a');
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pump();
+    expect(saved.single.$1.data['cost'], 3);
+  });
 }

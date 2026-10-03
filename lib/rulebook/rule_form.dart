@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -44,6 +45,8 @@ class RuleFieldEditor extends StatelessWidget {
           initialValue: value == null ? '' : '$value',
           enabled: enabled,
           keyboardType: TextInputType.number,
+          // Entier seulement : une saisie invalide est refusée au lieu d'effacer la valeur.
+          inputFormatters: [TextInputFormatter.withFunction((old, next) => RegExp(r'^-?\d*$').hasMatch(next.text) ? next : old)],
           decoration: deco(),
           onChanged: (v) => onChanged(int.tryParse(v.trim())),
         );
@@ -197,6 +200,7 @@ class RuleEntryForm extends StatefulWidget {
     this.usage,
     required this.onSave,
     this.onDelete,
+    this.onDirty,
   });
 
   final RuleCategory category;
@@ -213,6 +217,9 @@ class RuleEntryForm extends StatefulWidget {
   final Future<void> Function(RuleEntry entry, String note) onSave;
   final Future<void> Function()? onDelete;
 
+  /// Première modification non enregistrée.
+  final VoidCallback? onDirty;
+
   @override
   State<RuleEntryForm> createState() => _RuleEntryFormState();
 }
@@ -222,6 +229,13 @@ class _RuleEntryFormState extends State<RuleEntryForm> {
   late final _note = TextEditingController(text: widget.note);
   String? _error;
   bool _busy = false;
+  bool _dirty = false;
+
+  void _touch() {
+    if (_dirty) return;
+    _dirty = true;
+    widget.onDirty?.call();
+  }
 
   @override
   void dispose() {
@@ -264,33 +278,47 @@ class _RuleEntryFormState extends State<RuleEntryForm> {
         initialValue: _e.name,
         enabled: !ro,
         decoration: const InputDecoration(labelText: 'Nom'),
-        onChanged: (v) => _e.name = v,
+        onChanged: (v) {
+          _e.name = v;
+          _touch();
+        },
       )),
       gap(TextFormField(
         key: const Key('rf-vo'),
         initialValue: _e.vo ?? '',
         enabled: !ro,
         decoration: const InputDecoration(labelText: 'Nom VO — pour retrouver la règle'),
-        onChanged: (v) => _e.vo = v.trim().isEmpty ? null : v.trim(),
+        onChanged: (v) {
+          _e.vo = v.trim().isEmpty ? null : v.trim();
+          _touch();
+        },
       )),
       gap(DropdownButtonFormField<RuleState>(
         key: const Key('rf-state'),
         initialValue: _e.state,
         decoration: const InputDecoration(labelText: 'État'),
         items: [for (final s in RuleState.values) DropdownMenuItem(value: s, child: Text(s.label))],
-        onChanged: ro ? null : (s) => setState(() => _e.state = s ?? _e.state),
+        onChanged: ro
+            ? null
+            : (s) {
+                setState(() => _e.state = s ?? _e.state);
+                _touch();
+              },
       )),
       for (final f in widget.category.fields)
         gap(RuleFieldEditor(
           f,
           _e.data[f.key],
-          (v) => setState(() {
-            if (v == null) {
-              _e.data.remove(f.key);
-            } else {
-              _e.data[f.key] = v;
-            }
-          }),
+          (v) {
+            setState(() {
+              if (v == null) {
+                _e.data.remove(f.key);
+              } else {
+                _e.data[f.key] = v;
+              }
+            });
+            _touch();
+          },
           keyOptions: widget.keyOptions,
           enabled: !ro,
         )),
@@ -300,18 +328,25 @@ class _RuleEntryFormState extends State<RuleEntryForm> {
         enabled: !ro,
         maxLines: 4,
         decoration: const InputDecoration(labelText: 'Règle affichée aux joueurs', hintText: 'Résumé de l’effet, rédigé par le conte'),
-        onChanged: (v) => _e.description = v.trim(),
+        onChanged: (v) {
+          _e.description = v.trim();
+          _touch();
+        },
       )),
       gap(TextFormField(
         key: const Key('rf-source'),
         initialValue: _e.source ?? '',
         enabled: !ro,
         decoration: const InputDecoration(labelText: 'Source', hintText: 'Livre de base, p. …'),
-        onChanged: (v) => _e.source = v.trim().isEmpty ? null : v.trim(),
+        onChanged: (v) {
+          _e.source = v.trim().isEmpty ? null : v.trim();
+          _touch();
+        },
       )),
       gap(TextFormField(
         key: const Key('rf-note'),
         controller: _note,
+        onChanged: (_) => _touch(),
         enabled: !ro,
         maxLines: 3,
         decoration: const InputDecoration(labelText: 'Note réservée au conte'),

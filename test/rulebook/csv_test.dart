@@ -78,4 +78,30 @@ void main() {
     expect(p.errors, ['Ligne 2 : nom trop long (80 caractères au plus)']);
     expect(p.news.single.name, 'y' * 80);
   });
+
+  test('guillemet non fermé : erreur précise (revue)', () {
+    expect(previewImport(merits, const [], 'name;state\n"Chanceux;available\nAutre;available').errors, ['Guillemet non fermé à la ligne 2']);
+  });
+
+  test('numéros de ligne du texte collé, lignes vides comprises (revue)', () {
+    final p = previewImport(merits, const [], 'name;state\n\nChanceux;available\n"Deux\nlignes";available\n;available');
+    expect(p.errors, ['Ligne 6 : nom manquant']);
+  });
+
+  test('séparé par des virgules : message clair (revue)', () {
+    expect(previewImport(merits, const [], 'name,state\nChanceux,available').errors,
+        ['Séparateur attendu : « ; » ou tabulation (le texte semble séparé par des virgules)']);
+  });
+
+  test('ligne identique : inchangée, pas modifiée (revue)', () {
+    final p = previewImport(merits, [RuleEntry(id: 'x1', name: 'Chanceux', data: {'cost': 2})], 'name;state;cost\nChanceux;available;2');
+    expect(p.updates, isEmpty);
+    expect(p.unchanged, 1);
+  });
+
+  test('« | » dans une valeur de liste : aller-retour (revue)', () {
+    final skills = categoryById('skills')!;
+    final e = RuleEntry(name: 'Artisanat', data: {'domains': ['Peinture | huile', 'Chant']});
+    expect(previewImport(skills, const [], exportCsv(skills, [e])).news.single.data['domains'], ['Peinture | huile', 'Chant']);
+  });
 }

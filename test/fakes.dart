@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
@@ -161,9 +163,16 @@ class FakeRulesRepository implements RulesRepository {
   String? lastNote;
   Map<String, dynamic>? lastSettings;
   Object? importError;
+  int noteWatches = 0;
+
+  /// Retient l'import jusqu'à ce que le test le libère.
+  Completer<void>? importGate;
 
   @override
-  Stream<String> watchNote(String cat, String id) => Stream.value('');
+  Stream<String> watchNote(String cat, String id) {
+    noteWatches++;
+    return Stream.value('');
+  }
 
   @override
   Future<String> save(String cat, RuleEntry e, Actor by, {String? note}) async {
@@ -184,6 +193,7 @@ class FakeRulesRepository implements RulesRepository {
 
   @override
   Future<void> importEntries(String cat, List<RuleEntry> entries, Actor by) async {
+    await importGate?.future;
     if (importError != null) throw importError!;
     calls.add('import:$cat:${entries.length}');
   }

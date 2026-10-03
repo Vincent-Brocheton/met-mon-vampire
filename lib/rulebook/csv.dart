@@ -7,14 +7,17 @@ const _common = ['name', 'vo', 'state', 'source', 'description'];
 
 List<String> columnsOf(RuleCategory c) => [..._common, for (final f in c.fields) f.key];
 
-/// Cellules d'un CSV (« ; ») ou d'un collage de tableur (tabulations, détectées sur la première ligne).
+/// Cellules d'un CSV (« ; ») ou d'un collage de tableur (tabulations, détectées sur la première ligne),
+/// avec le numéro de la ligne du texte où chacune commence.
 /// Guillemets doublés, séparateurs et retours à la ligne entre guillemets ; lignes vides ignorées.
-List<List<String>> parseTable(String text) {
+/// FormatException si un guillemet n'est pas fermé.
+List<(int, List<String>)> parseRows(String text) {
   final sep = text.split('\n').first.contains('\t') ? '\t' : ';';
-  final rows = <List<String>>[];
+  final rows = <(int, List<String>)>[];
   var row = <String>[];
   final cell = StringBuffer();
   var quoted = false;
+  var line = 1, start = 1, quoteLine = 1;
   void endCell() {
     row.add(cell.toString());
     cell.clear();
@@ -22,13 +25,14 @@ List<List<String>> parseTable(String text) {
 
   void endRow() {
     endCell();
-    if (row.any((c) => c.trim().isNotEmpty)) rows.add(row);
+    if (row.any((c) => c.trim().isNotEmpty)) rows.add((start, row));
     row = <String>[];
   }
 
   for (var i = 0; i < text.length; i++) {
     final ch = text[i];
     if (quoted) {
+      if (ch == '\n') line++;
       if (ch != '"') {
         cell.write(ch);
       } else if (i + 1 < text.length && text[i + 1] == '"') {
@@ -39,17 +43,22 @@ List<List<String>> parseTable(String text) {
       }
     } else if (ch == '"' && cell.isEmpty) {
       quoted = true;
+      quoteLine = line;
     } else if (ch == sep) {
       endCell();
     } else if (ch == '\n') {
       endRow();
+      start = ++line;
     } else if (ch != '\r') {
       cell.write(ch);
     }
   }
+  if (quoted) throw FormatException('Guillemet non fermé à la ligne $quoteLine');
   if (cell.isNotEmpty || row.isNotEmpty) endRow();
   return rows;
 }
+
+List<List<String>> parseTable(String text) => [for (final (_, r) in parseRows(text)) r];
 
 String _quote(String s) => s.contains(RegExp('[;"\n\t]')) ? '"${s.replaceAll('"', '""')}"' : s;
 
@@ -57,6 +66,8 @@ String _encode(RuleField f, Object? v) {
   if (v == null) return '';
   return switch (f.type) {
     FieldType.flag => v == true ? 'oui' : 'non',
+    // Une valeur qui contient « | » passe en JSON, sinon elle serait coupée à la relecture.
+    FieldType.list when (v as List).any((x) => '$x'.contains('|')) => jsonEncode(v),
     FieldType.multi || FieldType.list => (v as List).join(' | '),
     FieldType.keyed || FieldType.rows => jsonEncode(v),
     _ => '$v',
@@ -100,6 +111,13 @@ Object? _decode(RuleField f, String s) {
     case FieldType.multi:
       return [for (final p in parts()) _choice(f, p)];
     case FieldType.list:
+      if (t.startsWith('[')) {
+        try {
+          return [for (final x in jsonDecode(t) as List) '$x'];
+        } on Object {
+          // pas du JSON : liste « | » ordinaire
+        }
+      }
       return parts();
     case FieldType.keyed || FieldType.rows:
       Object? v;
@@ -116,7 +134,10 @@ Object? _decode(RuleField f, String s) {
 }
 
 class ImportPreview {
-  ImportPreview({this.news = const [], this.updates = const [], this.errors = const [], this.warnings = const []});
+  ImportPreview({this.news = const [], this.updates = const [], this.errors = const [], this.warnings = const [], this.unchanged = 0});
+
+  /// Lignes identiques à l'élément existant : rien à écrire.
+  final int unchanged;
   final List<RuleEntry> news;
 
   /// Éléments existants (même nom), avec leur id.
@@ -125,19 +146,37 @@ class ImportPreview {
   final List<String> warnings;
 }
 
+/// Clés de map triées : deux valeurs JSON égales donnent le même texte.
+Object? _sorted(Object? v) => switch (v) {
+      Map() => {for (final k in [for (final k in v.keys) '$k']..sort()) k: _sorted(v[k])},
+      List() => [for (final x in v) _sorted(x)],
+      _ => v,
+    };
+
+bool _same(RuleEntry a, RuleEntry b) => jsonEncode(_sorted(a.toMap())) == jsonEncode(_sorted(b.toMap()));
+
 ImportPreview previewImport(RuleCategory c, List<RuleEntry> existing, String text) {
-  final rows = parseTable(text);
+  final List<(int, List<String>)> rows;
+  try {
+    rows = parseRows(text);
+  } on FormatException catch (e) {
+    return ImportPreview(errors: [e.message]);
+  }
   if (rows.isEmpty) return ImportPreview(errors: ['Rien à importer']);
-  final header = [for (final h in rows.first) h.trim()];
+  final header = [for (final h in rows.first.$2) h.trim()];
   final missing = [for (final k in ['name', 'state']) if (!header.contains(k)) 'Colonne « $k » absente'];
-  if (missing.isNotEmpty) return ImportPreview(errors: missing);
+  if (missing.isNotEmpty) {
+    final commas = header.length == 1 && header.first.contains(',');
+    return ImportPreview(
+        errors: commas ? ['Séparateur attendu : « ; » ou tabulation (le texte semble séparé par des virgules)'] : missing);
+  }
   final known = columnsOf(c);
   final warnings = [for (final h in header) if (h.isNotEmpty && !known.contains(h)) 'Colonne ignorée : $h'];
   final byName = {for (final e in existing) nameKey(e.name): e};
   final news = <RuleEntry>[], updates = <RuleEntry>[], errors = <String>[];
   final seen = <String>{};
-  for (final (i, row) in rows.skip(1).indexed) {
-    final line = i + 2;
+  var unchanged = 0;
+  for (final (line, row) in rows.skip(1)) {
     String cell(String key) {
       final idx = header.indexOf(key);
       return idx < 0 || idx >= row.length ? '' : row[idx];
@@ -185,7 +224,7 @@ ImportPreview previewImport(RuleCategory c, List<RuleEntry> existing, String tex
       continue;
     }
     // Colonne absente : la valeur existante est gardée.
-    (old == null ? news : updates).add(RuleEntry(
+    final entry = RuleEntry(
       id: old?.id ?? '',
       name: old?.name ?? name,
       vo: header.contains('vo') ? opt('vo') : old?.vo,
@@ -193,7 +232,14 @@ ImportPreview previewImport(RuleCategory c, List<RuleEntry> existing, String tex
       source: header.contains('source') ? opt('source') : old?.source,
       description: header.contains('description') ? cell('description').trim() : (old?.description ?? ''),
       data: data,
-    ));
+    );
+    if (old == null) {
+      news.add(entry);
+    } else if (_same(entry, old)) {
+      unchanged++;
+    } else {
+      updates.add(entry);
+    }
   }
-  return ImportPreview(news: news, updates: updates, errors: errors, warnings: warnings);
+  return ImportPreview(news: news, updates: updates, errors: errors, warnings: warnings, unchanged: unchanged);
 }

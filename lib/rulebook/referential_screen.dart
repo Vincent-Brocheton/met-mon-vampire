@@ -44,6 +44,14 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
   bool _rearm = false;
   DateTime? _staleAt;
   int _formVersion = 0;
+
+  /// Modifications non enregistrées dans le formulaire ouvert.
+  bool _dirty = false;
+  bool _loadingBase = false;
+
+  /// Flux de la note de l'élément ouvert, gardé d'une reconstruction à l'autre.
+  Stream<String>? _note;
+  String? _noteKey;
   RuleState? _stateFilter;
   String? _chip;
   final _search = TextEditingController();
@@ -56,6 +64,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
       _opened = null;
       _formEntry = null;
       _rearm = false;
+      _dirty = false;
       _stateFilter = null;
       _chip = null;
       _search.clear();
@@ -70,11 +79,45 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
 
   void _open(RuleEntry? e) => setState(() {
         _selectedId = e?.id ?? '';
-        _opened = e;
+        // Écriture encore en attente (date nulle) : la référence du conflit sera la version confirmée.
+        final pending = e != null && e.updatedAt == null;
+        _opened = pending ? null : e;
+        _rearm = pending;
+        _staleAt = null;
         _formEntry = e;
-        _rearm = false;
+        _dirty = false;
+        _noteKey = null;
         _formVersion++;
       });
+
+  Future<bool> _canLeave() async {
+    if (!_dirty) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Abandonner les modifications ?'),
+        content: const Text('Les changements de l’élément ouvert ne sont pas enregistrés.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Continuer l’édition')),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Abandonner')),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  Future<void> _switchTo(RuleEntry? e) async {
+    if (await _canLeave() && mounted) _open(e);
+  }
+
+  Stream<String> _noteOf(String cat, String id) {
+    final key = '$cat/$id';
+    if (key != _noteKey) {
+      _noteKey = key;
+      _note = ref.read(rulesRepositoryProvider).watchNote(cat, id).asBroadcastStream();
+    }
+    return _note!;
+  }
 
   Actor? get _actor => actorOf(ref.read(currentUserProvider).value);
 
@@ -83,7 +126,8 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
     if (by == null) return;
     final opened = _opened;
     final latest = opened == null ? null : current.where((e) => e.id == opened.id).firstOrNull;
-    if (opened != null && latest != null && latest.updatedAt != opened.updatedAt) {
+    // Date nulle : notre propre écriture n'est pas encore confirmée, ce n'est pas un conflit.
+    if (opened != null && latest != null && latest.updatedAt != null && latest.updatedAt != opened.updatedAt) {
       final overwrite = await showDialog<bool>(
         context: context,
         builder: (d) => AlertDialog(
@@ -124,6 +168,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
         _opened = null;
         _rearm = true;
         _staleAt = current.where((e) => e.id == id).firstOrNull?.updatedAt;
+        _dirty = false;
       });
       messenger.showSnackBar(const SnackBar(content: Text('Enregistré.')));
     } catch (_) {
@@ -162,6 +207,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
           _opened = null;
           _rearm = true;
           _staleAt = e.updatedAt;
+          _dirty = false;
           _formVersion++;
         });
       } else {
@@ -220,7 +266,10 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             (query.isEmpty || nameKey(e.name).contains(query) || nameKey(e.vo ?? '').contains(query)))
           e,
     ];
-    final selected = _selectedId == null ? null : (_selectedId!.isEmpty ? RuleEntry(name: '') : entries.where((e) => e.id == _selectedId).firstOrNull);
+    final found = _selectedId == null ? null : (_selectedId!.isEmpty ? RuleEntry(name: '') : entries.where((e) => e.id == _selectedId).firstOrNull);
+    // Supprimé par un autre conteur pendant l'édition : le formulaire reste, enregistrer le recrée.
+    final vanished = found == null && (_selectedId?.isNotEmpty ?? false) && _formEntry?.id == _selectedId;
+    final selected = vanished ? _formEntry : found;
     if (_rearm && selected != null && selected.updatedAt != null && selected.updatedAt != _staleAt) {
       _opened = selected;
       _rearm = false;
@@ -232,7 +281,9 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
         const Padding(padding: EdgeInsets.fromLTRB(16, 4, 16, 8), child: SectionTitle('Référentiel')),
         for (final c in ruleCategories)
           InkWell(
-            onTap: () => context.go('/conteur/referentiel/${c.id}'),
+            onTap: () async {
+              if (await _canLeave() && context.mounted) context.go('/conteur/referentiel/${c.id}');
+            },
             child: Container(
               constraints: const BoxConstraints(minHeight: 40),
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -281,7 +332,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             ),
             child: Text(readOnly ? 'Exporter' : 'Importer / exporter'),
           ),
-          if (!readOnly) FilledButton(key: const Key('ref-new'), onPressed: () => _open(null), child: const Text('Nouvel élément')),
+          if (!readOnly) FilledButton(key: const Key('ref-new'), onPressed: () => _switchTo(null), child: const Text('Nouvel élément')),
         ]),
       ),
       const SizedBox(height: 16),
@@ -327,10 +378,22 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
                   const SizedBox(height: 10),
                   OutlinedButton(
                     key: const Key('ref-base'),
-                    onPressed: () async {
-                      final by = _actor;
-                      if (by != null) await ref.read(rulesRepositoryProvider).importEntries(cat.id, baseEntries(cat.id), by);
-                    },
+                    onPressed: _loadingBase
+                        ? null
+                        : () async {
+                            final by = _actor;
+                            // Garde aussi un second clic arrivé avant la reconstruction du bouton.
+                            if (by == null || _loadingBase) return;
+                            final messenger = ScaffoldMessenger.of(context);
+                            setState(() => _loadingBase = true);
+                            try {
+                              await ref.read(rulesRepositoryProvider).importEntries(cat.id, baseEntries(cat.id), by);
+                            } catch (_) {
+                              messenger.showSnackBar(const SnackBar(content: Text('Chargement impossible. Réessayez.')));
+                            } finally {
+                              if (mounted) setState(() => _loadingBase = false);
+                            }
+                          },
                     child: Text('Charger les valeurs de base (${baseEntries(cat.id).length})'),
                   ),
                 ],
@@ -340,7 +403,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             Padding(padding: const EdgeInsets.all(20), child: Text('Aucun élément ne correspond.', style: t.bodyMedium)),
           for (final e in shown)
             InkWell(
-              onTap: () => _open(e),
+              onTap: () => _switchTo(e),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 decoration: BoxDecoration(
@@ -372,6 +435,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
 
     Widget? form;
     if (selected != null) {
+      final sel = selected;
       final otherNames = {for (final e in entries) if (e.id != selected.id) nameKey(e.name)};
       Widget formWith(String note) => RuleEntryForm(
             key: ValueKey('${cat.id}/${selected.id}/$_formVersion'),
@@ -383,16 +447,26 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             note: note,
             usage: selected.id.isEmpty ? null : usageCount(cat.id, selected.name, chars),
             onSave: (e, n) => _save(cat, e, n, entries, chars),
-            onDelete: selected.id.isEmpty ? null : () => _delete(cat, selected, chars),
+            onDelete: sel.id.isEmpty ? null : () => _delete(cat, sel, chars),
+            onDirty: () => _dirty = true,
           );
+      final body = selected.id.isEmpty
+          ? formWith('')
+          : StreamBuilder<String>(
+              key: ValueKey('note-${cat.id}/${selected.id}'),
+              stream: _noteOf(cat.id, selected.id),
+              builder: (_, snap) => snap.hasData ? formWith(snap.data!) : const Center(child: CircularProgressIndicator()),
+            );
+      // Même structure avec ou sans avertissement : le flux de la note n'est pas réabonné.
       form = Panel(
-        child: selected.id.isEmpty
-            ? formWith('')
-            : StreamBuilder<String>(
-                key: ValueKey('note-${cat.id}/${selected.id}'),
-                stream: ref.read(rulesRepositoryProvider).watchNote(cat.id, selected.id),
-                builder: (_, snap) => snap.hasData ? formWith(snap.data!) : const Center(child: CircularProgressIndicator()),
-              ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (vanished) ...[
+            Text('Cet élément a été supprimé entre-temps par un autre conteur. Enregistrer le recrée.',
+                style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
+            const SizedBox(height: 12),
+          ],
+          body,
+        ]),
       );
     }
 
@@ -401,7 +475,16 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
         return PageBody(children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(onPressed: () => setState(() => _selectedId = null), child: const Text('← Retour à la liste')),
+            child: TextButton(
+              onPressed: () async {
+                if (!await _canLeave() || !mounted) return;
+                setState(() {
+                  _selectedId = null;
+                  _dirty = false;
+                });
+              },
+              child: const Text('← Retour à la liste'),
+            ),
           ),
           form,
         ]);
@@ -418,10 +501,11 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
         list,
       ]);
     }
+    // Moins de 1280 px : le menu laisse sa place au formulaire, la liste garde une largeur utilisable.
+    final threeColumns = MediaQuery.sizeOf(context).width >= 1280;
     return PageBody(children: [
       Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 240, child: menu),
-        const SizedBox(width: 24),
+        if (form == null || threeColumns) ...[SizedBox(width: 240, child: menu), const SizedBox(width: 24)],
         Expanded(child: list),
         if (form != null) ...[const SizedBox(width: 24), SizedBox(width: 420, child: form)],
       ]),
@@ -609,7 +693,8 @@ class _ImportExportDialogState extends State<_ImportExportDialog> {
               if (p != null) ...[
                 Text(
                   '${_plural(p.news.length, 'nouveau', 'nouveaux')}, ${_plural(p.updates.length, 'modifié', 'modifiés')}, '
-                  '${_plural(p.errors.length, 'ligne en erreur', 'lignes en erreur')}',
+                  '${_plural(p.errors.length, 'ligne en erreur', 'lignes en erreur')}'
+                  '${p.unchanged > 0 ? ', ${_plural(p.unchanged, 'inchangé', 'inchangés')}' : ''}',
                   key: const Key('import-summary'),
                   style: t.titleSmall,
                 ),

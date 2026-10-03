@@ -28,8 +28,8 @@ void main() {
         ],
       };
 
-  Future<FakeRulesRepository> pump(WidgetTester tester, {String cat = 'merits', AppUser user = lea, Stream<Map<String, List<RuleEntry>>>? source, Stream<Map<String, Map<String, dynamic>>>? settings}) async {
-    tester.view.physicalSize = const Size(1440, 2600);
+  Future<FakeRulesRepository> pump(WidgetTester tester, {String cat = 'merits', AppUser user = lea, Stream<Map<String, List<RuleEntry>>>? source, Stream<Map<String, Map<String, dynamic>>>? settings, double width = 1440}) async {
+    tester.view.physicalSize = Size(width, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repo = FakeRulesRepository();
@@ -235,5 +235,85 @@ void main() {
     expect(repo.calls, ['settings:rituals']);
     expect(repo.lastSettings, {'costPerLevel': null});
     expect(find.text('Paramètres enregistrés.'), findsOneWidget);
+  });
+
+  String fieldText(WidgetTester tester, String key) =>
+      tester.widget<EditableText>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(EditableText))).controller.text;
+
+  testWidgets('écriture en attente : pas de faux conflit (revue)', (tester) async {
+    final controller = StreamController<Map<String, List<RuleEntry>>>();
+    addTearDown(controller.close);
+    controller.add(data()..['merits']![0] = RuleEntry(id: 'm1', name: 'Chanceux', data: {'cost': 2}));
+    final repo = await pump(tester, source: controller.stream);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    controller.add(data()..['merits']![0] = chanceux(DateTime(2026, 10, 1), 'Léa G.', 2));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Modifié par'), findsNothing);
+    expect(repo.calls, ['save:merits:Chanceux:available']);
+  });
+
+  testWidgets('note : un seul abonnement malgré les reconstructions (revue)', (tester) async {
+    final repo = await pump(tester);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('ref-search')), 'c');
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('ref-search')), 'ch');
+    await tester.pump();
+    expect(repo.noteWatches, 1);
+  });
+
+  testWidgets('écran moyen : le menu se replie quand le formulaire est ouvert (revue)', (tester) async {
+    await pump(tester, width: 1100);
+    expect(find.text('Handicaps'), findsOneWidget);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    expect(find.text('Handicaps'), findsNothing);
+  });
+
+  testWidgets('modifications non enregistrées : confirmation avant de changer d’élément (revue)', (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('rf-cost')), '9');
+    await tester.tap(find.text('Volonté de fer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Abandonner les modifications ?'), findsOneWidget);
+    await tester.tap(find.text('Continuer l’édition'));
+    await tester.pumpAndSettle();
+    expect(fieldText(tester, 'rf-cost'), '9');
+    await tester.tap(find.text('Volonté de fer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Abandonner'));
+    await tester.pumpAndSettle();
+    expect(fieldText(tester, 'rf-name'), 'Volonté de fer');
+  });
+
+  testWidgets('élément supprimé par un autre conteur : le formulaire reste, avec un avertissement (revue)', (tester) async {
+    final controller = StreamController<Map<String, List<RuleEntry>>>();
+    addTearDown(controller.close);
+    controller.add(data());
+    final repo = await pump(tester, source: controller.stream);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    controller.add(data()..['merits']!.removeAt(0));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('supprimé entre-temps'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['save:merits:Chanceux:available']);
+  });
+
+  testWidgets('valeurs de base : un double clic n’importe qu’une fois (revue)', (tester) async {
+    final repo = await pump(tester, cat: 'archetypes');
+    repo.importGate = Completer<void>();
+    await tester.tap(find.byKey(const Key('ref-base')));
+    await tester.tap(find.byKey(const Key('ref-base')));
+    repo.importGate!.complete();
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['import:archetypes:20']);
   });
 }
