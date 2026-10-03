@@ -35,6 +35,14 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
 
   /// Version de l'élément à l'ouverture du formulaire (conflit entre conteurs).
   RuleEntry? _opened;
+
+  /// Version d'où part le formulaire (peut différer de [_opened] juste après « Marquer Interdit »).
+  RuleEntry? _formEntry;
+
+  /// Après un enregistrement : la prochaine version reçue (≠ [_staleAt]) devient la référence du conflit.
+  // ponytail: si un autre conteur écrit avant que notre version n'arrive, la sienne sert de référence.
+  bool _rearm = false;
+  DateTime? _staleAt;
   int _formVersion = 0;
   RuleState? _stateFilter;
   String? _chip;
@@ -46,6 +54,8 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
     if (old.categoryId != widget.categoryId) {
       _selectedId = null;
       _opened = null;
+      _formEntry = null;
+      _rearm = false;
       _stateFilter = null;
       _chip = null;
       _search.clear();
@@ -61,6 +71,8 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
   void _open(RuleEntry? e) => setState(() {
         _selectedId = e?.id ?? '';
         _opened = e;
+        _formEntry = e;
+        _rearm = false;
         _formVersion++;
       });
 
@@ -110,6 +122,8 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
       setState(() {
         _selectedId = id;
         _opened = null;
+        _rearm = true;
+        _staleAt = current.where((e) => e.id == id).firstOrNull?.updatedAt;
       });
       messenger.showSnackBar(const SnackBar(content: Text('Enregistré.')));
     } catch (_) {
@@ -135,12 +149,27 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
         ],
       ),
     );
+    if (choice == null || !mounted) return;
     final repo = ref.read(rulesRepositoryProvider);
-    if (choice == 'forbid') {
-      await repo.save(cat.id, e.copy()..state = RuleState.forbidden, by);
-    } else if (choice == 'delete') {
-      await repo.delete(cat.id, e.id);
-      if (mounted) setState(() => _selectedId = null);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (choice == 'forbid') {
+        final forbidden = e.copy()..state = RuleState.forbidden;
+        await repo.save(cat.id, forbidden, by);
+        if (!mounted) return;
+        setState(() {
+          _formEntry = forbidden;
+          _opened = null;
+          _rearm = true;
+          _staleAt = e.updatedAt;
+          _formVersion++;
+        });
+      } else {
+        await repo.delete(cat.id, e.id);
+        if (mounted) setState(() => _selectedId = null);
+      }
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Opération impossible. Réessayez.')));
     }
   }
 
@@ -192,6 +221,10 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
           e,
     ];
     final selected = _selectedId == null ? null : (_selectedId!.isEmpty ? RuleEntry(name: '') : entries.where((e) => e.id == _selectedId).firstOrNull);
+    if (_rearm && selected != null && selected.updatedAt != null && selected.updatedAt != _staleAt) {
+      _opened = selected;
+      _rearm = false;
+    }
 
     final menu = Panel(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -343,7 +376,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
       Widget formWith(String note) => RuleEntryForm(
             key: ValueKey('${cat.id}/${selected.id}/$_formVersion'),
             category: cat,
-            entry: _opened ?? selected,
+            entry: _formEntry ?? selected,
             keyOptions: keyOptions,
             existingNames: otherNames,
             readOnly: readOnly,
@@ -429,10 +462,34 @@ class _SettingsPanel extends StatefulWidget {
 }
 
 class _SettingsPanelState extends State<_SettingsPanel> {
-  late final Map<String, dynamic> _v = {
-    for (final f in widget.category.settings)
-      if (widget.values[f.key] != null) f.key: widget.values[f.key],
-  };
+  late Map<String, dynamic> _v = _read();
+  int _version = 0;
+
+  Map<String, dynamic> _read() => {
+        for (final f in widget.category.settings)
+          if (widget.values[f.key] != null) f.key: widget.values[f.key],
+      };
+
+  /// Un autre conteur a enregistré : ses valeurs remplacent le panneau.
+  @override
+  void didUpdateWidget(_SettingsPanel old) {
+    super.didUpdateWidget(old);
+    if (widget.values['updatedAt'] != old.values['updatedAt']) {
+      _v = _read();
+      _version++;
+    }
+  }
+
+  Future<void> _save() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // null : la clé est effacée (le dépôt écrit en fusion).
+      await widget.onSave({for (final f in widget.category.settings) f.key: _v[f.key]});
+      messenger.showSnackBar(const SnackBar(content: Text('Paramètres enregistrés.')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement impossible. Réessayez.')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Panel(
@@ -445,6 +502,7 @@ class _SettingsPanelState extends State<_SettingsPanel> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: RuleFieldEditor(
+                  key: ValueKey('rs-${f.key}-$_version'),
                   f,
                   _v[f.key],
                   (x) => setState(() {
@@ -461,7 +519,7 @@ class _SettingsPanelState extends State<_SettingsPanel> {
             if (!widget.readOnly)
               Align(
                 alignment: Alignment.centerLeft,
-                child: OutlinedButton(onPressed: () => widget.onSave({..._v}), child: const Text('Enregistrer les paramètres')),
+                child: OutlinedButton(onPressed: _save, child: const Text('Enregistrer les paramètres')),
               ),
           ],
         ),
@@ -575,8 +633,14 @@ class _ImportExportDialogState extends State<_ImportExportDialog> {
                 : () async {
                     setState(() => _busy = true);
                     final nav = Navigator.of(context);
-                    await widget.onImport([...p.news, ...p.updates]);
-                    nav.pop();
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      await widget.onImport([...p.news, ...p.updates]);
+                      nav.pop();
+                    } catch (_) {
+                      messenger.showSnackBar(const SnackBar(content: Text('Import impossible. Réessayez.')));
+                      if (mounted) setState(() => _busy = false);
+                    }
                   },
             child: Text('Importer ${_plural(count, 'élément', 'éléments')}'),
           ),

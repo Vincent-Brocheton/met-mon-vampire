@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,7 @@ void main() {
         ],
       };
 
-  Future<FakeRulesRepository> pump(WidgetTester tester, {String cat = 'merits', AppUser user = lea, Stream<Map<String, List<RuleEntry>>>? source}) async {
+  Future<FakeRulesRepository> pump(WidgetTester tester, {String cat = 'merits', AppUser user = lea, Stream<Map<String, List<RuleEntry>>>? source, Stream<Map<String, Map<String, dynamic>>>? settings}) async {
     tester.view.physicalSize = const Size(1440, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -37,7 +38,7 @@ void main() {
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         rulesRepositoryProvider.overrideWith((ref) => repo),
         allRuleEntriesProvider.overrideWith((ref) => source ?? Stream.value(data())),
-        allRuleSettingsProvider.overrideWith((ref) => Stream.value(const {})),
+        allRuleSettingsProvider.overrideWith((ref) => settings ?? Stream.value(const {})),
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
       ],
       child: MaterialApp.router(
@@ -152,5 +153,87 @@ void main() {
     await tester.tap(find.text('Chanceux'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('rf-save')), findsNothing);
+  });
+
+  RuleEntry chanceux(DateTime at, String by, int cost) =>
+      RuleEntry(id: 'm1', name: 'Chanceux', data: {'cost': cost}, updatedAt: at, updatedByName: by);
+
+  testWidgets('second enregistrement : le conflit est encore détecté (revue)', (tester) async {
+    final controller = StreamController<Map<String, List<RuleEntry>>>();
+    addTearDown(controller.close);
+    controller.add(data());
+    final repo = await pump(tester, source: controller.stream);
+    await tester.tap(find.text('Chanceux'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    controller.add(data()..['merits']![0] = chanceux(DateTime(2026, 10, 1), 'Léa G.', 2));
+    await tester.pumpAndSettle();
+    controller.add(data()..['merits']![0] = chanceux(DateTime(2026, 10, 2), 'Marc D.', 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Modifié par Marc D. à l’instant'), findsOneWidget);
+    expect(repo.calls, ['save:merits:Chanceux:available']);
+  });
+
+  testWidgets('après « Marquer Interdit », le formulaire suit (revue)', (tester) async {
+    final controller = StreamController<Map<String, List<RuleEntry>>>();
+    addTearDown(controller.close);
+    controller.add(data());
+    final repo = await pump(tester, source: controller.stream);
+    await tester.tap(find.text('Visage angélique'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rf-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Marquer Interdit'));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byKey(const Key('rf-state')), matching: find.text('Interdit')), findsOneWidget);
+    controller.add(data()
+      ..['merits']![1] = RuleEntry(
+          id: 'm2', name: 'Visage angélique', state: RuleState.forbidden, data: {'cost': 1, 'type': 'clan'},
+          updatedAt: DateTime(2026, 10, 1), updatedByName: 'Léa G.'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rf-save')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Modifié par'), findsNothing);
+    expect(repo.calls, ['save:merits:Visage angélique:forbidden', 'save:merits:Visage angélique:forbidden']);
+  });
+
+  testWidgets('import refusé : message, bouton de nouveau actif (revue)', (tester) async {
+    final repo = await pump(tester);
+    repo.importError = Exception('refusé');
+    await tester.tap(find.byKey(const Key('ref-io')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('import-text')), 'name;state\nNouveau;available');
+    await tester.tap(find.byKey(const Key('import-analyse')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('import-go')));
+    await tester.pumpAndSettle();
+    expect(find.text('Import impossible. Réessayez.'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('import-go'))).onPressed, isNotNull);
+  });
+
+  testWidgets('paramètres : rechargés si un autre conteur les change, champ vidé supprimé (revue)', (tester) async {
+    final settings = StreamController<Map<String, Map<String, dynamic>>>();
+    addTearDown(settings.close);
+    settings.add({'rituals': {'costPerLevel': 2, 'updatedAt': Timestamp(1, 0)}});
+    final repo = await pump(tester, cat: 'rituals', settings: settings.stream);
+    await tester.tap(find.text('Paramètres de la catégorie'));
+    await tester.pumpAndSettle();
+    String cost() => tester
+        .widget<EditableText>(find.descendant(of: find.byKey(const Key('rs-costPerLevel')), matching: find.byType(EditableText)))
+        .controller
+        .text;
+    expect(cost(), '2');
+    settings.add({'rituals': {'costPerLevel': 3, 'updatedAt': Timestamp(2, 0)}});
+    await tester.pumpAndSettle();
+    expect(cost(), '3');
+    await tester.enterText(find.byKey(const Key('rs-costPerLevel')), '');
+    await tester.tap(find.text('Enregistrer les paramètres'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['settings:rituals']);
+    expect(repo.lastSettings, {'costPerLevel': null});
+    expect(find.text('Paramètres enregistrés.'), findsOneWidget);
   });
 }

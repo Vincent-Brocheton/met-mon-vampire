@@ -72,4 +72,10 @@ void main() {
     expect(previewImport(merits, const [], 'cost\n2').errors, ['Colonne « name » absente', 'Colonne « state » absente']);
     expect(previewImport(merits, const [], '').errors, ['Rien à importer']);
   });
+
+  test('nom trop long : erreur dans l’aperçu (revue)', () {
+    final p = previewImport(merits, const [], 'name;state\n${'x' * 81};available\n${'y' * 80};available');
+    expect(p.errors, ['Ligne 2 : nom trop long (80 caractères au plus)']);
+    expect(p.news.single.name, 'y' * 80);
+  });
 }

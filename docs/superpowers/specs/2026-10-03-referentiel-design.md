@@ -52,7 +52,7 @@ Les conteurs gèrent eux-mêmes, depuis l'application, toutes les données de r�
 
 ## Modèle de données
 
-### `rules/{catégorie}` (réglages) et `rules/{catégorie}/entries/{id}` (éléments)
+### `rules/{catégorie}` (réglages) et `rules/{catégorie}/ruleEntries/{id}` (éléments)
 
 Chaque élément a les champs communs suivants :
 
@@ -67,7 +67,7 @@ data: map               champs propres à la catégorie (ci-dessous)
 updatedAt, updatedByUid, updatedByName
 ```
 
-La note réservée au conte vit à part, dans `rules/{catégorie}/entries/{id}/private/note`, avec le champ `{ text }`.
+La note réservée au conte vit à part, dans `rules/{catégorie}/ruleEntries/{id}/private/note`, avec le champ `{ text }`.
 
 L'identifiant de chaque catégorie (`{catégorie}`) est son nom anglais en camelCase. Champs propres à chaque catégorie (`data`) et réglages (`rules/{catégorie}`) :
 
@@ -237,11 +237,11 @@ Trois nouveaux types d'achat : `XpKind.ritual`, `technique` et `elderPower`, à 
 
 ## Sécurité (`firestore.rules`)
 
-- **`rules/{cat}` et `rules/{cat}/entries/{id}` :**
+- **`rules/{cat}` et `rules/{cat}/ruleEntries/{id}` :**
   - lecture si connecté ;
   - écriture si `managesAccounts()` ;
   - entrée valide : `name` est une chaîne de 1 à 80 caractères, `state` vaut une des 4 valeurs, `data` est une map, `updatedByUid == auth.uid`.
-- **`rules/{cat}/entries/{id}/private/note` :** lecture si `isStaff()`, écriture si `managesAccounts()`.
+- **`rules/{cat}/ruleEntries/{id}/private/note` :** lecture si `isStaff()`, écriture si `managesAccounts()`.
 - **`chronicle/xp` :** règle existante (écriture par `managesAccounts()`).
 - **Fiche : tolérance des nouvelles clés** (`rituals`, `techniques`, `elderPowers`, `attributeBonus`) :
   - les règles `playerSubmission`, `staffBonus` et `staffDecision` appliquent leur `hasOnly` aux clés modifiées **moins** ces quatre clés ;

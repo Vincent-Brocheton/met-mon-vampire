@@ -249,7 +249,7 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if managesAccounts();
 
-      match /entries/{id} {
+      match /ruleEntries/{id} {
         allow read: if signedIn();
         allow delete: if managesAccounts();
         allow create, update: if managesAccounts()
@@ -268,7 +268,7 @@ service cloud.firestore {
     }
 
     // Toutes les catégories en une requête (écran du référentiel, moteurs du plan B).
-    match /{path=**}/entries/{id} {
+    match /{path=**}/ruleEntries/{id} {
       allow read: if signedIn();
     }
 

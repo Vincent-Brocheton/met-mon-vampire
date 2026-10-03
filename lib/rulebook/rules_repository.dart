@@ -7,16 +7,17 @@ import 'rule_entry.dart';
 
 part 'rules_repository.g.dart';
 
-/// `rules/{cat}` (réglages), `rules/{cat}/entries/{id}`, `…/private/note`.
+/// `rules/{cat}` (réglages), `rules/{cat}/ruleEntries/{id}`, `…/private/note`.
+/// Nom de sous-collection propre au référentiel : la lecture groupée ne touche rien d'autre.
 class RulesRepository {
   RulesRepository(this._db);
 
   final FirebaseFirestore _db;
 
-  CollectionReference<Map<String, dynamic>> _entries(String cat) => _db.collection('rules').doc(cat).collection('entries');
+  CollectionReference<Map<String, dynamic>> _entries(String cat) => _db.collection('rules').doc(cat).collection('ruleEntries');
 
-  /// Toutes les catégories, par une requête sur le groupe `entries`, triées par nom.
-  Stream<Map<String, List<RuleEntry>>> watchAll() => _db.collectionGroup('entries').snapshots().map((q) {
+  /// Toutes les catégories, par une requête sur le groupe `ruleEntries`, triées par nom.
+  Stream<Map<String, List<RuleEntry>>> watchAll() => _db.collectionGroup('ruleEntries').snapshots().map((q) {
         final out = <String, List<RuleEntry>>{};
         for (final d in q.docs) {
           (out[d.reference.parent.parent!.id] ??= []).add(RuleEntry.fromMap(d.id, d.data()));
@@ -54,11 +55,12 @@ class RulesRepository {
         ..delete(_entries(cat).doc(id)))
       .commit();
 
+  /// Fusion : les clés hors du schéma restent ; une valeur null efface la clé.
   Future<void> saveSettings(String cat, Map<String, dynamic> values, Actor by) => _db.collection('rules').doc(cat).set({
-        ...values,
+        for (final e in values.entries) e.key: e.value ?? FieldValue.delete(),
         'updatedAt': FieldValue.serverTimestamp(),
         'updatedByName': by.name,
-      });
+      }, SetOptions(merge: true));
 
   /// Import ou valeurs de base : nouveaux (id vide) et modifiés, par lots de 400.
   Future<void> importEntries(String cat, List<RuleEntry> entries, Actor by) async {

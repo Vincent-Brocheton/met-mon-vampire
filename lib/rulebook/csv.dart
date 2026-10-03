@@ -149,6 +149,10 @@ ImportPreview previewImport(RuleCategory c, List<RuleEntry> existing, String tex
       errors.add('Ligne $line : nom manquant');
       continue;
     }
+    if (name.length > 80) {
+      errors.add('Ligne $line : nom trop long (80 caractères au plus)');
+      continue;
+    }
     final stateText = cell('state').trim().toLowerCase();
     final state = RuleState.values.where((s) => s.name.toLowerCase() == stateText || s.label.toLowerCase() == stateText).firstOrNull;
     if (state == null) {

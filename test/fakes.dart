@@ -159,6 +159,8 @@ class FakeRulesRepository implements RulesRepository {
   final calls = <String>[];
   RuleEntry? lastSaved;
   String? lastNote;
+  Map<String, dynamic>? lastSettings;
+  Object? importError;
 
   @override
   Stream<String> watchNote(String cat, String id) => Stream.value('');
@@ -175,10 +177,16 @@ class FakeRulesRepository implements RulesRepository {
   Future<void> delete(String cat, String id) async => calls.add('delete:$cat:$id');
 
   @override
-  Future<void> saveSettings(String cat, Map<String, dynamic> values, Actor by) async => calls.add('settings:$cat');
+  Future<void> saveSettings(String cat, Map<String, dynamic> values, Actor by) async {
+    calls.add('settings:$cat');
+    lastSettings = values;
+  }
 
   @override
-  Future<void> importEntries(String cat, List<RuleEntry> entries, Actor by) async => calls.add('import:$cat:${entries.length}');
+  Future<void> importEntries(String cat, List<RuleEntry> entries, Actor by) async {
+    if (importError != null) throw importError!;
+    calls.add('import:$cat:${entries.length}');
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
