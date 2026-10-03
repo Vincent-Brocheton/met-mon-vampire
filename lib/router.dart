@@ -21,6 +21,7 @@ import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
 import 'redirect.dart';
+import 'rulebook/referential_screen.dart';
 import 'shell/app_shell.dart';
 import 'xp/corrections_screen.dart';
 import 'xp/my_requests_screen.dart';
@@ -138,7 +139,11 @@ GoRouter router(Ref ref) {
           page('/conteur/xp', const XpAdminScreen()),
           page('/conteur/xp/corrections', const CorrectionsScreen()),
           page('/conteur/wiki', soon('Wiki')),
-          page('/conteur/referentiel', soon('Référentiel des règles')),
+          page('/conteur/referentiel', const ReferentialScreen()),
+          GoRoute(
+            path: '/conteur/referentiel/:cat',
+            builder: (_, s) => ReferentialScreen(categoryId: s.pathParameters['cat']!),
+          ),
           page('/conteur/parametres', const ParametersScreen()),
           page('/conteur/parametres/xp', const XpSettingsScreen()),
           page('/conteur/notifications', soon('Notifications')),
