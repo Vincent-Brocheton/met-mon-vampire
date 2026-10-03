@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Palier du gain mensuel : pendant [months] mois (null : sans limite), [xp] XP tous les [every] mois.
@@ -5,7 +7,7 @@ class XpTier {
   const XpTier(this.months, this.xp, this.every);
 
   factory XpTier.fromMap(Map<String, dynamic> m) =>
-      XpTier((m['months'] as num?)?.toInt(), (m['xp'] as num?)?.toInt() ?? 0, (m['every'] as num?)?.toInt() ?? 1);
+      XpTier((m['months'] as num?)?.toInt(), (m['xp'] as num?)?.toInt() ?? 0, max(1, (m['every'] as num?)?.toInt() ?? 1));
 
   final int? months;
   final int xp;

@@ -21,7 +21,7 @@ void main() {
 
   test('activée le 31 : rien ce mois-là, un gain le suivant (Review Focus 2)', () {
     expect(monthlyGain([pj('a', DateTime(2026, 10, 31))], on, DateTime(2026, 10, 31)), isEmpty);
-    final d = monthlyGain([pj('a', DateTime(2026, 9, 30))], on, DateTime(2026, 10, 1)).single;
+    final d = monthlyGain([pj('a', DateTime(2026, 9, 30))], on, DateTime(2026, 10, 1, 12)).single;
     expect(d.months, ['2026-10']);
     expect((d.xp, d.through, d.tier), (3, '2026-10', 0));
   });
@@ -50,6 +50,16 @@ void main() {
     final d = monthlyGain([pj('a', DateTime(2026, 8, 10), through: '2026-09')], everyOther, DateTime(2026, 10, 5)).single;
     expect(d.months, ['2026-10']);
     expect((d.xp, d.through), (0, '2026-10'));
+  });
+
+  test('mois en UTC : le même pour tous les appareils (petits défauts)', () {
+    expect(monthKey(DateTime.utc(2026, 10, 31, 23, 30).toLocal()), '2026-10');
+  });
+
+  test('palier « tous les 0 mois » écrit hors de l’application : ramené à 1 (petits défauts)', () {
+    final s = XpSettings.fromMap({'monthlyEnabled': true, 'gainSince': '2026-01', 'tiers': [{'months': null, 'xp': 2, 'every': 0}]});
+    expect(s.tiers.single.every, 1);
+    expect(gainAt(s.tiers, 5), 2);
   });
 
   test('libellés de mois', () {

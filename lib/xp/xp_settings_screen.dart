@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../auth/session.dart';
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
 import '../characters/sheet_widgets.dart';
@@ -14,15 +15,17 @@ import 'xp_repository.dart';
 import 'xp_settings.dart';
 
 /// `/conteur/parametres` : menu des paramètres de la chronique.
-class ParametersScreen extends StatelessWidget {
+class ParametersScreen extends ConsumerWidget {
   const ParametersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const entries = [
+  Widget build(BuildContext context, WidgetRef ref) {
+    final principal = ref.watch(currentUserProvider).value?.role == Role.principal;
+    final entries = [
       ('Expérience', 'XP de création, gain mensuel par paliers.', '/conteur/parametres/xp'),
       ('Liste de démarrage', 'Les étapes pour ouvrir la chronique.', '/conteur/demarrage'),
-      ('Équipe de conteurs', 'Rôles et invitations.', '/conteur/equipe'),
+      // L'équipe est gérée par le principal seul (redirect.dart).
+      if (principal) ('Équipe de conteurs', 'Rôles et invitations.', '/conteur/equipe'),
       ('Journal de la chronique', 'À venir.', null),
     ];
     return PageBody(children: [
@@ -128,7 +131,8 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final me = ref.watch(currentUserProvider).value;
-    if (me != null && !me.role.managesAccounts) {
+    if (me == null) return const Center(child: CircularProgressIndicator());
+    if (!me.role.managesAccounts) {
       return const EmptyState(
         kind: EmptyKind.forbidden,
         title: 'Réservé aux conteurs',
@@ -136,7 +140,8 @@ class _XpSettingsScreenState extends ConsumerState<XpSettingsScreen> {
       );
     }
     return asyncView(ref.watch(xpSettingsProvider), (s) {
-      if (_saved == null) _load(s);
+      // Premier chargement, ou paramètres enregistrés depuis (ici ou par un autre conteur).
+      if (_saved == null || s.updatedAt != _saved!.updatedAt) _load(s);
       return _body(context);
     }, onRetry: () => ref.invalidate(xpSettingsProvider));
   }

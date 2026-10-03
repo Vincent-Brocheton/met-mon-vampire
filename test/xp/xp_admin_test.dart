@@ -67,6 +67,20 @@ void main() {
     expect(find.textContaining('Refusé pour : Isaure de Valcourt'), findsOneWidget);
   });
 
+  testWidgets('bonus refusé pour une fiche : elle reste sélectionnée (petits défauts)', (tester) async {
+    final repo = await pump(tester);
+    repo.refused = ['Isaure de Valcourt'];
+    await tester.tap(find.byKey(const Key('award-x')));
+    await tester.enterText(find.byKey(const Key('award-reason')), 'Scène de la Cour');
+    await tester.pump();
+    await tester.tap(find.text('Attribuer à 1 fiche'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Attribuer'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Checkbox>(find.byKey(const Key('award-x'))).value, isTrue);
+    expect(tester.widget<TextField>(find.byKey(const Key('award-reason'))).controller!.text, 'Scène de la Cour');
+  });
+
   testWidgets('gain désactivé', (tester) async {
     await pump(tester, settings: const XpSettings());
     expect(find.text('Gain mensuel désactivé'), findsOneWidget);

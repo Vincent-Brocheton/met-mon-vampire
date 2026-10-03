@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,6 +72,59 @@ void main() {
     await tester.tap(find.text('Enregistrer'));
     await tester.pump();
     expect(repo.calls.single, startsWith('settings:true:2026-10:'));
+  });
+
+  testWidgets('modification par un autre conteur : écran rechargé (petits défauts)', (tester) async {
+    tester.view.physicalSize = const Size(1440, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final source = StreamController<XpSettings>();
+    addTearDown(source.close);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        xpRepositoryProvider.overrideWith((ref) => FakeXpRepository()),
+        xpSettingsProvider.overrideWith((ref) => source.stream),
+      ],
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: Scaffold(body: XpSettingsScreen(now: () => DateTime(2026, 10, 3)))),
+    ));
+    source.add(XpSettings(monthlyEnabled: true, gainSince: '2026-10', updatedAt: DateTime(2026, 9, 1), updatedByName: 'Léa G.'));
+    await tester.pumpAndSettle();
+    source.add(XpSettings(monthlyEnabled: true, gainSince: '2026-10', tiers: const [XpTier(null, 5, 1)], updatedAt: DateTime(2026, 10, 2), updatedByName: 'Marc D.'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Dernière modification par Marc D.'), findsOneWidget);
+    expect(find.text('Après 1 an : 60 XP'), findsOneWidget);
+  });
+
+  testWidgets('utilisateur pas encore chargé : attente (petits défauts)', (tester) async {
+    final never = StreamController<AppUser?>();
+    addTearDown(never.close);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => never.stream),
+        xpSettingsProvider.overrideWith((ref) => Stream.value(const XpSettings())),
+      ],
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: XpSettingsScreen())),
+    ));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Enregistrer'), findsNothing);
+  });
+
+  testWidgets('menu des paramètres : équipe réservée au principal (petits défauts)', (tester) async {
+    Future<void> show(AppUser user) async {
+      await tester.pumpWidget(ProviderScope(
+        key: UniqueKey(),
+        overrides: [currentUserProvider.overrideWith((ref) => Stream.value(user))],
+        child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: ParametersScreen())),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    await show(lea);
+    expect(find.text('Équipe de conteurs'), findsNothing);
+    await show(const AppUser(uid: 'boss', displayName: 'Marc D.', email: 'm@ex.fr', role: Role.principal));
+    expect(find.text('Équipe de conteurs'), findsOneWidget);
   });
 
   testWidgets('narrateur : accès refusé', (tester) async {

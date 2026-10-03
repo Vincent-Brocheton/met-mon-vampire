@@ -93,9 +93,10 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
       final refused = await ref.read(xpRepositoryProvider).award([for (final c in chosen) (c, _selected[c.id]!)], _reason.text, by);
       _report(messenger, 'Bonus attribué.', refused);
       if (mounted) {
+        // Les fiches refusées restent sélectionnées, avec le motif, pour réessayer.
         setState(() {
-          _selected.clear();
-          _reason.clear();
+          _selected.removeWhere((id, _) => !refused.contains(chosen.firstWhere((c) => c.id == id).name));
+          if (refused.isEmpty) _reason.clear();
         });
       }
     } finally {

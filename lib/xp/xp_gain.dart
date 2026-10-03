@@ -5,8 +5,11 @@ import 'xp_settings.dart';
 
 const _months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
-/// Mois au format 'aaaa-mm'.
-String monthKey(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}';
+/// Mois au format 'aaaa-mm', en UTC : tous les appareils voient le même mois, quel que soit leur fuseau.
+String monthKey(DateTime d) {
+  final u = d.toUtc();
+  return '${u.year}-${u.month.toString().padLeft(2, '0')}';
+}
 
 /// Rang du mois depuis l'an 0 : les écarts entre mois se calculent par soustraction.
 int monthIndex(String key) {
