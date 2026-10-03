@@ -22,6 +22,7 @@ import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
 import 'redirect.dart';
 import 'shell/app_shell.dart';
+import 'xp/spend_screen.dart';
 
 part 'router.g.dart';
 
@@ -88,6 +89,13 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/soumise',
             builder: (_, s) => SubmittedScreen(id: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/xp',
+            builder: (_, s) => SpendScreen(
+              characterId: s.pathParameters['id']!,
+              requestId: s.uri.queryParameters['demande'],
+            ),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
