@@ -76,14 +76,15 @@ void main() {
     expect(addPurchase(c, Buy.discipline, 'Célérité'), contains('3 points'));
   });
 
-  test('attribut 3 XP, Humanité niveau × 2', () {
+  test('attribut 3 XP ; Humanité 10 XP le point, 6 au plus (livre de base p. 107 et 300)', () {
     final c = valid();
     expect(addPurchase(c, Buy.attribute, AttrCategory.physical.name), isNull);
     expect(addPurchase(c, Buy.humanity, humanityName), isNull);
     applyDerived(c);
     expect(c.attributes[AttrCategory.physical]!.value, 4);
     expect(c.humanity, 6);
-    expect(budgetOf(c).purchases, 3 + 12);
+    expect(budgetOf(c).purchases, 3 + 10);
+    expect(addPurchase(c, Buy.humanity, humanityName), 'Plafond atteint (6).');
   });
 
   test('retrait dans l’ordre seulement (Review Focus 3)', () {

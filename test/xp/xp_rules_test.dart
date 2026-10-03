@@ -59,6 +59,11 @@ void main() {
     expect(err(c, XpKind.flawBuyback, 'Curiosité', items: twice), 'Handicap déjà racheté.');
   });
 
+  test('Humanité : 6 au plus (livre de base p. 300)', () {
+    expect(err(sample()..humanity = 6, XpKind.humanity, 'Humanité'), 'Plafond atteint (6).');
+    expect(err(sample()..humanity = 5, XpKind.humanity, 'Humanité'), isNull);
+  });
+
   test('atouts : 7 points au plus, rareté du clan comprise', () {
     final c = sample();
     final items = <XpItem>[];
@@ -114,7 +119,10 @@ void main() {
         contains('Coût recalculé : 2 XP au lieu de 1 (Compétence · Linguistique)'));
     expect(requestChecks(sample(), auspex, reservedOthers: 15).map((k) => k.text), contains('Dette après validation : 7 XP'));
     final vicissitude = req([const XpItem(XpKind.discipline, 'Vicissitude', 0, 1, 4)]);
-    expect(requestChecks(sample(), vicissitude, reservedOthers: 0).any((k) => k.text.startsWith('Mentor nécessaire')), isTrue);
+    expect(requestChecks(sample(), vicissitude, reservedOthers: 0).any((k) => k.text.startsWith('Professeur nécessaire')), isTrue);
+    final domination = req([const XpItem(XpKind.discipline, 'Domination', 0, 1, 4)]);
+    expect(requestChecks(sample(), domination, reservedOthers: 0).map((k) => k.text),
+        contains('Professeur nécessaire : Domination hors clan, à confirmer par le conte'));
   });
 
   test('achats truqués : forme vérifiée à la validation (revue finale)', () {

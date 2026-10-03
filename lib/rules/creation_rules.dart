@@ -79,7 +79,7 @@ int purchaseCost(Character c, String kind, String name, int toLevel) {
     Buy.skill => toLevel * (cheap ? 1 : 2),
     Buy.background => name == generationName ? toLevel * 2 : toLevel * (cheap ? 1 : 2),
     Buy.discipline => toLevel * (isInClan(c, name) ? 3 : 4),
-    Buy.humanity => toLevel * 2,
+    Buy.humanity => 10,
     _ => 0,
   };
 }
@@ -149,7 +149,8 @@ void _setLevel(Character c, String kind, String name, int level) {
 String? addPurchase(Character c, String kind, String name) {
   final to = levelOf(c, kind, name) + 1;
   final cap = switch (kind) {
-    Buy.attribute || Buy.humanity => 10,
+    Buy.attribute => 10,
+    Buy.humanity => 6,
     Buy.background when name == generationName => 3,
     _ => 5,
   };

@@ -174,7 +174,7 @@ Toute valeur peut aussi être « Autre… » en saisie libre, avec un avertissem
   - discipline hors clan : nouveau niveau × 4, uniquement dans une discipline commune, 3 points hors clan au total à la création ;
   - attribut : 3 XP ;
   - Génération : nouveau niveau × 2 (création uniquement) ;
-  - Humanité +1 : nouveau niveau × 2 ;
+  - Humanité : 10 XP le point, 6 au plus (livre de base p. 107 et 300) ;
   - rituel : niveau × 2 (avertissement « à confirmer par le conte »).
 - **Budget :** 30 + bonus du conte + handicaps (7 au plus) − atouts − achats.
   - Il doit rester ≥ 0 pour soumettre.

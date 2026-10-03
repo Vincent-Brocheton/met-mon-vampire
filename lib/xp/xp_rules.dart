@@ -44,7 +44,7 @@ String ruleText(Character c, XpItem i) => switch (i.kind) {
       XpKind.skill || XpKind.background => 'Nouveau niveau × ${_cheap(c) ? 1 : 2}',
       XpKind.discipline => inClan(c, i.name) ? 'En clan · nouveau niveau × 3' : 'Hors clan · nouveau niveau × 4',
       XpKind.merit => 'Sa valeur en XP',
-      XpKind.humanity => '10 XP le point',
+      XpKind.humanity => '10 XP le point, 6 au plus',
       XpKind.flawBuyback => '2 × sa valeur',
     };
 
@@ -58,13 +58,14 @@ List<(String, String)> costTable(Character c) {
     ('Discipline en clan', 'Nouveau niveau × 3'),
     ('Discipline hors clan', 'Nouveau niveau × 4'),
     ('Atout', 'Sa valeur en XP'),
-    ('Humanité', '10 XP le point'),
+    ('Humanité', '10 XP le point, 6 au plus'),
     ('Rachat d’un handicap', '2 × sa valeur'),
   ];
 }
 
 int capOf(XpKind k) => switch (k) {
-      XpKind.attribute || XpKind.humanity => 10,
+      XpKind.attribute => 10,
+      XpKind.humanity => 6,
       _ => 5,
     };
 
@@ -208,8 +209,9 @@ List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers
     if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.toLevel > capOf(i.kind)) {
       out.add(Check(0, CheckLevel.error, 'Plafond dépassé : ${i.label} (${capOf(i.kind)} au plus)'));
     }
-    if (i.kind == XpKind.discipline && !inClan(c, i.name) && !commonDisciplines.contains(i.name)) {
-      out.add(Check(0, CheckLevel.warn, 'Mentor nécessaire : ${i.name} hors clan, à confirmer par le conte'));
+    // Livre de base p. 108 : avec l'XP gagnée, toute discipline hors clan demande un professeur.
+    if (i.kind == XpKind.discipline && !inClan(c, i.name)) {
+      out.add(Check(0, CheckLevel.warn, 'Professeur nécessaire : ${i.name} hors clan, à confirmer par le conte'));
     }
     seen.add(i);
   }

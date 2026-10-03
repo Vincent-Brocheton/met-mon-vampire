@@ -653,7 +653,8 @@ class _PurchasesStepState extends State<_PurchasesStep> {
           ('Compétence, historique', 'Niveau × $factor'),
           ('Discipline en clan', 'Niveau × 3'),
           ('Hors clan (communes, 3 points au plus)', 'Niveau × 4'),
-          ('Génération, Humanité', 'Niveau × 2'),
+          ('Génération', 'Niveau × 2'),
+          ('Humanité', '10 XP le point, 6 au plus'),
         ])
           Row(children: [Expanded(child: Text(k, style: t.bodyMedium)), Text(v, style: t.bodyMedium)]),
       ]),

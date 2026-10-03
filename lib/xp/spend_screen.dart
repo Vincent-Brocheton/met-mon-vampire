@@ -327,7 +327,8 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
           padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(children: [
             Expanded(child: Text(k, style: t.bodyMedium?.copyWith(color: AppColors.textMuted))),
-            Text(v, style: t.bodyMedium),
+            const SizedBox(width: 8),
+            Flexible(child: Text(v, textAlign: TextAlign.right, style: t.bodyMedium)),
           ]),
         );
     final aside = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
