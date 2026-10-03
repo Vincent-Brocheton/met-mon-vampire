@@ -1095,7 +1095,6 @@ Run : `python tool/extract_plan.py docs/superpowers/plans/2026-10-03-referentiel
 <!-- file: lib/rulebook/rules_repository.dart -->
 ```dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../auth/session_providers.dart';

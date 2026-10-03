@@ -1,6 +1,8 @@
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/rulebook/rule_entry.dart';
+import 'package:portail_met/rulebook/rules_repository.dart';
 import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_gain.dart';
 import 'package:portail_met/xp/xp_repository.dart';
@@ -148,6 +150,35 @@ class FakeXpRepository implements XpRepository {
   @override
   Future<void> correct(Character before, Character after, CorrectionKind k, String reason, Actor by) async =>
       calls.add('correction:${k.name}:${before.xpSpent}→${after.xpSpent}:$reason');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeRulesRepository implements RulesRepository {
+  final calls = <String>[];
+  RuleEntry? lastSaved;
+  String? lastNote;
+
+  @override
+  Stream<String> watchNote(String cat, String id) => Stream.value('');
+
+  @override
+  Future<String> save(String cat, RuleEntry e, Actor by, {String? note}) async {
+    calls.add('save:$cat:${e.name}:${e.state.name}');
+    lastSaved = e;
+    lastNote = note;
+    return e.id.isEmpty ? 'new-rule' : e.id;
+  }
+
+  @override
+  Future<void> delete(String cat, String id) async => calls.add('delete:$cat:$id');
+
+  @override
+  Future<void> saveSettings(String cat, Map<String, dynamic> values, Actor by) async => calls.add('settings:$cat');
+
+  @override
+  Future<void> importEntries(String cat, List<RuleEntry> entries, Actor by) async => calls.add('import:$cat:${entries.length}');
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

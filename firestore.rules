@@ -244,6 +244,34 @@ service cloud.firestore {
     }
 
 
+    // Référentiel des règles (sous-projet 5) : lu par tous, écrit par les conteurs.
+    match /rules/{cat} {
+      allow read: if signedIn();
+      allow write: if managesAccounts();
+
+      match /entries/{id} {
+        allow read: if signedIn();
+        allow delete: if managesAccounts();
+        allow create, update: if managesAccounts()
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+          && request.resource.data.state in ['available', 'approval', 'draft', 'forbidden']
+          && request.resource.data.data is map
+          && request.resource.data.updatedByUid == request.auth.uid;
+
+        // Note réservée au conte : un document à part, Firestore ne cache pas un champ.
+        match /private/{doc} {
+          allow read: if isStaff();
+          allow write: if managesAccounts();
+        }
+      }
+    }
+
+    // Toutes les catégories en une requête (écran du référentiel, moteurs du plan B).
+    match /{path=**}/entries/{id} {
+      allow read: if signedIn();
+    }
+
     match /invitations/{email} {
       allow read: if isPrincipal() || (signedIn() && tokenEmail() == email);
       allow create, update: if isPrincipal()
