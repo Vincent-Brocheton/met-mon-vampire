@@ -137,6 +137,16 @@ void main() {
     expect(sendProblems(c, [const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)], usable: 20), isEmpty);
   });
 
+  test('fiche retirée : validation impossible (petits défauts)', () {
+    final retired = sample()..status = CharacterStatus.retired;
+    expect(
+      requestChecks(retired, req([const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)]), reservedOthers: 0)
+          .where((k) => k.level == CheckLevel.error)
+          .map((k) => k.text),
+      contains('La fiche n’est plus active : refusez la demande.'),
+    );
+  });
+
   test('appliquer une demande', () {
     final c = sample();
     final items = <XpItem>[];

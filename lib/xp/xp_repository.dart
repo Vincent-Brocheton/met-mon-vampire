@@ -80,16 +80,7 @@ class XpRepository {
   Future<void> decide(XpRequest r, Character c, RequestStatus to, String comment, Actor by) {
     final text = comment.trim();
     final message = text.isEmpty ? null : XpMessage(by.uid, by.name, nowMs(), text);
-    final now = FieldValue.serverTimestamp();
-    final batch = _db.batch()
-      ..update(_col.doc(r.id), {
-        'status': to.name,
-        'thread': [for (final m in [...r.thread, ?message]) m.toMap()],
-        'version': r.version + 1,
-        'updatedAt': now,
-        if (to != RequestStatus.changes) 'decidedAt': now,
-        if (to != RequestStatus.changes) 'decidedByUid': by.uid,
-      });
+    final batch = _db.batch()..update(_col.doc(r.id), decisionUpdate(r, to, message, by.uid, FieldValue.serverTimestamp()));
     if (to == RequestStatus.accepted) {
       final after = applyRequest(c, r.items);
       _characters.stageEdit(
@@ -106,6 +97,16 @@ class XpRepository {
     return batch.commit();
   }
 }
+
+/// Écriture de la demande lors d'une décision : seulement les clés permises par la règle staffRequestDecision.
+Map<String, dynamic> decisionUpdate(XpRequest r, RequestStatus to, XpMessage? message, String byUid, Object now) => {
+      'status': to.name,
+      'thread': [for (final m in [...r.thread, ?message]) m.toMap()],
+      'version': r.version + 1,
+      'updatedAt': now,
+      if (to != RequestStatus.changes) 'decidedAt': now,
+      if (to != RequestStatus.changes) 'decidedByUid': byUid,
+    };
 
 @Riverpod(keepAlive: true)
 XpRepository xpRepository(Ref ref) =>

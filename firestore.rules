@@ -108,8 +108,12 @@ service cloud.firestore {
       }
 
       function own() { return resource.data.get('playerUid', null) == request.auth.uid; }
+      // À la milliseconde : une date écrite depuis Android (microsecondes) revient du Web tronquée.
+      function sameTime(a, b) {
+        return a == b || (a != null && b != null && a.toMillis() == b.toMillis());
+      }
       function decisionUnchanged() {
-        return request.resource.data.creation.get('decidedAt', null) == resource.data.creation.get('decidedAt', null)
+        return sameTime(request.resource.data.creation.get('decidedAt', null), resource.data.creation.get('decidedAt', null))
           && request.resource.data.creation.get('decidedByUid', null) == resource.data.creation.get('decidedByUid', null)
           && request.resource.data.creation.get('comment', null) == resource.data.creation.get('comment', null);
       }
@@ -169,10 +173,15 @@ service cloud.firestore {
     match /requests/{rid} {
       allow read: if signedIn() && (resource.data.playerUid == request.auth.uid || isStaff());
 
+      // La fiche visée, telle qu'elle est (noms recopiés, joueur, statut).
+      function sheet(cid) { return get(charPath(cid)).data; }
+
       allow create: if signedIn()
         && request.resource.data.playerUid == request.auth.uid
-        && get(charPath(request.resource.data.characterId)).data.get('playerUid', null) == request.auth.uid
-        && get(charPath(request.resource.data.characterId)).data.status == 'active'
+        && sheet(request.resource.data.characterId).get('playerUid', null) == request.auth.uid
+        && sheet(request.resource.data.characterId).status == 'active'
+        && request.resource.data.characterName == sheet(request.resource.data.characterId).name
+        && request.resource.data.playerName == sheet(request.resource.data.characterId).get('playerName', null)
         && request.resource.data.status in ['draft', 'pending']
         && request.resource.data.version == 1
         && request.resource.data.get('thread', []).size() == 0
@@ -192,15 +201,19 @@ service cloud.firestore {
       }
       function lastMessageMine() {
         let now = request.resource.data.thread;
-        return now[now.size() - 1].byUid == request.auth.uid && now[now.size() - 1].text.size() > 0;
+        return now[now.size() - 1].byUid == request.auth.uid
+          && now[now.size() - 1].byName == get(userPath(request.auth.uid)).data.displayName
+          && now[now.size() - 1].text.size() > 0;
       }
 
       function playerRequestEdit() {
         return resource.data.playerUid == request.auth.uid
+          && sheet(resource.data.characterId).get('playerUid', null) == request.auth.uid
+          && sheet(resource.data.characterId).status == 'active'
           && resource.data.status in ['draft', 'pending', 'changes']
           && request.resource.data.status in ['draft', 'pending', 'cancelled']
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['characterId', 'playerUid', 'decidedAt', 'decidedByUid', 'createdAt'])
+               .hasAny(['characterId', 'characterName', 'playerUid', 'playerName', 'decidedAt', 'decidedByUid', 'createdAt'])
           && (threadGrowsBy(0) || (threadGrowsBy(1) && lastMessageMine()));
       }
 
@@ -212,6 +225,7 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['status', 'thread', 'decidedAt', 'decidedByUid', 'updatedAt', 'version'])
           && ((to == 'accepted'
+                && sheet(cid).status == 'active'
                 && (threadGrowsBy(0) || (threadGrowsBy(1) && lastMessageMine()))
                 && getAfter(charPath(cid)).data.version == get(charPath(cid)).data.version + 1)
             || (to != 'accepted' && threadGrowsBy(1) && lastMessageMine()));

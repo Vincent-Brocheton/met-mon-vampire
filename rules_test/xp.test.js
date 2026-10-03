@@ -32,9 +32,11 @@ beforeEach(async () => {
     await setDoc(doc(db, 'characters/zoe-draft'), char({ status: 'draft' }));
     await setDoc(doc(db, 'characters/max-pj'), char({ playerUid: 'max' }));
     await setDoc(doc(db, 'characters/lea-pj'), char({ playerUid: 'lea' }));
+    await setDoc(doc(db, 'characters/zoe-old'), char({ status: 'retired' }));
     await setDoc(doc(db, 'requests/r1'), req({}));
     await setDoc(doc(db, 'requests/r-changes'), req({ status: 'changes', thread: [msg('lea', 'Précise.')] }));
     await setDoc(doc(db, 'requests/r-lea'), req({ characterId: 'lea-pj', playerUid: 'lea' }));
+    await setDoc(doc(db, 'requests/r-old'), req({ characterId: 'zoe-old' }));
   });
 });
 
@@ -85,6 +87,22 @@ test('compléments et refus : un message du conte', async () => {
   await assertFails(decide('lea', 'r1', 'zoe-pj', 'changes', [msg('zoe', 'Faux.')], false));
   await assertFails(decide('lea', 'r-changes', 'zoe-pj', 'rejected', [msg('lea', 'Précise.'), msg('lea', 'Non.')], false));
   await assertSucceeds(decide('boss', 'r1', 'zoe-pj', 'rejected', [msg('boss', 'Hors récit.')], false));
+});
+
+test('noms imposés : personnage, joueur, signature des messages', async () => {
+  await assertFails(create('zoe', 'n7', req({ characterName: 'Faux' })));
+  await assertFails(create('zoe', 'n8', req({ playerName: 'Léa (conte)' })));
+  await assertFails(edit('zoe', 'r1', { playerName: 'Léa (conte)' }));
+  await assertFails(edit('zoe', 'r-changes', {
+    thread: [msg('lea', 'Précise.'), { byUid: 'zoe', byName: 'Léa (conte)', atMs: 2, text: 'Validé' }],
+    status: 'pending',
+  }));
+});
+
+test('fiche retirée : la demande se fige, le conte peut seulement refuser', async () => {
+  await assertFails(edit('zoe', 'r-old', { status: 'cancelled' }));
+  await assertFails(decide('lea', 'r-old', 'zoe-old', 'accepted', [], true));
+  await assertSucceeds(decide('lea', 'r-old', 'zoe-old', 'rejected', [msg('lea', 'Fiche retirée.')], false));
 });
 
 test('bonus sur une fiche : motif obligatoire', async () => {

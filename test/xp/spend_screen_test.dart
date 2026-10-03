@@ -43,7 +43,7 @@ void main() {
         theme: buildTheme(withFonts: false),
         routerConfig: GoRouter(routes: [
           GoRoute(path: '/', builder: (_, _) => Scaffold(body: SpendScreen(characterId: 'x', requestId: requestId))),
-          GoRoute(path: '/joueur/demandes', builder: (_, s) => Text('demandes ${s.uri.queryParameters['d']}')),
+          GoRoute(path: '/joueur/demandes', builder: (_, s) => Scaffold(body: Text('demandes ${s.uri.queryParameters['d']}'))),
         ]),
       ),
     ));
@@ -131,6 +131,31 @@ void main() {
     await tester.tap(find.text('Envoyer au conte · 2 XP'));
     await tester.pumpAndSettle();
     expect(repo.calls, ['save:submit:2']);
+  });
+
+  testWidgets('demande traitée entre-temps : message et retour au détail (petits défauts)', (tester) async {
+    final pending = XpRequest(
+      id: 'p1',
+      characterId: 'x',
+      characterName: 'Isaure de Valcourt',
+      playerUid: 'u1',
+      playerName: 'Camille R.',
+      status: RequestStatus.pending,
+      items: [const XpItem(XpKind.skill, 'Linguistique', 0, 1, 2)],
+      justification: 'Leçons.',
+    );
+    final repo = await pump(tester, requests: [pending], requestId: 'p1');
+    repo.error = Exception('permission-denied');
+    await tester.tap(find.text('Envoyer au conte · 2 XP'));
+    await tester.pumpAndSettle();
+    expect(find.text('demandes p1'), findsOneWidget);
+    expect(find.text('La demande a été traitée entre-temps.'), findsOneWidget);
+  });
+
+  testWidgets('demande d’un autre personnage : refus (petits défauts)', (tester) async {
+    final other = XpRequest(id: 'o1', characterId: 'y', characterName: 'Autre', playerUid: 'u1', playerName: 'Camille R.');
+    await pump(tester, requests: [other], requestId: 'o1');
+    expect(find.text('Cette demande ne se modifie plus'), findsOneWidget);
   });
 
   testWidgets('fiche d’un autre joueur : refus', (tester) async {

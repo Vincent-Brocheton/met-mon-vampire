@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -49,6 +49,17 @@ test('le joueur remplit son brouillon, sans toucher aux champs protégés', asyn
   await assertFails(save('max', 'draft', { clan: 'Brujah' }));
   await assertFails(save('zoe', 'review', { clan: 'Brujah' }));
   await assertSucceeds(save('zoe', 'draft', { clan: 'Tremere', xpInitial: 33 }));
+});
+
+test('date de décision écrite en microsecondes (Android), relue à la milliseconde (Web)', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/fixed'), char({ creation: { ...creation, decidedAt: new Timestamp(1000, 123456789), comment: 'Précise le sire.' } }));
+  });
+  await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/fixed'), {
+    clan: 'Tremere',
+    'creation.decidedAt': new Timestamp(1000, 123000000),
+    version: 2,
+  }));
 });
 
 test('soumettre et retirer, jamais s’activer soi-même', async () => {

@@ -190,7 +190,9 @@ List<String> sendProblems(Character c, List<XpItem> items, {required int usable}
 
 /// Contrôles affichés au conteur avant de valider (C-Validation). Erreur = validation impossible.
 List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers}) {
-  final out = <Check>[];
+  final out = <Check>[
+    if (c.status != CharacterStatus.active) const Check(0, CheckLevel.error, 'La fiche n’est plus active : refusez la demande.'),
+  ];
   final seen = <XpItem>[];
   for (final i in r.items) {
     if (!wellFormed(i)) {

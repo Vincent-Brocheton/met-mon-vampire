@@ -71,14 +71,20 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
       _busy = true;
       _error = null;
     });
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final id = await ref.read(xpRepositoryProvider).save(r, submit: submit);
       if (mounted) context.go('/joueur/demandes?d=$id');
     } catch (_) {
-      if (mounted) {
+      if (!mounted) return;
+      if (r.id.isNotEmpty) {
+        // Refus des règles sur une demande existante : le conte l'a traitée (version) ; retour au détail.
+        messenger.showSnackBar(const SnackBar(content: Text('La demande a été traitée entre-temps.')));
+        context.go('/joueur/demandes?d=${r.id}');
+      } else {
         setState(() {
           _busy = false;
-          _error = 'Enregistrement refusé : la demande a peut-être été traitée entre-temps.';
+          _error = 'Envoi impossible. Réessayez.';
         });
       }
     }
@@ -116,7 +122,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
             _r = XpRequest.forCharacter(c);
           } else {
             final existing = requests.where((r) => r.id == widget.requestId).firstOrNull;
-            if (existing == null || !existing.status.editable) {
+            if (existing == null || existing.characterId != c.id || !existing.status.editable) {
               return EmptyState(
                 kind: EmptyKind.notFound,
                 title: 'Cette demande ne se modifie plus',
