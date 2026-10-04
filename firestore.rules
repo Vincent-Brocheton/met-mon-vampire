@@ -315,6 +315,42 @@ service cloud.firestore {
       allow delete: if managesAccounts();
     }
 
+    // Serviteurs et mortels (sous-projet 6b) : lus par l'équipe et le joueur du domitor.
+    function servantValid() {
+      let d = request.resource.data;
+      return d.kind in ['human', 'animal', 'mortal']
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.vitae is int && d.vitae >= 0 && d.vitae <= 5
+        && d.bond is int && d.bond >= 0 && d.bond <= 3
+        && d.specialties is list && d.qualities is list && d.holderPlayers is list;
+    }
+    function servantHistoryOk(id) {
+      let h = getAfter(/databases/$(database)/documents/servants/$(id)/history/$(request.resource.data.lastHistoryId)).data;
+      return h.byUid == request.auth.uid && h.at == request.time;
+    }
+
+    match /servants/{id} {
+      allow read: if isStaff() || (signedIn() && request.auth.uid in resource.data.holderPlayers);
+      allow create: if managesAccounts() && servantValid() && request.resource.data.version == 1 && servantHistoryOk(id);
+      allow update: if managesAccounts() && servantValid()
+        && request.resource.data.version == resource.data.version + 1 && servantHistoryOk(id);
+      allow delete: if managesAccounts();
+
+      match /private/{doc} {
+        allow read: if isStaff();
+        allow write: if managesAccounts();
+      }
+
+      match /history/{h} {
+        allow read: if isStaff();
+        allow create: if managesAccounts()
+          && request.resource.data.byUid == request.auth.uid
+          && request.resource.data.at == request.time
+          && getAfter(/databases/$(database)/documents/servants/$(id)).data.lastHistoryId == h;
+        allow delete: if managesAccounts();
+      }
+    }
+
     match /invitations/{email} {
       allow read: if isPrincipal() || (signedIn() && tokenEmail() == email);
       allow create, update: if isPrincipal()

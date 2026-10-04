@@ -9,6 +9,8 @@ import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/rulebook/rules_repository.dart';
+import 'package:portail_met/servants/servant_file.dart';
+import 'package:portail_met/servants/servants_repository.dart';
 import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_gain.dart';
 import 'package:portail_met/xp/xp_repository.dart';
@@ -250,3 +252,44 @@ class FakePlacesRepository implements PlacesRepository {
 
 /// Aucun lieu pour la fiche 'x' (écrans qui affichent la section « Lieux »).
 final noPlaces = characterPlacesProvider('x').overrideWith((ref) => Stream.value(const <Place>[]));
+
+class FakeServantsRepository implements ServantsRepository {
+  final calls = <String>[];
+  ServantFile? lastSaved;
+  ServantFile? lastBefore;
+  String? lastNote;
+  String? lastReason;
+  Object? error;
+
+  @override
+  Stream<String> watchNote(String id) => Stream.value('');
+
+  @override
+  Stream<List<PlaceEntry>> watchHistory(String id) => Stream.value(const []);
+
+  @override
+  Future<String> save(ServantFile before, ServantFile f, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
+    calls.add('save:${f.name}');
+    lastBefore = before;
+    if (error != null) throw error!;
+    lastSaved = f;
+    lastNote = note;
+    lastReason = reason;
+    return f.id.isEmpty ? 'new-servant' : f.id;
+  }
+
+  @override
+  Future<void> release(String id, Actor by) async => calls.add('release:$id');
+
+  @override
+  Future<void> delete(String id) async {
+    calls.add('delete:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Aucune fiche détaillée de serviteur pour la fiche 'x'.
+final noServantFiles = characterServantFilesProvider('x').overrideWith((ref) => Stream.value(const <ServantFile>[]));
