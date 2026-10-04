@@ -188,6 +188,7 @@ class GhoulState {
     required this.domitorId,
     required this.domitorName,
     this.domitorClan,
+    this.domitorLineage,
     List<DomitorDiscipline>? domitorDisciplines,
     this.bond = 0,
     this.vitae = 0,
@@ -198,6 +199,7 @@ class GhoulState {
         domitorId: m['domitorId'] as String? ?? '',
         domitorName: m['domitorName'] as String? ?? '',
         domitorClan: m['domitorClan'] as String?,
+        domitorLineage: m['domitorLineage'] as String?,
         domitorDisciplines: _maps(m['domitorDisciplines']).map(DomitorDiscipline.fromMap).toList(),
         bond: _int(m['bond']),
         vitae: _int(m['vitae']),
@@ -209,12 +211,15 @@ class GhoulState {
         domitorId: domitor.id,
         domitorName: domitor.name,
         domitorClan: domitor.clan,
-        domitorDisciplines: [for (final d in domitor.disciplines) if (d.level > 0) DomitorDiscipline(d.name, d.level)],
+        domitorLineage: domitor.lineage,
+        // Base p. 296 : seulement les disciplines en clan du domitor, qu'il possède.
+        domitorDisciplines: [for (final d in domitor.disciplines) if (d.level > 0 && d.inClan) DomitorDiscipline(d.name, d.level)],
       );
 
   String domitorId;
   String domitorName;
   String? domitorClan;
+  String? domitorLineage;
   List<DomitorDiscipline> domitorDisciplines;
   int bond;
   int vitae;
@@ -224,6 +229,7 @@ class GhoulState {
         'domitorId': domitorId,
         'domitorName': domitorName,
         'domitorClan': domitorClan,
+        'domitorLineage': domitorLineage,
         'domitorDisciplines': [for (final d in domitorDisciplines) d.toMap()],
         'bond': bond,
         'vitae': vitae,
@@ -391,6 +397,10 @@ class Character {
   /// hors de toMap, car les règles à liste de clés fermée refuseraient une clé nouvelle sur les fiches existantes.
   String? gainedThrough;
   DateTime? createdAt, updatedAt;
+
+  /// Clan et lignée dont le personnage paie la rareté : ceux du domitor pour une goule (Base p. 296).
+  String? get bloodClan => ghoul?.domitorClan ?? clan;
+  String? get bloodLineage => ghoul?.domitorLineage ?? lineage;
 
   int get xpAvailable => xpInitial + xpEarned - xpSpent;
 

@@ -55,11 +55,11 @@ Le conte crée les lieux d'intérêt de la chronique, les décrit avec leurs qua
 - **Limite de contrôle :** un personnage contrôle au plus 5 lieux, plus 1 par point de l'historique Serviteurs.
 - **Qualités, lues dans le référentiel « Qualités de lieu »**, champ `family` :
   - **standard et iconique :** elles comptent dans le maximum. Une qualité iconique n'est permise que sur un lieu iconique.
-  - **surnaturelle :** une seule par lieu, hors du maximum.
+  - **surnaturelle :** une seule par lieu ; prise à la place d'une qualité standard, elle compte dans le maximum (V2 p. 131).
   - **négative :** répétable de 1 à `repeatable` fois (3 au plus), hors du maximum.
   - **Élysée :** règle spéciale, hors du maximum.
 - **`placeTypes` d'une qualité :** il restreint les types de lieu qui peuvent la porter. Vide : tous les types.
-- **Hypothèse retenue :** le maximum ne compte que les qualités standard et iconiques. C'est la présentation de la maquette (« 6 sur 8 », surnaturelle et négatives à part).
+- **Règle du livre (V2 p. 131), corrigée après relecture :** le maximum compte les qualités standard, iconiques et la surnaturelle. Les négatives et l'Élysée restent hors du maximum.
 
 ## Modèle de données
 

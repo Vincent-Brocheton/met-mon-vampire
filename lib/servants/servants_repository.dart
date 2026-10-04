@@ -74,12 +74,19 @@ class ServantsRepository {
   }
 
   /// Serviteur retiré de la fiche de son domitor : la fiche détaillée, si elle existe, est marquée libérée.
-  Future<void> release(String id, Actor by) async {
+  Future<void> release(String id, Actor by, {int rank = 1}) async {
     final d = await _col.doc(id).get();
     final data = d.data();
     if (data == null || data['releasedAt'] != null) return;
     final before = ServantFile.fromMap(id, data);
-    await save(before, before.copy()..releasedAt = DateTime.now(), by, reason: 'Retiré de la fiche du domitor');
+    await save(
+      before,
+      before.copy()
+        ..releasedAt = DateTime.now()
+        ..releasedRank = rank,
+      by,
+      reason: 'Retiré de la fiche du domitor',
+    );
   }
 
   /// Joueur du domitor changé : l'accès à la fiche détaillée, si elle existe, suit.

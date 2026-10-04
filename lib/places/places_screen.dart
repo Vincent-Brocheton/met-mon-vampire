@@ -381,7 +381,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
       Row(children: [
         Expanded(child: Text('Qualités', style: t.labelMedium)),
         Text(
-          '${main.length} sur ${maxQualities(_d.type, _d.rank)}${_d.type == PlaceType.standard ? '' : ' (rang ${_d.rank} × 2)'}',
+          '${qualityCount(_d, rb)} sur ${maxQualities(_d.type, _d.rank)}${_d.type == PlaceType.standard ? '' : ' (rang ${_d.rank} × 2)'}',
           style: t.bodySmall,
         ),
       ]),

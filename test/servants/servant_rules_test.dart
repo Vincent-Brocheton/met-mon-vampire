@@ -42,7 +42,7 @@ void main() {
     expect(dueState(DateTime(2026, 9, 26), DateTime(2026, 10, 20)), DueState.soon);
     expect(dueState(DateTime(2026, 9, 26), DateTime(2026, 10, 27)), DueState.late);
     expect(dueState(null, DateTime(2026, 10, 27)), isNull);
-    expect(unavailableUntil(DateTime(2026, 10, 1)), DateTime(2026, 11, 12));
+    expect(unavailableUntil(DateTime(2026, 10, 1), 3), DateTime(2026, 11, 12));
     expect(animalPoints(['Costaud', 'Monture', 'Inconnue'], rb), 4);
     expect(specialtyOptions(isaure(), rb), containsAll(['Médecine', 'Auspex', 'Présence']));
     expect(servantKindLabel('mortal'), 'Mortel');

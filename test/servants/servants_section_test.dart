@@ -37,7 +37,7 @@ void main() {
     expect(find.text('Rex'), findsOneWidget);
     expect(find.text('Mila'), findsOneWidget);
     expect(find.text('à compléter'), findsOneWidget);
-    expect(find.text('Bruno : points indisponibles jusqu’au ${formatDay(unavailableUntil(released.releasedAt!))}'), findsOneWidget);
+    expect(find.text('Bruno : points indisponibles jusqu’au ${formatDay(unavailableUntil(released.releasedAt!, released.releasedRank))}'), findsOneWidget);
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
     expect(find.text('serviteur x-s1'), findsOneWidget);

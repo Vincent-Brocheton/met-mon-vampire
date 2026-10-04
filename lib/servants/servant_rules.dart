@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../characters/character.dart';
 import '../core/dates.dart';
 import '../rulebook/rulebook.dart';
@@ -20,9 +22,10 @@ DueState? dueState(DateTime? lastDrink, DateTime now) {
   return DueState.ok;
 }
 
-/// Points indisponibles pour le domitor : 6 semaines après la libération.
-DateTime unavailableUntil(DateTime releasedAt) =>
-    DateTime(releasedAt.year, releasedAt.month, releasedAt.day + 42, releasedAt.hour, releasedAt.minute); // jours de calendrier : sans décalage à l'heure d'hiver
+/// Points indisponibles pour le domitor : deux semaines par point du serviteur libéré (Base p. 104 : une partie ou
+/// deux semaines par point, le plus long ; seules les dates sont suivies). Jours de calendrier : pas de décalage d'heure.
+DateTime unavailableUntil(DateTime releasedAt, int rank) =>
+    DateTime(releasedAt.year, releasedAt.month, releasedAt.day + 14 * max(rank, 1), releasedAt.hour, releasedAt.minute);
 
 int animalPoints(List<String> qualities, Rulebook rb) => qualities.fold(0, (s, q) => s + (rb.cost('animalQualities', q) ?? 0));
 
@@ -37,6 +40,10 @@ List<String> servantWarnings(ServantFile f, Rulebook rb, {Servant? entry, Charac
   final clan = rb.clanDisciplines(domitor?.clan);
   for (final s in f.specialties) {
     if (domitor != null && rb.find('disciplines', s) != null && !clan.contains(s)) out.add('$s : discipline hors du clan du domitor');
+  }
+  // Base p. 105 : une seule des spécialités d'un serviteur peut être une discipline.
+  if (f.kind == 'human' && f.specialties.where((s) => rb.find('disciplines', s) != null).length > 1) {
+    out.add('Une seule spécialité de discipline pour un serviteur');
   }
   if (f.kind == 'animal') {
     final points = animalPoints(f.qualities, rb);

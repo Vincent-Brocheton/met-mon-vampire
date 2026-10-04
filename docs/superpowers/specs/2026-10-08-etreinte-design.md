@@ -18,7 +18,9 @@ Chaque transformation est une action du conte, avec confirmation et motif.
 - **Goule jouée étreinte :**
   - ses 5 points de disciplines de goule disparaissent sans remboursement (ils étaient gratuits) ;
   - elle reçoit l'historique Génération au niveau du rang (1 Neonate, 2 Ancilla, 3 Pretender), ainsi que le Sang et le Sang par tour du rang ;
-  - son XP dépensée ne change pas. Si son XP disponible devient négative, c'est une dette.
+  - corrigé après relecture (Base p. 297-298) : les points de Génération s'achètent en XP (nouveau niveau ×1 pour un Neonate, ×2 au-delà), l'atout de rareté du clan du domitor est remboursé et celui du clan du sire payé. Si son XP disponible devient négative, c'est une dette ;
+  - les compétences et historiques achetés en jeu coûtent ×2 à partir d'Ancilla : l'écart est à reporter par le conte (l'application ne sait pas quels points ont été achetés en jeu) ;
+  - une génération en dessous de celle par défaut du rang demande le handicap Génération inférieure (Base p. 263) : avertissement.
 - **Mortel devenu serviteur :** le domitor paie le rang en XP, au coût d'un historique, nouveau niveau × facteur, pour chaque niveau de 1 au rang. Une XP insuffisante devient une dette.
 
 ## Les quatre transformations

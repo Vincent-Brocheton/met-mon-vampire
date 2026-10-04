@@ -19,7 +19,7 @@ void main() {
     expect(at(c, 3), [(CheckLevel.ok, 'Goule de Isaure de Valcourt · clan du domitor : Toreador')]);
     expect(at(c, 6).where((k) => k.$2.contains('Génération') || k.$2.contains('mortel')), isEmpty);
     setGhoulDiscipline(c, 'Auspex', 3);
-    expect(at(c, 7), [(CheckLevel.todo, 'Disciplines de goule : 3 points sur 5')]);
+    expect(at(c, 7), [(CheckLevel.warn, 'Disciplines de goule : 3 points sur 5, le reste pourra être placé plus tard')]);
     setGhoulDiscipline(c, 'Présence', 2);
     expect(at(c, 7), [(CheckLevel.ok, 'Disciplines de goule : 5 points sur 5')]);
     setGhoulDiscipline(c, 'Présence', 3);

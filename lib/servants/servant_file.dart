@@ -26,6 +26,7 @@ class ServantFile {
     this.lastDrink,
     this.description = '',
     this.releasedAt,
+    this.releasedRank = 0,
     this.version = 0,
     this.updatedAt,
     this.updatedByName,
@@ -48,6 +49,7 @@ class ServantFile {
         lastDrink: (m['lastDrink'] as Timestamp?)?.toDate(),
         description: m['description'] as String? ?? '',
         releasedAt: (m['releasedAt'] as Timestamp?)?.toDate(),
+        releasedRank: (m['releasedRank'] as num?)?.toInt() ?? 0,
         version: (m['version'] as num?)?.toInt() ?? 0,
         updatedAt: (m['updatedAt'] as Timestamp?)?.toDate(),
         updatedByName: m['updatedByName'] as String?,
@@ -69,6 +71,9 @@ class ServantFile {
   DateTime? lastDrink;
   String description;
   DateTime? releasedAt;
+
+  /// Rang du serviteur au moment de sa libération : durée de l'indisponibilité pour le domitor.
+  int releasedRank;
   final int version;
   final DateTime? updatedAt;
   final String? updatedByName;
@@ -90,6 +95,7 @@ class ServantFile {
         'lastDrink': lastDrink == null ? null : Timestamp.fromDate(lastDrink!),
         'description': description,
         'releasedAt': releasedAt == null ? null : Timestamp.fromDate(releasedAt!),
+        'releasedRank': releasedRank,
       };
 
   ServantFile copy() => ServantFile.fromMap(id, {...toMap(), 'version': version});

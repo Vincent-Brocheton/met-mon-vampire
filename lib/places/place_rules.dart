@@ -11,10 +11,11 @@ String? qualityFamily(Rulebook rb, String name) => switch (rb.find('placeQualiti
       _ => null,
     };
 
-/// Qualités qui comptent dans le maximum : standard et iconiques (hors référentiel : comptée).
+/// Qualités qui comptent dans le maximum : standard, iconiques et surnaturelle, prise à la place d'une standard
+/// (V2 p. 131) ; hors référentiel : comptée. Négatives et Élysée n'y comptent pas.
 int qualityCount(Place p, Rulebook rb) => p.qualities.where((q) {
       final f = qualityFamily(rb, q.name);
-      return f == null || f == 'standard' || f == 'iconic';
+      return f == null || f == 'standard' || f == 'iconic' || f == 'supernatural';
     }).length;
 
 String questText(PlaceType t, int rank) => switch (t) {

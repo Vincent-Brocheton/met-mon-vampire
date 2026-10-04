@@ -155,7 +155,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       for (final s in _base!.servants) {
         if (kept.contains(s.id)) continue;
         try {
-          await ref.read(servantsRepositoryProvider).release(s.id, by);
+          await ref.read(servantsRepositoryProvider).release(s.id, by, rank: s.rank);
         } catch (_) {
           failed.add(s.name);
         }

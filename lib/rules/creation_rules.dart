@@ -75,6 +75,19 @@ bool isInClan(Character c, String discipline, {Rulebook rb = const Rulebook()}) 
 /// Valeurs de création : la ligne « Goule » pour une goule, sinon le rang de la Génération choisie.
 GenRow creationRow(Character c, {Rulebook rb = const Rulebook()}) => c.ghoul != null ? rb.ghoulRow() : rb.gen(rankFor(c) ?? GenRank.neonate);
 
+/// Handicap des générations plus faibles que celle par défaut du rang (Base p. 263).
+const lesserGenerationName = 'Génération inférieure';
+
+/// Points du handicap Génération inférieure pour la génération [number] : 0 à la génération par défaut du rang
+/// (la plus puissante de ses numéros : 11e Neonate, 9e Ancilla), 1 ou 2 en dessous ; jamais pour un Pretender.
+int lesserGenerationPoints(int number, {Rulebook rb = const Rulebook()}) {
+  for (final r in [GenRank.neonate, GenRank.ancilla]) {
+    final numbers = rb.gen(r).numbers;
+    if (numbers.contains(number)) return (number - numbers.reduce(min)).clamp(0, 2);
+  }
+  return 0;
+}
+
 /// Points de disciplines d'une goule, pris chez son domitor.
 const ghoulDisciplinePoints = 5;
 
@@ -130,7 +143,7 @@ int _bonusLeftFor(Character c, AttrCategory cat, Rulebook rb) {
 
 /// Valeur de l'atout de lignée, s'il n'est pas déjà pris comme atout.
 int lineageCost(Character c, {Rulebook rb = const Rulebook()}) {
-  final m = rb.lineageMerit(c.clan, c.lineage);
+  final m = rb.lineageMerit(c.bloodClan, c.bloodLineage);
   if (m == null || c.merits.any((t) => nameKey(t.name) == nameKey(m.$1))) return 0;
   return m.$2;
 }
@@ -178,7 +191,7 @@ Budget budgetOf(Character c, {Rulebook rb = const Rulebook()}) {
     bonus: c.xpBonus,
     flaws: min(flaws, v.maxFlawXp),
     flawsTaken: flaws,
-    merits: _sum(c.merits.map((t) => t.level)) + rb.rarityCost(c.clan, c.sect) + lineageCost(c, rb: rb),
+    merits: _sum(c.merits.map((t) => t.level)) + rb.rarityCost(c.bloodClan, c.sect) + lineageCost(c, rb: rb),
     purchases: _sum(c.purchases.map((p) => purchaseCost(c, p.kind, p.name, p.toLevel, rb: rb))),
     setAsideCap: v.maxSetAside,
   );
@@ -472,6 +485,10 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   }
 
   if (embrace != null && c.genNumber != embrace.genNumber) add(6, CheckLevel.error, 'Génération imposée par l’étreinte : ${embrace.genNumber}e');
+  final lesser = c.genNumber == null || c.ghoul != null ? 0 : lesserGenerationPoints(c.genNumber!, rb: rb);
+  if (lesser > 0 && !c.flaws.any((f) => nameKey(f.name) == nameKey(lesserGenerationName))) {
+    add(6, CheckLevel.warn, 'Génération ${c.genNumber}e : handicap $lesserGenerationName ($lesser point${lesser > 1 ? 's' : ''}) attendu');
+  }
 
   final inClan = c.disciplines.where((d) => d.inClan).toList();
   if (c.ghoul != null) {
@@ -558,8 +575,12 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
 void _ghoulDisciplines(List<Check> out, Character c) {
   final g = c.ghoul!;
   final total = _sum(c.disciplines.map((d) => d.level));
-  final level = total < ghoulDisciplinePoints ? CheckLevel.todo : (total > ghoulDisciplinePoints ? CheckLevel.error : CheckLevel.ok);
-  out.add(Check(7, level, 'Disciplines de goule : $total points sur $ghoulDisciplinePoints'));
+  // Base p. 296 : les points non placés à la création peuvent l'être plus tard.
+  out.add(switch (total.compareTo(ghoulDisciplinePoints)) {
+    < 0 => Check(7, CheckLevel.warn, 'Disciplines de goule : $total points sur $ghoulDisciplinePoints, le reste pourra être placé plus tard'),
+    > 0 => Check(7, CheckLevel.error, 'Disciplines de goule : $total points sur $ghoulDisciplinePoints'),
+    _ => Check(7, CheckLevel.ok, 'Disciplines de goule : $total points sur $ghoulDisciplinePoints'),
+  });
   for (final d in c.disciplines) {
     final own = g.domitorDisciplines.where((x) => x.name == d.name).firstOrNull;
     if (own == null) {

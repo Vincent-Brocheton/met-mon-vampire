@@ -21,7 +21,7 @@ void main() {
     expect((a.clan, a.sire, a.genRank, a.genNumber, a.blood, a.bloodPerTurn), ('Toreador', 'Isaure de Valcourt', GenRank.neonate, 11, 10, 1));
     expect([for (final d in a.disciplines) (d.name, d.level, d.inClan)], [('Auspex', 1, true), ('Célérité', 1, true), ('Présence', 2, true)]);
     expect([for (final b in a.backgrounds) if (b.name == generationName) b.level], [1]);
-    expect((a.xpSpent, debtOf(a)), (10, 0));
+    expect((a.xpSpent, debtOf(a)), (11, 0), reason: 'Génération ● achetée : 1 XP (Base p. 298)');
     expect(g.ghoul, isNotNull, reason: 'la fiche d’origine ne change pas');
     expect(describeChanges(g, a).first, 'Goule étreinte par Isaure de Valcourt', reason: 'revue : ligne de tête de l’historique');
   });

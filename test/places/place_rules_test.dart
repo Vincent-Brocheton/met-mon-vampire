@@ -42,7 +42,7 @@ void main() {
     expect(questText(PlaceType.prestige, 4), 'Quête complexe, difficulté 4');
     expect(questText(PlaceType.iconic, 5), 'Quête héroïque');
     expect(infiltration(4), 20);
-    expect(qualityCount(opera(), rb), 2, reason: 'surnaturelle, négative et Élysée hors du maximum');
+    expect(qualityCount(opera(), rb), 3, reason: 'surnaturelle comptée (V2 p. 131) ; négative et Élysée hors du maximum');
     expect(negativesText(opera(), rb), 'Compromis ×2');
   });
 
@@ -62,7 +62,7 @@ void main() {
       ..qualities.addAll([PlaceQuality('Mythique'), PlaceQuality('Festin'), PlaceQuality('Abandonné'), PlaceQuality('Disparue')]);
     p.qualities.firstWhere((q) => q.name == 'Compromis').count = 4;
     expect(placeWarnings(p, rb), [
-      '5 qualités sur 1 : trop pour un lieu standard de rang 1',
+      '7 qualités sur 1 : trop pour un lieu standard de rang 1',
       'Luxe : non permise pour un lieu standard',
       'Compromis : 4 fois, 3 au plus',
       'Mythique : qualité iconique, réservée aux lieux iconiques',

@@ -629,7 +629,7 @@ class _MeritsStep extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final v = rb.creation;
     final b = budgetOf(c, rb: rb);
-    final rarity = rb.rarityCost(c.clan, c.sect);
+    final rarity = rb.rarityCost(c.bloodClan, c.sect);
     final lineage = lineageCost(c, rb: rb);
     Widget column(String title, String counter, List<Trait> chosen, String cat, String key) {
       // Proposés à la création, avec une valeur.

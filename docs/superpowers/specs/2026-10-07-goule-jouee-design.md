@@ -15,9 +15,10 @@ Maquettes : J-Goule, J-Goule-mobile.
 
 - **Base :** une goule suit les règles d'un Neonate, sauf les différences suivantes.
 - **Généalogie :** ni génération ni clan. L'historique Génération est interdit à la création et n'est plus exigé.
-- **Disciplines :** 5 points à répartir entre les disciplines que possède le domitor, sans dépasser son niveau dans chacune. Elles ne s'achètent jamais en XP, ni à l'étape 9 ni ensuite.
+- **Disciplines :** 5 points à répartir entre les disciplines en clan du domitor qu'il possède, sans dépasser son niveau dans chacune (Base p. 296). Les points non placés à la création peuvent l'être plus tard. Elles ne s'achètent jamais en XP.
 - **Sang :** 10, dont 5 de vitae au plus, 1 par tour. Volonté 6, Humanité 5, comme un Neonate.
-- **Restrictions :** pas de traits de Bête, pas de techniques, pas de pouvoirs d'anciens, pas de rareté de clan sur les atouts.
+- **Restrictions :** pas de traits de Bête, pas de techniques, pas de pouvoirs d'anciens.
+- **Rareté et lignée :** la goule paie l'atout de rareté et de lignée du clan de son domitor (Base p. 296), corrigé après relecture.
 - **Humanité :** elle ne peut pas baisser.
 - **Échéance de la vitae :** un mois après la dernière gorgée, comme pour les serviteurs. Une fois passée, la fiche affiche « Son âge le rattrape : 10 ans par jour ».
 
@@ -58,7 +59,7 @@ Sans cette ligne, les valeurs sont celles d'un Neonate, avec :
   - pas d'achat de discipline à l'étape 9.
 - **Traits dérivés :** Sang 10 (ou la ligne « Goule »), 1 par tour, Volonté 6, Humanité 5.
 - **Contrôles :**
-  - « Disciplines de goule : N points sur 5 » : à faire tant qu'il en reste à placer, erreur au-delà ;
+  - « Disciplines de goule : N points sur 5 » : avertissement tant qu'il en reste à placer (ils pourront l'être plus tard), erreur au-delà ;
   - « X : niveau N au-delà de celui du domitor (M) » : erreur ;
   - « X : le domitor ne la possède pas » : erreur ;
   - « Une goule n'a pas de Génération » : erreur si l'historique est présent ;

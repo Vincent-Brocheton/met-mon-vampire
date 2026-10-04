@@ -29,7 +29,7 @@ class ServantsSection extends ConsumerWidget {
     final ids = {for (final s in character.servants) s.id};
     final released = [
       for (final f in files)
-        if (!ids.contains(f.id) && f.releasedAt != null && now.isBefore(unavailableUntil(f.releasedAt!))) f,
+        if (!ids.contains(f.id) && f.releasedAt != null && now.isBefore(unavailableUntil(f.releasedAt!, f.releasedRank))) f,
     ];
     String status(Servant s) {
       final f = byId[s.id];
@@ -60,7 +60,7 @@ class ServantsSection extends ConsumerWidget {
             ),
           ),
         for (final f in released)
-          Text('${f.name} : points indisponibles jusqu’au ${formatDay(unavailableUntil(f.releasedAt!))}', style: t.bodySmall),
+          Text('${f.name} : points indisponibles jusqu’au ${formatDay(unavailableUntil(f.releasedAt!, f.releasedRank))}', style: t.bodySmall),
       ]),
     );
   }

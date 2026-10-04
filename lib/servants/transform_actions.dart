@@ -62,7 +62,7 @@ Future<String?> embraceFollower(
     final d = row.domitor;
     if (row.entry != null && d != null) {
       await chars.saveEdit(d, d.clone()..servants.removeWhere((s) => s.id == row.id), reason, by);
-      if (row.file != null) await servants.release(row.id, by);
+      if (row.file != null) await servants.release(row.id, by, rank: row.rank);
     } else if (row.file != null) {
       await servants.delete(row.file!.id);
     }

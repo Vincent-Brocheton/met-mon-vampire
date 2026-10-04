@@ -51,7 +51,22 @@ Transformed _result(Character n, String? error) => error == null ? (after: n, er
 Transformed embraceGhoul(Character g, {required Character sire, required int genNumber, String? first, Rulebook rb = const Rulebook()}) {
   if (g.ghoul == null) return (after: null, error: 'Ce n’est pas une goule');
   final n = g.clone();
-  return _result(n, _embraceInto(n, sire, genNumber, first, rb));
+  final formerClan = n.bloodClan;
+  final error = _embraceInto(n, sire, genNumber, first, rb);
+  if (error == null) n.xpSpent += embraceCost(n, formerClan: formerClan, rb: rb);
+  return _result(n, error);
+}
+
+/// XP de l'étreinte d'une goule (Base p. 297-298) : rareté du nouveau clan moins celle du clan du domitor (remboursée),
+/// plus les points de Génération achetés (nouveau niveau ×1 pour un Neonate, ×2 au-delà). L'écart non payé est une dette.
+int embraceCost(Character vampire, {required String? formerClan, Rulebook rb = const Rulebook()}) {
+  final rank = vampire.genRank ?? GenRank.neonate;
+  final factor = rank == GenRank.neonate ? 1 : 2;
+  var cost = rb.rarityCost(vampire.clan, vampire.sect) - rb.rarityCost(formerClan, vampire.sect);
+  for (var k = 1; k <= rankLevel(rank); k++) {
+    cost += k * factor;
+  }
+  return cost;
 }
 
 /// PNJ actif issu de l'étreinte d'un mortel ou d'un serviteur.

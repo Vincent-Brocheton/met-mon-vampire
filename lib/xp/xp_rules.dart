@@ -230,7 +230,7 @@ XpItem draftItem(Character c, List<XpItem> items, XpKind k, String name, {String
 /// Points d'atouts : fiche, rareté du clan pour la secte, atout de lignée et atouts déjà dans la demande.
 int meritPoints(Character c, List<XpItem> items, {Rulebook rb = const Rulebook()}) =>
     c.merits.fold(0, (s, m) => s + m.level) +
-    rb.rarityCost(c.clan, c.sect) +
+    rb.rarityCost(c.bloodClan, c.sect) +
     lineageCost(c, rb: rb) +
     items.where((i) => i.kind == XpKind.merit).fold(0, (s, i) => s + i.toLevel);
 

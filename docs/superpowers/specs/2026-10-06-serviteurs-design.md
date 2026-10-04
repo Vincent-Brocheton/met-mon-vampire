@@ -24,7 +24,8 @@ Maquettes : C-Goules, C-Animaux, J-Goule (pour 6c), J-Animal (remplacée par l'�
 - **Coût en XP :** celui d'un historique (nouveau niveau × facteur de la génération), compté séparément pour chaque serviteur.
 - **Sang :** vitae de 0 à 5. Lien de sang de 0 à 3.
 - **Échéance :** un mois après la dernière gorgée. Une fois l'échéance passée, la fiche affiche « Son âge le rattrape : 10 ans par jour ».
-- **Libération ou mort d'un serviteur :** le domitor perd l'accès à ces points pendant 6 semaines. L'application ne compte pas les parties, donc seule la date est affichée.
+- **Libération ou mort d'un serviteur :** le domitor perd l'accès à ces points pendant une partie ou deux semaines par point du serviteur, le plus long des deux (Base p. 104). L'application ne compte pas les parties : elle affiche la date, deux semaines par point.
+- **Spécialités :** une seule peut être une discipline, du clan du domitor (Base p. 105) ; au-delà, avertissement.
 
 ## Données
 
@@ -73,7 +74,7 @@ Sous-documents :
   - « en retard » si l'échéance est passée ;
   - « proche » dans les 7 jours qui la précèdent ;
   - « à jour » sinon.
-- **Indisponibilité :** `unavailableUntil(releasedAt) = releasedAt + 42 jours`.
+- **Indisponibilité :** `unavailableUntil(releasedAt, rang) = releasedAt + 14 jours × rang` ; le rang est noté sur la fiche détaillée à la libération (`releasedRank`).
 - **Coût XP :** un serviteur passe du rang `from` au rang `to`. Le coût est celui d'un historique.
 - **Avertissements (jamais bloquants) :**
   - « N spécialités sur R » quand il y en a plus que le rang ;
@@ -151,4 +152,4 @@ Une section « Serviteurs » permet d'ajouter, renommer, changer le type et le r
 
 - Goule jouée, passage de mortel à goule et étreinte : 6c.
 - Page de demande dédiée J-Animal : l'écran XP la remplace.
-- Décompte des parties pour l'indisponibilité : seule la date de fin (6 semaines) est gérée.
+- Décompte des parties pour l'indisponibilité : seule la date de fin (deux semaines par point) est gérée.
