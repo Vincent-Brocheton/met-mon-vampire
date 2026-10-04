@@ -40,7 +40,7 @@ String stepIntroOf(int step, CreationValues v, {bool ghoul = false}) {
 Widget creationStep(int step, Character c, VoidCallback changed, {Rulebook rb = const Rulebook()}) => switch (step) {
       1 => _Inspiration(c, rb, changed),
       2 => _InitialXp(c, rb),
-      3 => c.ghoul != null ? _GhoulClanStep(c) : _ClanStep(c, rb, changed),
+      3 => c.ghoul != null ? _GhoulClanStep(c) : (c.embrace != null ? _EmbraceClanStep(c) : _ClanStep(c, rb, changed)),
       4 => _AttributesStep(c, rb, changed),
       5 => _SkillsStep(c, rb, changed),
       6 => _BackgroundsStep(c, rb, changed),
@@ -205,6 +205,23 @@ class _GhoulDisciplinesStep extends StatelessWidget {
           ),
         ),
       if (c.ghoul!.domitorDisciplines.isEmpty) Text('Le domitor n’a aucune discipline recopiée : demandez au conte.', style: t.bodyMedium),
+    ]);
+  }
+}
+
+/// Étape 3 d'une amorce étreinte : sire et clan imposés, en lecture.
+class _EmbraceClanStep extends StatelessWidget {
+  const _EmbraceClanStep(this.c);
+  final Character c;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final e = c.embrace!;
+    return _section(context, 'Étreinte', [
+      Text('Étreint par ${e.sireName} · clan ${e.clan}', style: t.titleMedium),
+      const SizedBox(height: 6),
+      Text('Le clan et la génération (${e.genNumber}e) sont imposés par l’étreinte.', style: t.bodySmall),
     ]);
   }
 }

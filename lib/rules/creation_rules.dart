@@ -422,6 +422,12 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
     }
   }
 
+  final embrace = c.embrace;
+  if (embrace != null) {
+    add(3, c.clan == embrace.clan ? CheckLevel.ok : CheckLevel.error,
+        c.clan == embrace.clan ? 'Étreint par ${embrace.sireName} · clan ${embrace.clan}' : 'Clan imposé par l’étreinte : ${embrace.clan}');
+  }
+
   final ranked = c.attributeRanks.whereType<AttrCategory>().toSet().length == 3;
   final focused = AttrCategory.values.every((a) => (c.attributes[a]!.focus ?? '').isNotEmpty);
   final attributes = v.attributeSlots.join(' / ');
@@ -464,6 +470,8 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   } else if (c.genNumber == null) {
     add(6, CheckLevel.todo, 'Choisissez la génération');
   }
+
+  if (embrace != null && c.genNumber != embrace.genNumber) add(6, CheckLevel.error, 'Génération imposée par l’étreinte : ${embrace.genNumber}e');
 
   final inClan = c.disciplines.where((d) => d.inClan).toList();
   if (c.ghoul != null) {

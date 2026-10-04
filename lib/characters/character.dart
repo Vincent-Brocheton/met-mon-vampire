@@ -231,12 +231,31 @@ class GhoulState {
       };
 }
 
+/// Amorce de PJ issue d'une étreinte (sous-projet 6d) : sire, clan et génération imposés.
+class EmbraceState {
+  const EmbraceState({required this.sireId, required this.sireName, required this.clan, required this.genNumber});
+
+  factory EmbraceState.fromMap(Map<String, dynamic> m) => EmbraceState(
+        sireId: m['sireId'] as String? ?? '',
+        sireName: m['sireName'] as String? ?? '',
+        clan: m['clan'] as String? ?? '',
+        genNumber: _int(m['genNumber']),
+      );
+
+  final String sireId;
+  final String sireName;
+  final String clan;
+  final int genNumber;
+
+  Map<String, dynamic> toMap() => {'sireId': sireId, 'sireName': sireName, 'clan': clan, 'genNumber': genNumber};
+}
+
 /// « Goule de Isaure de Valcourt · clan du domitor : Toreador ».
 String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == null ? '' : ' · clan du domitor : ${g.domitorClan}'}';
 
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'ghoul'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'ghoul', 'embrace'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -296,6 +315,7 @@ class Character {
       ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
       ..servants = _maps(m['servants']).map(Servant.fromMap).toList()
       ..ghoul = m['ghoul'] is Map ? GhoulState.fromMap(_map(m['ghoul'])) : null
+      ..embrace = m['embrace'] is Map ? EmbraceState.fromMap(_map(m['embrace'])) : null
       ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
       ..storedKeys = {for (final k in _laterKeys) if (m.containsKey(k)) k}
       ..blood = _int(m['blood'])
@@ -346,6 +366,9 @@ class Character {
   /// Fiche de goule jouée (sous-projet 6c) ; null pour un vampire.
   GhoulState? ghoul;
 
+  /// Amorce de PJ issue d'une étreinte (sous-projet 6d) ; null sinon.
+  EmbraceState? embrace;
+
   /// Lue avec l'ancien historique « Serviteurs », converti : la prochaine écriture le note dans l'historique.
   bool legacyServants = false;
 
@@ -380,6 +403,7 @@ class Character {
         'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         'servants': [for (final s in servants) s.toMap()],
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
+        if (embrace != null) 'embrace': embrace!.toMap(),
       };
 
   /// Toutes les clés, nulles comprises (les règles comparent les clés modifiées).
@@ -418,6 +442,7 @@ class Character {
           'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
+        if (embrace != null) 'embrace': embrace!.toMap(),
         'blood': blood,
         'bloodPerTurn': bloodPerTurn,
         'willpower': willpower,
