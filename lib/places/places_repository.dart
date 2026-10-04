@@ -47,50 +47,33 @@ class PlacesRepository {
   /// Crée (id vide) ou modifie [p] dans un lot : lieu (version + 1), entrée d'historique, résumé public
   /// (écrit si connu de tous, supprimé sinon) et note secrète. Renvoie l'id.
   Future<String> save(Place before, Place p, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
-    final ref = p.id.isEmpty ? _col.doc() : _col.doc(p.id);
-    final h = ref.collection('history').doc();
-    final now = FieldValue.serverTimestamp();
+    final creating = p.id.isEmpty;
+    final ref = creating ? _col.doc() : _col.doc(p.id);
     final noteChanged = note != null && note.trim() != noteBefore.trim();
-    final summary = p.id.isEmpty ? ['Lieu créé'] : [...placeChanges(before, p), if (noteChanged) 'Note secrète modifiée'];
-    final batch = _db.batch()
-      ..set(ref, {
-        ...p.toMap(),
-        'version': p.id.isEmpty ? 1 : before.version + 1,
-        'lastHistoryId': h.id,
-        'updatedAt': now,
-        'updatedByName': by.name,
-        if (p.id.isEmpty) 'createdAt': now,
-      }, SetOptions(merge: p.id.isNotEmpty)) // fusion : garde createdAt ; toutes les autres clés sont réécrites
-      ..set(h, {
-        'at': now,
-        'byUid': by.uid,
-        'byName': by.name,
-        'summary': summary.isEmpty ? ['Enregistré sans changement'] : summary,
-        'reason': reason.trim(),
-      });
+    final batch = _db.batch();
+    stageTraced(
+      batch,
+      ref,
+      p.toMap(),
+      creating: creating,
+      fromVersion: before.version,
+      byUid: by.uid,
+      byName: by.name,
+      summary: creating ? ['Lieu créé'] : [...placeChanges(before, p), if (noteChanged) 'Note secrète modifiée'],
+      reason: reason,
+      note: noteChanged ? note : null,
+    );
     if (p.public) {
       batch.set(_public.doc(ref.id), p.publicMap());
-    } else if (p.id.isNotEmpty) {
+    } else if (!creating) {
       batch.delete(_public.doc(ref.id));
     }
-    if (note != null && noteChanged) batch.set(ref.collection('private').doc('note'), {'text': note.trim()});
     await batch.commit();
     return ref.id;
   }
 
   /// Supprime le lieu, son résumé public, sa note et son historique.
-  Future<void> delete(String id) async {
-    // ponytail: un seul lot, limité à 500 écritures (≈ 497 entrées d'historique) ; découper si un lieu en a davantage.
-    final history = await _col.doc(id).collection('history').get();
-    final batch = _db.batch()
-      ..delete(_public.doc(id))
-      ..delete(_col.doc(id).collection('private').doc('note'))
-      ..delete(_col.doc(id));
-    for (final d in history.docs) {
-      batch.delete(d.reference);
-    }
-    await batch.commit();
-  }
+  Future<void> delete(String id) => deleteTraced(_db, _col.doc(id), also: [_public.doc(id)]);
 }
 
 @Riverpod(keepAlive: true)

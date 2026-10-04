@@ -44,31 +44,20 @@ class ServantsRepository {
   Future<String> save(ServantFile before, ServantFile f, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
     final creating = before.version == 0;
     final ref = f.id.isEmpty ? _col.doc() : _col.doc(f.id);
-    final h = ref.collection('history').doc();
-    final now = FieldValue.serverTimestamp();
     final noteChanged = note != null && note.trim() != noteBefore.trim();
-    final summary = creating ? ['Fiche créée'] : [...servantChanges(before, f), if (noteChanged) 'Note secrète modifiée'];
-    final batch = _db.batch()
-      ..set(
-        ref,
-        {
-          ...f.toMap(),
-          'version': creating ? 1 : before.version + 1,
-          'lastHistoryId': h.id,
-          'updatedAt': now,
-          'updatedByName': by.name,
-          if (creating) 'createdAt': now,
-        },
-        SetOptions(merge: !creating), // fusion : garde createdAt ; toutes les autres clés sont réécrites
-      )
-      ..set(h, {
-        'at': now,
-        'byUid': by.uid,
-        'byName': by.name,
-        'summary': summary.isEmpty ? ['Enregistré sans changement'] : summary,
-        'reason': reason.trim(),
-      });
-    if (note != null && noteChanged) batch.set(ref.collection('private').doc('note'), {'text': note.trim()});
+    final batch = _db.batch();
+    stageTraced(
+      batch,
+      ref,
+      f.toMap(),
+      creating: creating,
+      fromVersion: before.version,
+      byUid: by.uid,
+      byName: by.name,
+      summary: creating ? ['Fiche créée'] : [...servantChanges(before, f), if (noteChanged) 'Note secrète modifiée'],
+      reason: reason,
+      note: noteChanged ? note : null,
+    );
     await batch.commit();
     return ref.id;
   }
@@ -100,17 +89,7 @@ class ServantsRepository {
   }
 
   /// Supprime la fiche, sa note et son historique.
-  Future<void> delete(String id) async {
-    // ponytail: un seul lot, limité à 500 écritures ; découper si une fiche a plus de 498 entrées d'historique.
-    final history = await _col.doc(id).collection('history').get();
-    final batch = _db.batch()
-      ..delete(_col.doc(id).collection('private').doc('note'))
-      ..delete(_col.doc(id));
-    for (final d in history.docs) {
-      batch.delete(d.reference);
-    }
-    await batch.commit();
-  }
+  Future<void> delete(String id) => deleteTraced(_db, _col.doc(id));
 }
 
 @Riverpod(keepAlive: true)

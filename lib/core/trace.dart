@@ -42,3 +42,55 @@ class TraceHistory extends StatelessWidget {
     ]);
   }
 }
+
+/// Ajoute à [batch] un document suivi : version + 1 (1 à la création), entrée d'historique, et note secrète
+/// (`private/note`) si [note] est donnée. À la mise à jour, la fusion garde `createdAt` ; les autres clés sont réécrites.
+void stageTraced(
+  WriteBatch batch,
+  DocumentReference<Map<String, dynamic>> ref,
+  Map<String, dynamic> data, {
+  required bool creating,
+  required int fromVersion,
+  required String byUid,
+  required String byName,
+  required List<String> summary,
+  required String reason,
+  String? note,
+}) {
+  final h = ref.collection('history').doc();
+  final now = FieldValue.serverTimestamp();
+  batch
+    ..set(
+      ref,
+      {
+        ...data,
+        'version': creating ? 1 : fromVersion + 1,
+        'lastHistoryId': h.id,
+        'updatedAt': now,
+        'updatedByName': byName,
+        if (creating) 'createdAt': now,
+      },
+      SetOptions(merge: !creating),
+    )
+    ..set(h, {
+      'at': now,
+      'byUid': byUid,
+      'byName': byName,
+      'summary': summary.isEmpty ? ['Enregistré sans changement'] : summary,
+      'reason': reason.trim(),
+    });
+  if (note != null) batch.set(ref.collection('private').doc('note'), {'text': note.trim()});
+}
+
+/// Supprime [ref], sa note secrète, son historique et les documents [also], en un seul lot.
+Future<void> deleteTraced(FirebaseFirestore db, DocumentReference<Map<String, dynamic>> ref, {List<DocumentReference> also = const []}) async {
+  // ponytail: un seul lot, limité à 500 écritures (≈ 495 entrées d'historique) ; découper si un document en a davantage.
+  final history = await ref.collection('history').get();
+  final batch = db.batch()
+    ..delete(ref.collection('private').doc('note'))
+    ..delete(ref);
+  for (final d in [...also, for (final h in history.docs) h.reference]) {
+    batch.delete(d);
+  }
+  await batch.commit();
+}
