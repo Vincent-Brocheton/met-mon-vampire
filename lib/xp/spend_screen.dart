@@ -172,7 +172,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
               initialValue: _kind,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Type'),
-              items: [for (final k in XpKind.values) DropdownMenuItem(value: k, child: Text(k.label))],
+              items: [for (final k in XpKind.values) if (ghoulXpError(c, k) == null) DropdownMenuItem(value: k, child: Text(k.label))],
               onChanged: (k) => setState(() {
                 _kind = k ?? _kind;
                 _name = null;
@@ -284,7 +284,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
       Text('Dépenser de l’XP', style: isWide(context) ? t.displaySmall : t.headlineMedium),
       const SizedBox(height: 6),
       Text(
-        'Le coût est calculé selon la génération du personnage ($rank). L’XP est réservée jusqu’à la décision du conte.',
+        'Le coût est calculé selon ${c.ghoul != null ? 'les règles de goule' : 'la génération du personnage ($rank)'}. L’XP est réservée jusqu’à la décision du conte.',
         style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
       ),
       if (r.status == RequestStatus.changes && r.thread.isNotEmpty) ...[
@@ -358,7 +358,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
       Panel(
         padding: const EdgeInsets.all(22),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SectionTitle('Coûts pour un $rank'),
+          SectionTitle(c.ghoul != null ? 'Coûts pour une goule' : 'Coûts pour un $rank'),
           const SizedBox(height: 10),
           for (final (k, v) in costTable(c, rb: rb)) line(k, v),
           const SizedBox(height: 8),

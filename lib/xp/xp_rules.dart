@@ -32,7 +32,16 @@ int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
   return last?.toLevel ?? levelNow(c, k, name);
 }
 
-GenRow _row(Character c, Rulebook rb) => rb.gen(c.genRank ?? GenRank.neonate);
+GenRow _row(Character c, Rulebook rb) => rb.rowFor(c);
+
+/// Achats jamais faits en XP par une goule.
+const ghoulForbiddenXp = {XpKind.discipline, XpKind.technique, XpKind.elderPower};
+
+/// Message si une goule ne peut pas acheter ce type ; null sinon.
+String? ghoulXpError(Character c, XpKind k) {
+  if (c.ghoul == null || !ghoulForbiddenXp.contains(k)) return null;
+  return k == XpKind.discipline ? 'Les disciplines d’une goule ne s’achètent pas avec l’XP.' : 'Une goule n’apprend ni technique ni pouvoir d’ancien.';
+}
 
 /// Note d'un achat d'attribut qui place un point bonus de Génération (plafond 10 + 1).
 const bonusNote = 'point bonus';
@@ -113,17 +122,18 @@ String ruleText(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => swit
 /// Tableau « Coûts pour un … » (J-XP).
 List<(String, String)> costTable(Character c, {Rulebook rb = const Rulebook()}) {
   final row = _row(c, rb);
+  final never = c.ghoul != null;
   return [
     ('Attribut', '3 XP par point'),
     ('Compétence', 'Nouveau niveau × ${row.traitFactor}'),
     ('Historique', 'Nouveau niveau × ${row.traitFactor}'),
-    ('Discipline en clan', 'Nouveau niveau × 3'),
-    ('Discipline hors clan', 'Nouveau niveau × ${row.outOfClanFactor}'),
+    ('Discipline en clan', never ? 'Jamais en XP' : 'Nouveau niveau × 3'),
+    ('Discipline hors clan', never ? 'Jamais en XP' : 'Nouveau niveau × ${row.outOfClanFactor}'),
     ('Atout', 'Sa valeur en XP'),
     ('Humanité', '10 XP le point, 6 au plus'),
     ('Rituel', 'Niveau × ${rb.ritualCostPerLevel}'),
-    ('Technique', row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP'),
-    ('Pouvoir d’ancien', row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang'),
+    ('Technique', never ? 'Jamais en XP' : (row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP')),
+    ('Pouvoir d’ancien', never ? 'Jamais en XP' : (row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang')),
     ('Rachat d’un handicap', '2 × sa valeur'),
     ('Serviteur', 'Nouveau niveau × ${row.traitFactor}'),
   ];
@@ -151,6 +161,7 @@ int capOf(Character c, XpKind k, String name, {Rulebook rb = const Rulebook()}) 
 
 /// Éléments proposés pour un type : valeur → libellé. Brouillons et interdits ne sont pas proposés.
 Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const Rulebook()}) {
+  if (ghoulXpError(c, k) != null) return const {};
   String label(String cat, String n, [String suffix = '']) =>
       '$n$suffix${rb.find(cat, n)?.state == RuleState.approval ? ' · accord du conte' : ''}';
   return switch (k) {
@@ -225,6 +236,8 @@ int meritPoints(Character c, List<XpItem> items, {Rulebook rb = const Rulebook()
 
 /// Message si [item] ne peut pas s'ajouter à la demande ; null sinon.
 String? itemError(Character c, List<XpItem> items, XpItem item, {required int usable, Rulebook rb = const Rulebook()}) {
+  final ghoulError = ghoulXpError(c, item.kind);
+  if (ghoulError != null) return ghoulError;
   if (item.kind == XpKind.background && item.name == generationName) {
     return 'La Génération ne s’achète qu’à la création.';
   }
@@ -333,6 +346,8 @@ List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers
   final seen = <XpItem>[];
   final stated = <String>{};
   for (final i in r.items) {
+    final ghoulError = ghoulXpError(c, i.kind);
+    if (ghoulError != null) out.add(Check(0, CheckLevel.error, ghoulError));
     if (!wellFormed(i, rb: rb)) {
       // Atout dont la valeur a changé dans le référentiel depuis l'envoi (Review Focus 4).
       final value = i.kind == XpKind.merit && i.fromLevel == 0 ? rb.cost('merits', i.name) : null;

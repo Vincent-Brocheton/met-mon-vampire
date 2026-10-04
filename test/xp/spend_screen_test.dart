@@ -16,6 +16,7 @@ import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
 
 import '../characters/character_test.dart' show sample;
+import '../characters/ghoul_test.dart' show mila;
 import '../fakes.dart';
 
 void main() {
@@ -100,6 +101,19 @@ void main() {
     await tester.pumpAndSettle();
     await choose(tester, const ValueKey('xp-name-servant'), 'Rex (Goule animale)');
     expect(find.text('● → ●● · 4 XP (Nouveau niveau × 2)'), findsOneWidget);
+  });
+
+  testWidgets('goule : types interdits absents, coûts pour une goule (6c)', (tester) async {
+    await pump(tester, sheet: mila()
+      ..status = CharacterStatus.active
+      ..playerUid = 'u1');
+    await tester.tap(find.byKey(const Key('xp-kind')));
+    await tester.pumpAndSettle();
+    expect(find.text('Discipline'), findsNothing);
+    expect(find.text('Technique'), findsOneWidget, reason: 'seulement la ligne du tableau des coûts, pas le menu');
+    await tester.tap(find.text('Compétence').last);
+    await tester.pumpAndSettle();
+    expect(find.text('COÛTS POUR UNE GOULE'), findsOneWidget);
   });
 
   testWidgets('retrait par le haut seulement', (tester) async {

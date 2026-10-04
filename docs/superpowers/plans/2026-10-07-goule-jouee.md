@@ -654,7 +654,7 @@ Dans `test/xp/spend_screen_test.dart` :
     await tester.tap(find.byKey(const Key('xp-kind')));
     await tester.pumpAndSettle();
     expect(find.text('Discipline'), findsNothing);
-    expect(find.text('Technique'), findsNothing);
+    expect(find.text('Technique'), findsOneWidget, reason: 'seulement la ligne du tableau des coûts, pas le menu');
     await tester.tap(find.text('Compétence').last);
     await tester.pumpAndSettle();
     expect(find.text('COÛTS POUR UNE GOULE'), findsOneWidget);
