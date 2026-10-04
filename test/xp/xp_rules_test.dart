@@ -337,5 +337,31 @@ void main() {
       final undone = applyCorrection(after, CorrectionKind.cancelPurchase, item: item).after!;
       expect(undone.rituals, isEmpty);
     });
+
+    test('point bonus devenu inutile avant la validation : refusé (revue)', () {
+      final c = sample();
+      c.attributes[AttrCategory.social]!.value = 10;
+      final r = req([draftItem(c, const [], XpKind.attribute, 'social')]);
+      c.attributeBonus[AttrCategory.social] = 1;
+      expect(requestChecks(c, r, reservedOthers: 0).map((k) => k.text),
+          contains('Achat invalide : Attribut · Social n’a plus besoin de point bonus : retirez-le puis ajoutez-le de nouveau'));
+    });
+
+    test('rituel retiré de l’XP gagnée après l’envoi : refusé à la validation (revue)', () {
+      final c = thaumaturge();
+      final r = req([draftItem(c, const [], XpKind.ritual, 'Goût du sang', rb: rulebook())]);
+      final rb = rulebook(more: {
+        'rituals': [RuleEntry(name: 'Goût du sang', data: {'school': 'thaumaturgy', 'level': 1})],
+      });
+      expect(requestChecks(c, r, reservedOthers: 0, rb: rb).map((k) => k.text), contains('Ce rituel ne s’achète pas avec l’XP gagnée.'));
+    });
+
+    test('annulation qui casse un pouvoir dépendant : signalée (revue)', () {
+      final rb = rulebook();
+      final c = thaumaturge()..rituals = [Ritual('Goût du sang', 'thaumaturgy', 1), Ritual('Défense du refuge', 'thaumaturgy', 2)];
+      const item = XpItem(XpKind.ritual, 'Goût du sang', 0, 1, 3);
+      final after = applyCorrection(c, CorrectionKind.cancelPurchase, item: item).after!;
+      expect(correctionWarnings(c, after, rb), ['Il manque un rituel de niveau 1 (Thaumaturgie)']);
+    });
   });
 }

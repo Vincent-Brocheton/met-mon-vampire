@@ -1,4 +1,6 @@
 import '../characters/character.dart';
+import '../rulebook/rulebook.dart';
+import '../rules/powers_rules.dart';
 import 'xp_request.dart';
 import 'xp_rules.dart';
 
@@ -80,4 +82,10 @@ String correctionPreview(Character before, Character after) {
   final d = before.xpSpent - after.xpSpent;
   final text = d >= 0 ? 'À rendre : + $d XP' : 'À payer : − ${-d} XP';
   return after.xpAvailable < 0 ? '$text · dette de ${-after.xpAvailable} XP' : text;
+}
+
+/// Problèmes que la correction crée sur la fiche (rituel de niveau supérieur resté seul, prérequis perdu).
+List<String> correctionWarnings(Character before, Character after, Rulebook rb) {
+  final old = powerProblems(before, rb).toSet();
+  return [for (final p in powerProblems(after, rb)) if (!old.contains(p)) p];
 }

@@ -330,10 +330,18 @@ List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers
         out.add(Check(0, CheckLevel.error, 'Plafond dépassé : ${i.label} (${attributeCap(c, seen, cat)} au plus)'));
       }
       if (_isBonus(i) && bonusLeft(c, seen, rb) <= 0) out.add(Check(0, CheckLevel.error, 'Plus de point bonus d’attribut pour ${i.label}'));
+      // Plafond relevé depuis l'envoi (C3) : valider consommerait un point du rang pour rien.
+      if (_isBonus(i) && i.toLevel <= attributeCap(c, seen, cat)) {
+        out.add(Check(0, CheckLevel.error, 'Achat invalide : ${i.label} n’a plus besoin de point bonus : retirez-le puis ajoutez-le de nouveau'));
+      }
     }
     if (_isPower(i.kind)) {
       final e = _powerError(applyRequest(c, seen, rb: rb), i, rb);
       if (e != null) out.add(Check(0, CheckLevel.error, e));
+      // Case décochée depuis l'envoi, ou demande écrite hors de l'application.
+      if (i.kind == XpKind.ritual && rb.find('rituals', i.name)?.data['withXp'] != true) {
+        out.add(const Check(0, CheckLevel.error, 'Ce rituel ne s’achète pas avec l’XP gagnée.'));
+      }
       if (i.kind == XpKind.elderPower && !elderInClan(c, i.name, rb)) {
         out.add(Check(0, CheckLevel.warn, 'Professeur nécessaire : ${i.name} hors clan, à confirmer par le conte'));
       }

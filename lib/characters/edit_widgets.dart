@@ -307,7 +307,8 @@ class NameListEditor extends StatelessWidget {
         ],
         onChanged: (o) async {
           final name = o == _other ? await _askOther(context, label) : o;
-          if (name != null) onAdd(name);
+          // « Autre… » peut redonner un nom déjà présent.
+          if (name != null && !items.contains(name)) onAdd(name);
         },
       ),
     ]);

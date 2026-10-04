@@ -111,4 +111,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('Retirer Goût du sang'), findsOneWidget);
   });
+
+  testWidgets('C3 : pas de doublon par « Autre… », points bonus bornés par le rang (revue)', (tester) async {
+    final c = sample()..techniques = ['Regard ardent'];
+    c.attributeBonus[AttrCategory.social] = 2;
+    await pump(tester, c);
+    await tester.tap(find.byKey(const ValueKey('add-Techniques-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Autre…').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Regard ardent');
+    await tester.tap(find.text('Valider'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Retirer Regard ardent'), findsOneWidget);
+    final add = find.ancestor(of: find.byTooltip('Ajouter un point : Points bonus Social'), matching: find.byType(IconButton));
+    expect(tester.widget<IconButton>(add).onPressed, isNull, reason: 'Ancilla : 2 points bonus au plus');
+  });
 }

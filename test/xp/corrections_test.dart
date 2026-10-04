@@ -34,6 +34,7 @@ void main() {
     final repo = FakeXpRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
+        baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         xpRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => Stream.value([sheet, ...others])),

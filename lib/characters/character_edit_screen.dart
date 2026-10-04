@@ -344,7 +344,7 @@ class _Editor extends ConsumerWidget {
         PointsField(
           label: 'Points bonus ${cat.label}',
           value: c.attributeBonus[cat] ?? 0,
-          max: 3,
+          max: rb.gen(c.genRank ?? GenRank.neonate).attributeBonus,
           asDots: false,
           onChanged: (v) => set(() => c.attributeBonus[cat] = v),
         ),

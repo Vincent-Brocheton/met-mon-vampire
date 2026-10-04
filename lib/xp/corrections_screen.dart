@@ -8,6 +8,8 @@ import '../characters/character_screen.dart' show xpText;
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rulebook.dart';
+import '../rulebook/rulebook_provider.dart';
 import 'xp_corrections.dart';
 import 'xp_repository.dart';
 import 'xp_request.dart';
@@ -172,6 +174,9 @@ class _CorrectionsScreenState extends ConsumerState<CorrectionsScreen> {
         if (touched && result.error != null) Text(result.error!, style: const TextStyle(color: AppColors.linkHover)),
         if (after != null)
           Text(correctionPreview(sheet, after), key: const Key('corr-preview'), style: t.titleMedium?.copyWith(color: AppColors.gold)),
+        if (after != null)
+          for (final w in correctionWarnings(sheet, after, ref.watch(rulebookProvider) ?? const Rulebook()))
+            Text('Attention : $w', style: const TextStyle(color: AppColors.goldLight)),
         const SizedBox(height: 12),
         TextField(
           key: const Key('corr-reason'),
