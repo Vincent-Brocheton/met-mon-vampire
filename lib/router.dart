@@ -24,6 +24,7 @@ import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'redirect.dart';
 import 'rulebook/referential_screen.dart';
+import 'servants/servants_screen.dart';
 import 'shell/app_shell.dart';
 import 'xp/corrections_screen.dart';
 import 'xp/my_requests_screen.dart';
@@ -129,6 +130,7 @@ GoRouter router(Ref ref) {
           page('/conteur/equipe', const TeamScreen()),
           page('/conteur/fiches', const CharactersListScreen()),
           page('/conteur/lieux', const PlacesScreen()),
+          page('/conteur/goules', const ServantsScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),

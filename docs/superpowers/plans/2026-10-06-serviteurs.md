@@ -1294,7 +1294,9 @@ void main() {
     await tester.tap(find.byKey(const Key('sv-save')));
     await tester.pumpAndSettle();
     final f = repo.lastSaved!;
-    expect((f.id, f.kind, f.name, f.domitorId, f.holderPlayers, f.specialties, f.vitae), ('x-s2', 'human', 'Mila', 'x', ['u1'], ['Médecine'], 1));
+    expect((f.id, f.kind, f.name, f.domitorId, f.vitae), ('x-s2', 'human', 'Mila', 'x', 1));
+    expect(f.holderPlayers, ['u1']);
+    expect(f.specialties, ['Médecine']);
     expect(f.lastDrink, isNotNull);
     expect(repo.lastBefore!.version, 0, reason: 'première fiche détaillée : création');
   });
@@ -1334,7 +1336,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('sv-attachment')), 'Indic de la police');
     await tester.tap(find.byKey(const Key('sv-save')));
     await tester.pumpAndSettle();
-    expect((repo.lastSaved!.kind, repo.lastSaved!.name, repo.lastSaved!.holderPlayers), ('mortal', 'Paul', <String>[]));
+    expect((repo.lastSaved!.kind, repo.lastSaved!.name), ('mortal', 'Paul'));
+    expect(repo.lastSaved!.holderPlayers, isEmpty);
     await tester.tap(find.text('Jeanne'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('sv-delete')));
