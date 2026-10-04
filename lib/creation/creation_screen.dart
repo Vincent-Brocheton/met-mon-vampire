@@ -114,18 +114,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   Future<void> _submit() async {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Soumettre au conte'),
-        content: const Text('Une fois soumise, la fiche est verrouillée jusqu’à la réponse du conte.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Soumettre')),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
+    final ok = await confirm(context, title: 'Soumettre au conte', body: 'Une fois soumise, la fiche est verrouillée jusqu’à la réponse du conte.', action: 'Soumettre');
+    if (!ok || !mounted) return;
     _pending = true;
     await _save();
     try {

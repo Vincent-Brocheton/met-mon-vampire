@@ -92,18 +92,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
 
   Future<bool> _canLeave() async {
     if (!_dirty) return true;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: const Text('Abandonner les modifications ?'),
-        content: const Text('Les changements de l’élément ouvert ne sont pas enregistrés.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Continuer l’édition')),
-          FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Abandonner')),
-        ],
-      ),
-    );
-    return ok == true;
+    return confirm(context, title: 'Abandonner les modifications ?', body: 'Les changements de l’élément ouvert ne sont pas enregistrés.', action: 'Abandonner', cancel: 'Continuer l’édition');
   }
 
   Future<void> _switchTo(RuleEntry? e) async {
@@ -145,18 +134,13 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
     if (opened != null && nameKey(opened.name) != nameKey(edited.name)) {
       final used = usageCount(cat.id, opened.name, chars) ?? 0;
       if (used > 0) {
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (d) => AlertDialog(
-            title: Text('Renommer « ${opened.name} » ?'),
-            content: Text('${_plural(used, 'fiche porte', 'fiches portent')} l’ancien nom ; elles ne sont pas modifiées.'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
-              FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Renommer')),
-            ],
-          ),
+        final ok = await confirm(
+          context,
+          title: 'Renommer « ${opened.name} » ?',
+          body: '${_plural(used, 'fiche porte', 'fiches portent')} l’ancien nom ; elles ne sont pas modifiées.',
+          action: 'Renommer',
         );
-        if (ok != true || !mounted) return;
+        if (!ok || !mounted) return;
       }
     }
     final messenger = ScaffoldMessenger.of(context);

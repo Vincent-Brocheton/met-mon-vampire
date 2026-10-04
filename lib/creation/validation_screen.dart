@@ -55,18 +55,8 @@ class _ValidationScreenState extends ConsumerState<ValidationScreen> {
       return;
     }
     if (to == CharacterStatus.rejected) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Refuser la fiche'),
-          content: const Text('La fiche sera archivée en lecture seule.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Refuser')),
-          ],
-        ),
-      );
-      if (ok != true) return;
+      final ok = await confirm(context, title: 'Refuser la fiche', body: 'La fiche sera archivée en lecture seule.', action: 'Refuser');
+      if (!ok) return;
     }
     setState(() {
       _busy = true;

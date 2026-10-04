@@ -301,19 +301,6 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
         row: row, sheet: sheet, reason: choice.reason, by: by));
   }
 
-  Future<bool> _confirm(String title, String body, String action) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(action)),
-          ],
-        ),
-      ) ==
-      true;
 
   Future<void> _save() async {
     final by = actorOf(ref.read(currentUserProvider).value);
@@ -524,7 +511,7 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
                   ? null
                   : () async {
                       final messenger = ScaffoldMessenger.of(context);
-                      if (!await _confirm('Supprimer « ${_d.name} » ?', 'Cette suppression est définitive.', 'Supprimer')) return;
+                      if (!await confirm(context, title: 'Supprimer « ${_d.name} » ?', body: 'Cette suppression est définitive.', action: 'Supprimer')) return;
                       setState(() => _busy = true);
                       try {
                         await ref.read(servantsRepositoryProvider).delete(_base.id);

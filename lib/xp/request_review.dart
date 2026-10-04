@@ -73,18 +73,8 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
       return;
     }
     if (to == RequestStatus.rejected) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Refuser la demande'),
-          content: const Text('L’XP réservée sera libérée.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Refuser')),
-          ],
-        ),
-      );
-      if (ok != true || !mounted) return;
+      final ok = await confirm(context, title: 'Refuser la demande', body: 'L’XP réservée sera libérée.', action: 'Refuser');
+      if (!ok || !mounted) return;
     }
     setState(() {
       _busy = true;

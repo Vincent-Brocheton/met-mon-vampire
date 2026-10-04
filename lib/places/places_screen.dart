@@ -250,19 +250,6 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
     return f == null || f == 'standard' || f == 'iconic';
   }
 
-  Future<bool> _confirm(String title, String body, String action) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(action)),
-          ],
-        ),
-      ) ==
-      true;
 
   Future<void> _save({String? reason}) async {
     final by = actorOf(ref.read(currentUserProvider).value);
@@ -519,7 +506,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
               onPressed: _busy
                   ? null
                   : () async {
-                      if (!await _confirm('Retirer « ${_d.name} » à tous ?', 'Plus aucun personnage ne contrôlera ce lieu.', 'Retirer')) return;
+                      if (!await confirm(context, title: 'Retirer « ${_d.name} » à tous ?', body: 'Plus aucun personnage ne contrôlera ce lieu.', action: 'Retirer')) return;
                       setState(() => _d.holders = []);
                       await _save(reason: _reason.text.trim().isEmpty ? 'Retiré à tous' : _reason.text);
                     },
@@ -531,7 +518,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
                   ? null
                   : () async {
                       final messenger = ScaffoldMessenger.of(context);
-                      if (!await _confirm('Supprimer « ${_d.name} » ?', 'Cette suppression est définitive.', 'Supprimer')) return;
+                      if (!await confirm(context, title: 'Supprimer « ${_d.name} » ?', body: 'Cette suppression est définitive.', action: 'Supprimer')) return;
                       setState(() => _busy = true);
                       try {
                         await ref.read(placesRepositoryProvider).delete(_d.id);

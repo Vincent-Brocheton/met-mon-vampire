@@ -44,19 +44,6 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
     super.dispose();
   }
 
-  Future<bool> _confirm(String title, String body, String action) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(action)),
-          ],
-        ),
-      ) ==
-      true;
 
   void _report(ScaffoldMessengerState messenger, String done, List<String> refused) => messenger.showSnackBar(SnackBar(
         content: Text(refused.isEmpty ? done : '$done Refusé pour : ${refused.join(', ')} (modifiées entre-temps, réessayez).'),
@@ -65,7 +52,7 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
   Future<void> _pay(List<GainDue> dues, int total) async {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null || _busy) return;
-    if (!await _confirm('Verser le gain mensuel', '$total XP sur ${_sheets(dues.length)}. Chaque versement apparaît dans l’historique de la fiche.', 'Verser')) {
+    if (!await confirm(context, title: 'Verser le gain mensuel', body: '$total XP sur ${_sheets(dues.length)}. Chaque versement apparaît dans l’historique de la fiche.', action: 'Verser')) {
       return;
     }
     if (!mounted) return;
@@ -83,7 +70,7 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null || _busy) return;
     final total = chosen.fold<int>(0, (s, c) => s + _selected[c.id]!);
-    if (!await _confirm('Attribuer le bonus', '$total XP sur ${_sheets(chosen.length)}, motif « ${_reason.text.trim()} ».', 'Attribuer')) {
+    if (!await confirm(context, title: 'Attribuer le bonus', body: '$total XP sur ${_sheets(chosen.length)}, motif « ${_reason.text.trim()} ».', action: 'Attribuer')) {
       return;
     }
     if (!mounted) return;

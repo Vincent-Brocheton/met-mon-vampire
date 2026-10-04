@@ -67,18 +67,8 @@ class _MyRequestsScreenState extends ConsumerState<MyRequestsScreen> {
   }
 
   Future<void> _cancel(XpRequest r) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Annuler la demande ?'),
-        content: const Text('L’XP réservée sera libérée.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Garder')),
-          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Annuler la demande')),
-        ],
-      ),
-    );
-    if (ok != true) return;
+    final ok = await confirm(context, title: 'Annuler la demande ?', body: 'L’XP réservée sera libérée.', action: 'Annuler la demande', cancel: 'Garder');
+    if (!ok) return;
     try {
       await ref.read(xpRepositoryProvider).cancel(r);
     } catch (_) {

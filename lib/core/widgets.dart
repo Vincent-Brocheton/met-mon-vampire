@@ -155,3 +155,18 @@ Color roleColor(Role role) => switch (role) {
       Role.disabled || Role.pending => AppColors.textMuted,
       Role.joueur => AppColors.text,
     };
+
+/// Confirmation : vrai seulement si [action] est choisi (fermer la fenêtre vaut « non »).
+Future<bool> confirm(BuildContext context, {required String title, required String body, required String action, String cancel = 'Annuler'}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(cancel)),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(action)),
+        ],
+      ),
+    ) ==
+    true;

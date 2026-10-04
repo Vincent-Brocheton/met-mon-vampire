@@ -52,18 +52,8 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
 
   Future<void> _leave() async {
     if (_dirty) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Abandonner les changements ?'),
-          content: const Text('La demande ne sera pas enregistrée.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Continuer')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Abandonner')),
-          ],
-        ),
-      );
-      if (ok != true || !mounted) return;
+      final ok = await confirm(context, title: 'Abandonner les changements ?', body: 'La demande ne sera pas enregistrée.', action: 'Abandonner', cancel: 'Continuer');
+      if (!ok || !mounted) return;
     }
     context.go('/joueur/demandes');
   }
