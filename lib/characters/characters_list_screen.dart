@@ -67,6 +67,7 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
           action: Wrap(spacing: 10, runSpacing: 10, children: [
             OutlinedButton(onPressed: () => context.go('/conteur/lieux'), child: const Text('Lieux d’intérêt')),
             OutlinedButton(onPressed: () => context.go('/conteur/goules'), child: const Text('Goules et mortels')),
+            OutlinedButton(onPressed: () => context.go('/conteur/objets'), child: const Text('Objets en jeu')),
             if (canCreate)
               FilledButton.icon(onPressed: _newCharacter, icon: const Icon(Icons.add, size: 18), label: const Text('Nouvelle fiche')),
           ]),

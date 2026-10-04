@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'items/items_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
 import 'places/character_places_screen.dart';
@@ -139,6 +140,7 @@ GoRouter router(Ref ref) {
           page('/conteur/fiches', const CharactersListScreen()),
           page('/conteur/lieux', const PlacesScreen()),
           page('/conteur/goules', const ServantsScreen()),
+          page('/conteur/objets', const ItemsScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
