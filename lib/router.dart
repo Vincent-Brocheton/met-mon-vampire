@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'places/places_screen.dart';
 import 'redirect.dart';
 import 'rulebook/referential_screen.dart';
 import 'shell/app_shell.dart';
@@ -122,6 +123,7 @@ GoRouter router(Ref ref) {
           page('/conteur/comptes', const AccountsScreen()),
           page('/conteur/equipe', const TeamScreen()),
           page('/conteur/fiches', const CharactersListScreen()),
+          page('/conteur/lieux', const PlacesScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
