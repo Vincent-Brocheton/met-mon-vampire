@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/places/place.dart';
+import 'package:portail_met/places/places_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
@@ -210,3 +212,36 @@ class FakeRulesRepository implements RulesRepository {
 
 /// Référentiel de base, sans Firestore.
 final baseRulebook = rulebookProvider.overrideWith((ref) => const Rulebook());
+
+class FakePlacesRepository implements PlacesRepository {
+  final calls = <String>[];
+  Place? lastSaved;
+  String? lastNote;
+  String? lastReason;
+  Object? error;
+
+  @override
+  Stream<String> watchNote(String id) => Stream.value('');
+
+  @override
+  Stream<List<PlaceEntry>> watchHistory(String id) => Stream.value(const []);
+
+  @override
+  Future<String> save(Place before, Place p, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
+    calls.add('save:${p.name}');
+    if (error != null) throw error!;
+    lastSaved = p;
+    lastNote = note;
+    lastReason = reason;
+    return p.id.isEmpty ? 'new-place' : p.id;
+  }
+
+  @override
+  Future<void> delete(String id) async => calls.add('delete:$id');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Aucun lieu pour la fiche 'x' (écrans qui affichent la section « Lieux »).
+final noPlaces = characterPlacesProvider('x').overrideWith((ref) => Stream.value(const <Place>[]));
