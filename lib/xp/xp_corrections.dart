@@ -41,7 +41,10 @@ enum CorrectionKind {
 void _revert(Character n, XpItem i) {
   switch (i.kind) {
     case XpKind.attribute:
-      n.attributes[AttrCategory.values.byName(i.name)]!.value = i.fromLevel;
+      final cat = AttrCategory.values.byName(i.name);
+      n.attributes[cat]!.value = i.fromLevel;
+      // Annuler un achat qui avait placé un point bonus le rend.
+      if (i.note == bonusNote) n.attributeBonus[cat] = ((n.attributeBonus[cat] ?? 0) - 1).clamp(0, 99);
     case XpKind.skill || XpKind.background || XpKind.merit:
       final list = switch (i.kind) {
         XpKind.skill => n.skills,
@@ -59,6 +62,12 @@ void _revert(Character n, XpItem i) {
       } else {
         n.disciplines.firstWhere((d) => d.name == i.name).level = i.fromLevel;
       }
+    case XpKind.ritual:
+      n.rituals.removeWhere((r) => r.name == i.name);
+    case XpKind.technique:
+      n.techniques.remove(i.name);
+    case XpKind.elderPower:
+      n.elderPowers.removeWhere((e) => e.name == i.name);
     case XpKind.humanity:
       n.humanity = i.fromLevel;
     case XpKind.flawBuyback:

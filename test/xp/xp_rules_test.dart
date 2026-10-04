@@ -4,10 +4,12 @@ import 'package:portail_met/rulebook/base_rules.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rules/creation_rules.dart' show CheckLevel;
+import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_request.dart';
 import 'package:portail_met/xp/xp_rules.dart';
 
 import '../characters/character_test.dart' show sample;
+import '../rules/powers_rules_test.dart' show rulebook, thaumaturge;
 
 XpItem add(Character c, List<XpItem> items, XpKind k, String name, {String? note}) {
   final i = draftItem(c, items, k, name, note: note);
@@ -272,5 +274,68 @@ void main() {
     final rb = Rulebook({'backgrounds': backgrounds});
     expect(noteSpec(XpKind.background, 'Ressources', rb: rb), ('Détail du nouveau point', false));
     expect(err(sample(), XpKind.background, 'Ressources', rb: rb), isNull);
+  });
+
+  group('rituels, techniques, pouvoirs d’anciens, points bonus', () {
+    test('deux rituels dans une même demande : le second voit le premier (Review Focus 3)', () {
+      final rb = rulebook();
+      final c = thaumaturge()..disciplines[1].level = 0;
+      final items = <XpItem>[];
+      final first = draftItem(c, items, XpKind.ritual, 'Goût du sang', rb: rb);
+      expect((first.fromLevel, first.toLevel, first.cost), (0, 1, 3));
+      expect(itemError(c, items, first, usable: 100, rb: rb), isNull);
+      items.add(first);
+      final second = draftItem(c, items, XpKind.ritual, 'Défense du refuge', rb: rb);
+      expect(itemError(c, items, second, usable: 100, rb: rb), 'Thaumaturgie ● : 1 rituel au plus, vous en avez 1');
+      final after = applyRequest(c, items, rb: rb);
+      expect(after.rituals.single.name, 'Goût du sang');
+      expect(after.xpSpent, c.xpSpent + 3);
+    });
+
+    test('discipline à 5 puis pouvoir d’ancien dans la même demande ; coût hors clan', () {
+      final rb = rulebook();
+      final c = thaumaturge()..genRank = GenRank.pretender;
+      c.disciplines.last.level = 4;
+      final items = [draftItem(c, const [], XpKind.discipline, 'Auspex', rb: rb)];
+      final elder = draftItem(c, items, XpKind.elderPower, 'Clairvoyance', rb: rb);
+      expect(elder.cost, 18);
+      expect(itemError(c, items, elder, usable: 100, rb: rb), isNull);
+      final r = req([...items, elder]);
+      expect(requestChecks(c, r, reservedOthers: 0, rb: rb).where((k) => k.level == CheckLevel.error), isEmpty);
+      expect(draftItem(c, const [], XpKind.elderPower, 'Possession', rb: rb).cost, 24);
+    });
+
+    test('technique : prérequis perdu avant la validation (Review Focus 5)', () {
+      final rb = rulebook();
+      final c = thaumaturge()..disciplines.add(Discipline('Présence', 2));
+      final r = req([draftItem(c, const [], XpKind.technique, 'Regard ardent', rb: rb)]);
+      expect(requestChecks(c, r, reservedOthers: 0, rb: rb).where((k) => k.level == CheckLevel.error), isEmpty);
+      c.disciplines.removeLast();
+      expect(requestChecks(c, r, reservedOthers: 0, rb: rb).map((k) => k.text), contains('Prérequis manquant : Présence ●●'));
+    });
+
+    test('point bonus d’attribut : posé au-delà du plafond, refusé sans point restant (Review Focus 4)', () {
+      final c = sample();
+      c.attributes[AttrCategory.social]!.value = 10;
+      final item = draftItem(c, const [], XpKind.attribute, 'social');
+      expect((item.toLevel, item.note, item.cost), (11, bonusNote, 3));
+      expect(itemError(c, const [], item, usable: 100), isNull);
+      final after = applyRequest(c, [item]);
+      expect((after.attributes[AttrCategory.social]!.value, after.attributeBonus[AttrCategory.social]), (11, 1));
+      after.attributeBonus[AttrCategory.mental] = 1;
+      final more = draftItem(after, const [], XpKind.attribute, 'social');
+      expect(itemError(after, const [], more, usable: 100), 'Plus de point bonus d’attribut : Social 11 au plus.');
+      final undone = applyCorrection(after, CorrectionKind.cancelPurchase, item: item).after!;
+      expect((undone.attributes[AttrCategory.social]!.value, undone.attributeBonus[AttrCategory.social]), (10, 0));
+    });
+
+    test('annuler l’achat d’un rituel le retire', () {
+      final rb = rulebook();
+      final c = thaumaturge();
+      final item = draftItem(c, const [], XpKind.ritual, 'Goût du sang', rb: rb);
+      final after = applyRequest(c, [item], rb: rb);
+      final undone = applyCorrection(after, CorrectionKind.cancelPurchase, item: item).after!;
+      expect(undone.rituals, isEmpty);
+    });
   });
 }

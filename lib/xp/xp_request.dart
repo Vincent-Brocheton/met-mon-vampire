@@ -27,6 +27,9 @@ enum XpKind {
   background('Historique'),
   discipline('Discipline'),
   merit('Atout'),
+  ritual('Rituel'),
+  technique('Technique'),
+  elderPower('Pouvoir d’ancien'),
   humanity('Humanité'),
   flawBuyback('Rachat d’un handicap');
 
@@ -37,6 +40,7 @@ enum XpKind {
 /// Pastilles pour les traits ; chiffre pour attributs, Humanité, atouts et handicaps.
 String levelText(XpKind k, int n) => switch (k) {
       XpKind.skill || XpKind.background || XpKind.discipline => dots(n),
+      XpKind.ritual || XpKind.technique || XpKind.elderPower => n > 0 ? 'appris' : '—',
       _ => '$n',
     };
 
