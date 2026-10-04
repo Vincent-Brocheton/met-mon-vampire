@@ -275,3 +275,41 @@ class DisciplineListEditor extends StatelessWidget {
     ]);
   }
 }
+
+/// Rituels, techniques, pouvoirs d'anciens : des noms, ajoutés depuis le référentiel ou saisis.
+class NameListEditor extends StatelessWidget {
+  const NameListEditor({super.key, required this.label, required this.items, required this.options, required this.onAdd, required this.onRemove});
+
+  final String label;
+  final List<String> items;
+  final List<String> options;
+  final ValueChanged<String> onAdd;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = options.where((o) => !items.contains(o)).toList();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (items.isEmpty) Text('Aucun.', style: Theme.of(context).textTheme.bodySmall),
+      for (final n in items)
+        Row(children: [
+          Expanded(child: Text(n)),
+          IconButton(tooltip: 'Retirer $n', onPressed: () => onRemove(n), icon: const Icon(Icons.close, size: 18)),
+        ]),
+      const SizedBox(height: 8),
+      DropdownButtonFormField<String>(
+        key: ValueKey('add-$label-${items.length}'),
+        isExpanded: true,
+        decoration: const InputDecoration(labelText: 'Ajouter…'),
+        items: [
+          for (final o in remaining) DropdownMenuItem(value: o, child: Text(o)),
+          const DropdownMenuItem(value: _other, child: Text('Autre…')),
+        ],
+        onChanged: (o) async {
+          final name = o == _other ? await _askOther(context, label) : o;
+          if (name != null) onAdd(name);
+        },
+      ),
+    ]);
+  }
+}

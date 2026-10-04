@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/describe_changes.dart';
+import 'package:portail_met/characters/sheet_widgets.dart';
+import 'package:portail_met/core/theme.dart';
 
 import 'character_test.dart' show sample;
 
@@ -32,5 +35,24 @@ void main() {
     expect(merged.rituals.single.name, 'Goût du sang');
     expect(merged.techniques, ['Regard ardent']);
     expect(merged.version, 5);
+  });
+
+  testWidgets('fiche : rituels, techniques, pouvoirs d’anciens, points bonus', (tester) async {
+    tester.view.physicalSize = const Size(1440, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final c = sample()
+      ..rituals = [Ritual('Goût du sang', 'thaumaturgy', 1)]
+      ..techniques = ['Regard ardent']
+      ..elderPowers = [ElderPower('Clairvoyance', 'Auspex')];
+    c.attributeBonus[AttrCategory.social] = 1;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildTheme(withFonts: false),
+      home: Scaffold(body: SingleChildScrollView(child: CharacterSheetView(c))),
+    ));
+    expect(find.text('Rituel · Goût du sang'), findsOneWidget);
+    expect(find.text('Regard ardent'), findsOneWidget);
+    expect(find.text('Pouvoir d’ancien · Clairvoyance'), findsOneWidget);
+    expect(find.textContaining('1 point bonus'), findsOneWidget);
   });
 }

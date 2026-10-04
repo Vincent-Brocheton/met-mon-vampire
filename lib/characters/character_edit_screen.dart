@@ -331,6 +331,7 @@ class _Editor extends ConsumerWidget {
         PointsField(
           label: cat.label,
           value: c.attributes[cat]!.value,
+          max: 10 + (c.attributeBonus[cat] ?? 0),
           asDots: false,
           onChanged: (v) => set(() => c.attributes[cat]!.value = v),
         ),
@@ -339,6 +340,13 @@ class _Editor extends ConsumerWidget {
           value: c.attributes[cat]!.focus,
           options: focuses[cat]!,
           onChanged: (v) => set(() => c.attributes[cat]!.focus = v),
+        ),
+        PointsField(
+          label: 'Points bonus ${cat.label}',
+          value: c.attributeBonus[cat] ?? 0,
+          max: 3,
+          asDots: false,
+          onChanged: (v) => set(() => c.attributeBonus[cat] = v),
         ),
       ],
     ]);
@@ -361,6 +369,33 @@ class _Editor extends ConsumerWidget {
       section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
       section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
       section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),
+      section('Rituels', [
+        NameListEditor(
+          label: 'Rituels',
+          items: [for (final r in c.rituals) r.name],
+          options: names('rituals'),
+          onAdd: (n) => set(() => c.rituals.add(Ritual(n, rb.ritualSchool(n) ?? '', rb.ritualLevel(n)))),
+          onRemove: (n) => set(() => c.rituals.removeWhere((r) => r.name == n)),
+        ),
+      ]),
+      section('Techniques', [
+        NameListEditor(
+          label: 'Techniques',
+          items: c.techniques,
+          options: names('techniques'),
+          onAdd: (n) => set(() => c.techniques.add(n)),
+          onRemove: (n) => set(() => c.techniques.remove(n)),
+        ),
+      ]),
+      section('Pouvoirs d’anciens', [
+        NameListEditor(
+          label: 'Pouvoirs d’anciens',
+          items: [for (final e in c.elderPowers) e.name],
+          options: names('elderPowers'),
+          onAdd: (n) => set(() => c.elderPowers.add(ElderPower(n, rb.elderDiscipline(n) ?? ''))),
+          onRemove: (n) => set(() => c.elderPowers.removeWhere((e) => e.name == n)),
+        ),
+      ]),
     ];
 
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

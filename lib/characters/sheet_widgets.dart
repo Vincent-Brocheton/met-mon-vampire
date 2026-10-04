@@ -116,6 +116,7 @@ class CharacterSheetView extends StatelessWidget {
         );
     Widget empty(String text) => Text(text, style: t.bodySmall);
     List<Trait> sorted(List<Trait> l) => [...l]..sort((a, b) => b.level.compareTo(a.level));
+    String? joined(List<String> parts) => parts.isEmpty ? null : parts.join(' · ');
 
     final identity = section('Identité', [
       InfoRow('Clan', c.clan),
@@ -148,7 +149,10 @@ class CharacterSheetView extends StatelessWidget {
         DotsRow(
           cat.label,
           c.attributes[cat]!.value,
-          note: c.attributes[cat]!.focus == null ? null : 'Focus : ${c.attributes[cat]!.focus}',
+          note: joined([
+            if (c.attributes[cat]!.focus != null) 'Focus : ${c.attributes[cat]!.focus}',
+            if ((c.attributeBonus[cat] ?? 0) > 0) '${c.attributeBonus[cat]} point${c.attributeBonus[cat]! > 1 ? 's' : ''} bonus',
+          ]),
         ),
     ]);
     final skills = section('Compétences', [
@@ -174,17 +178,25 @@ class CharacterSheetView extends StatelessWidget {
       for (final f in c.flaws) InfoRow(f.name, '${f.level}'),
     ]);
 
+    final powers = c.rituals.isEmpty && c.techniques.isEmpty && c.elderPowers.isEmpty
+        ? null
+        : section('Rituels, techniques et pouvoirs d’anciens', [
+            for (final r in c.rituals) InfoRow('Rituel · ${r.name}', 'niveau ${r.level}'),
+            for (final t in c.techniques) InfoRow('Technique', t),
+            for (final e in c.elderPowers) InfoRow('Pouvoir d’ancien · ${e.name}', e.discipline),
+          ]);
+
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (final (i, w) in items.indexed) ...[if (i > 0) const SizedBox(height: 20), w],
         ]);
 
     if (!isWide(context)) {
-      return column([identity, derived, xp, attributes, skills, backgrounds, disciplines, meritsFlaws]);
+      return column([identity, derived, xp, attributes, skills, backgrounds, disciplines, meritsFlaws, ?powers]);
     }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Expanded(child: column([identity, derived, xp])),
       const SizedBox(width: 20),
-      Expanded(flex: 2, child: column([attributes, skills, backgrounds, disciplines, meritsFlaws])),
+      Expanded(flex: 2, child: column([attributes, skills, backgrounds, disciplines, meritsFlaws, ?powers])),
     ]);
   }
 }

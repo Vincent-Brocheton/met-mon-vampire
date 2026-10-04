@@ -99,4 +99,16 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Rang de génération'), findsOneWidget);
   });
+
+  testWidgets('C3 : ajouter un rituel du référentiel', (tester) async {
+    final rb = Rulebook({
+      'rituals': [RuleEntry(name: 'Goût du sang', data: {'school': 'thaumaturgy', 'level': 1})],
+    });
+    await pump(tester, sample(), rb: rb);
+    await tester.tap(find.byKey(const ValueKey('add-Rituels-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Goût du sang').last);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Retirer Goût du sang'), findsOneWidget);
+  });
 }
