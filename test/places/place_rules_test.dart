@@ -78,7 +78,7 @@ void main() {
     expect(controlLimit(isaure), 5);
     final others = [for (var i = 0; i < 5; i++) Place(id: 'o$i', name: 'Lieu $i', holders: [const PlaceHolder('x', 'Isaure de Valcourt')])];
     expect(placeWarnings(opera(), rb, places: others, characters: [isaure]), ['Isaure de Valcourt contrôle 6 lieux sur 5 (5 + Serviteurs)']);
-    isaure.backgrounds.add(Trait('Serviteurs', 1));
+    isaure.servants.add(Servant('x-s1', 'Rex', ServantKind.animal, 1));
     expect(placeWarnings(opera(), rb, places: others, characters: [isaure]), isEmpty);
     isaure.status = CharacterStatus.retired;
     expect(placeWarnings(opera(), rb, characters: [isaure]), ['Isaure de Valcourt est une fiche retirée ou morte']);

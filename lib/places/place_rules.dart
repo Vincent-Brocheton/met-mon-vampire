@@ -26,8 +26,8 @@ String questText(PlaceType t, int rank) => switch (t) {
 /// Difficulté d'infiltration en jeu.
 int infiltration(int rank) => 5 * rank;
 
-/// Lieux qu'un personnage peut contrôler : 5, plus 1 par point de Serviteurs.
-int controlLimit(Character c) => 5 + c.backgrounds.where((b) => b.name == 'Serviteurs').fold<int>(0, (s, b) => s + b.level);
+/// Lieux qu'un personnage peut contrôler : 5, plus 1 par point de serviteur.
+int controlLimit(Character c) => 5 + c.servants.fold<int>(0, (s, x) => s + x.rank);
 
 /// « Compromis ×2, Endommagé ×1 », ou chaîne vide.
 String negativesText(Place p, Rulebook rb) =>

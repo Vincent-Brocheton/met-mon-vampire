@@ -45,6 +45,7 @@ List<String> describeChanges(Character a, Character b) {
   _names(out, 'Rituel', [for (final r in a.rituals) r.name], [for (final r in b.rituals) r.name]);
   _names(out, 'Technique', a.techniques, b.techniques);
   _names(out, 'Pouvoir d’ancien', [for (final e in a.elderPowers) e.name], [for (final e in b.elderPowers) e.name]);
+  _servants(out, a.servants, b.servants);
   for (final cat in AttrCategory.values) {
     number('Points bonus ${cat.label}', a.attributeBonus[cat] ?? 0, b.attributeBonus[cat] ?? 0);
   }
@@ -118,6 +119,24 @@ void _names(List<String> out, String label, List<String> a, List<String> b) {
   }
   for (final n in a) {
     if (!b.contains(n)) out.add('− $label $n');
+  }
+}
+
+void _servants(List<String> out, List<Servant> a, List<Servant> b) {
+  final before = {for (final s in a) s.id: s};
+  final after = {for (final s in b) s.id: s};
+  for (final s in b) {
+    final old = before[s.id];
+    if (old == null) {
+      out.add('+ Serviteur ${s.name} ${dots(s.rank)}');
+      continue;
+    }
+    if (old.name != s.name) out.add('Serviteur : ${old.name} → ${s.name}');
+    if (old.kind != s.kind) out.add('Serviteur ${s.name} : ${old.kind.label} → ${s.kind.label}');
+    if (old.rank != s.rank) out.add('Serviteur ${s.name} ${dots(old.rank)} → ${dots(s.rank)}');
+  }
+  for (final s in a) {
+    if (!after.containsKey(s.id)) out.add('− Serviteur ${s.name} ${dots(s.rank)}');
   }
 }
 

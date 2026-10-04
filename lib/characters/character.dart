@@ -134,9 +134,45 @@ class ElderPower {
   Map<String, dynamic> toMap() => {'name': name, 'discipline': discipline};
 }
 
+enum ServantKind {
+  human('Goule humaine'),
+  animal('Goule animale');
+
+  const ServantKind(this.label);
+  final String label;
+}
+
+/// Serviteur acheté comme un historique : la partie que l'XP touche. Le détail vit dans `servants/{id}`.
+class Servant {
+  Servant(this.id, this.name, this.kind, this.rank);
+
+  factory Servant.fromMap(Map<String, dynamic> m) => Servant(
+        m['id'] as String? ?? '',
+        m['name'] as String? ?? '',
+        ServantKind.values.asNameMap()[m['kind']] ?? ServantKind.human,
+        _int(m['rank']),
+      );
+
+  final String id;
+  String name;
+  ServantKind kind;
+  int rank;
+
+  Map<String, dynamic> toMap() => {'id': id, 'name': name, 'kind': kind.name, 'rank': rank};
+}
+
+/// Ancien historique, converti en serviteur sur les fiches jouées ou closes (sous-projet 6b).
+const servantsBackground = 'Serviteurs';
+
+int _servantSeq = 0;
+
+/// Identifiant d'un nouveau serviteur : jamais réutilisé, même après une libération.
+String newServantId(String characterId) =>
+    '$characterId-s${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_servantSeq++}';
+
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -194,6 +230,7 @@ class Character {
       ..rituals = _maps(m['rituals']).map(Ritual.fromMap).toList()
       ..techniques = [for (final t in (m['techniques'] as List?) ?? const []) '$t']
       ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
+      ..servants = _maps(m['servants']).map(Servant.fromMap).toList()
       ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
       ..storedKeys = {for (final k in _laterKeys) if (m.containsKey(k)) k}
       ..blood = _int(m['blood'])
@@ -213,7 +250,8 @@ class Character {
       ..comment = creation['comment'] as String?
       ..version = _int(m['version'])
       ..lastHistoryId = m['lastHistoryId'] as String?
-      ..gainedThrough = m['gainedThrough'] as String?;
+      ..gainedThrough = m['gainedThrough'] as String?
+      .._convertServants();
   }
 
   final String id;
@@ -238,6 +276,7 @@ class Character {
   List<Ritual> rituals = [];
   List<String> techniques = [];
   List<ElderPower> elderPowers = [];
+  List<Servant> servants = [];
 
   /// Points bonus de Génération placés : le plafond de la catégorie passe à 10 + ce nombre.
   Map<AttrCategory, int> attributeBonus = {for (final a in AttrCategory.values) a: 0};
@@ -268,6 +307,7 @@ class Character {
         'techniques': [...techniques],
         'elderPowers': [for (final e in elderPowers) e.toMap()],
         'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
+        'servants': [for (final s in servants) s.toMap()],
       };
 
   /// Toutes les clés, nulles comprises (les règles comparent les clés modifiées).
@@ -304,6 +344,7 @@ class Character {
         if (elderPowers.isNotEmpty || storedKeys.contains('elderPowers')) 'elderPowers': [for (final e in elderPowers) e.toMap()],
         if (attributeBonus.values.any((v) => v != 0) || storedKeys.contains('attributeBonus'))
           'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
+        if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
         'blood': blood,
         'bloodPerTurn': bloodPerTurn,
         'willpower': willpower,
@@ -324,6 +365,22 @@ class Character {
         'version': version,
         'lastHistoryId': lastHistoryId,
       };
+
+  /// Fiche jouée ou close : l'historique « Serviteurs » devient un serviteur, enregistré à la prochaine écriture.
+  void _convertServants() {
+    if (!status.settled) return;
+    final b = backgrounds.where((t) => t.name == servantsBackground).firstOrNull;
+    if (b == null) return;
+    backgrounds.remove(b);
+    final note = (b.note ?? '').trim();
+    final first = '$id-s1';
+    servants.add(Servant(
+      servants.any((s) => s.id == first) ? '$id-s${servants.length + 1}' : first,
+      note.isEmpty ? 'Serviteur' : note,
+      ServantKind.human,
+      b.level.clamp(1, 5),
+    ));
+  }
 
   Character clone() => Character.fromMap(id, toMap())
     ..createdAt = createdAt
