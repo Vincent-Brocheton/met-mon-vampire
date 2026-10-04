@@ -64,6 +64,7 @@ class CharacterRepository {
     required CharacterKind kind,
     String? playerUid,
     String? playerName,
+    GhoulState? ghoul,
     required Actor by,
   }) async {
     final ref = _col.doc();
@@ -77,11 +78,12 @@ class CharacterRepository {
       status: kind == CharacterKind.pj ? CharacterStatus.draft : CharacterStatus.active,
     )
       ..version = 1
-      ..lastHistoryId = h.id;
+      ..lastHistoryId = h.id
+      ..ghoul = kind == CharacterKind.pj ? ghoul : null;
     final now = FieldValue.serverTimestamp();
     await (_db.batch()
           ..set(ref, {...c.toMap(), 'createdAt': now, 'updatedAt': now})
-          ..set(h, _entry(by, 'creation', ['Fiche créée'], '')))
+          ..set(h, _entry(by, 'creation', [c.ghoul != null ? 'Fiche de goule créée' : 'Fiche créée'], '')))
         .commit();
     return ref.id;
   }

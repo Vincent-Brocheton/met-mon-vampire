@@ -231,6 +231,8 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
   final _name = TextEditingController();
   CharacterKind _kind = CharacterKind.pj;
   AppUser? _player;
+  bool _ghoul = false;
+  Character? _domitor;
   bool _busy = false;
   String? _error;
 
@@ -254,6 +256,7 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
             kind: _kind,
             playerUid: _player?.uid,
             playerName: _player?.displayName,
+            ghoul: _ghoul && _domitor != null ? GhoulState.of(_domitor!) : null,
             by: by,
           );
       if (mounted) Navigator.pop(context, (id, _kind, _name.text.trim()));
@@ -278,17 +281,23 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
         child: Form(
           key: _form,
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SegmentedButton<CharacterKind>(
+            SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: CharacterKind.pj, label: Text('PJ')),
-                ButtonSegment(value: CharacterKind.pnj, label: Text('PNJ')),
+                ButtonSegment(value: 'pj', label: Text('PJ')),
+                ButtonSegment(value: 'ghoul', label: Text('Goule')),
+                ButtonSegment(value: 'pnj', label: Text('PNJ')),
               ],
-              selected: {_kind},
-              onSelectionChanged: (s) => setState(() => _kind = s.first),
+              selected: {_ghoul ? 'ghoul' : _kind.name},
+              onSelectionChanged: (s) => setState(() {
+                _ghoul = s.first == 'ghoul';
+                _kind = s.first == 'pnj' ? CharacterKind.pnj : CharacterKind.pj;
+              }),
             ),
             const SizedBox(height: 10),
             Text(
-              _kind == CharacterKind.pj
+              _ghoul
+                  ? 'Une goule jouée : choisissez son joueur et son domitor. Le joueur remplira sa fiche par la création guidée.'
+                  : _kind == CharacterKind.pj
                   ? 'Vous créez l’amorce : le joueur remplira sa fiche par la création guidée, puis la soumettra au conte.'
                   : 'Le PNJ est actif tout de suite ; vous le remplissez ensuite.',
               style: Theme.of(context).textTheme.bodySmall,
@@ -307,12 +316,27 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
             if (_kind == CharacterKind.pj) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<AppUser>(
+                key: const Key('new-player'),
                 initialValue: _player,
                 decoration: const InputDecoration(labelText: 'Joueur'),
                 items: [for (final u in players) DropdownMenuItem(value: u, child: Text(u.displayName))],
                 onChanged: (u) => setState(() => _player = u),
                 validator: (u) => u == null ? 'Choisissez le joueur.' : null,
               ),
+              if (_ghoul) ...[
+                const SizedBox(height: 16),
+                DropdownButtonFormField<Character>(
+                  key: const Key('new-domitor'),
+                  initialValue: _domitor,
+                  decoration: const InputDecoration(labelText: 'Domitor'),
+                  items: [
+                    for (final c in ref.watch(allCharactersProvider).value ?? const <Character>[])
+                      if (c.ghoul == null && c.status == CharacterStatus.active) DropdownMenuItem(value: c, child: Text(c.name)),
+                  ],
+                  onChanged: (c) => setState(() => _domitor = c),
+                  validator: (c) => c == null ? 'Choisissez le domitor.' : null,
+                ),
+              ],
             ],
             if (_error != null) ...[
               const SizedBox(height: 12),

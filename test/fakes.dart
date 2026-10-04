@@ -69,9 +69,12 @@ class FakeCharacterRepository implements CharacterRepository {
     if (error != null) throw error!;
   }
 
+  GhoulState? lastGhoul;
+
   @override
-  Future<String> create({required String name, required CharacterKind kind, String? playerUid, String? playerName, required Actor by}) async {
+  Future<String> create({required String name, required CharacterKind kind, String? playerUid, String? playerName, GhoulState? ghoul, required Actor by}) async {
     calls.add('create:${kind.name}:$name');
+    lastGhoul = ghoul;
     return 'new-id';
   }
 
