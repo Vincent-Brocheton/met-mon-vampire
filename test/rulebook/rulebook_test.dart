@@ -94,17 +94,20 @@ void main() {
     final container = ProviderContainer(overrides: [
       allRuleEntriesProvider.overrideWith((ref) => entries.stream),
       xpSettingsProvider.overrideWith((ref) => Stream.value(const XpSettings(creation: CreationValues(startingXp: 35)))),
+      allRuleSettingsProvider.overrideWith((ref) => Stream.value({'rituals': {'costPerLevel': 3}})),
     ]);
     addTearDown(container.dispose);
     container.listen(rulebookProvider, (_, _) {});
     expect(container.read(rulebookProvider), isNull);
     await container.read(xpSettingsProvider.future);
+    await container.read(allRuleSettingsProvider.future);
     entries.addError(Exception('lecture refusée'));
     await Future<void>.delayed(Duration.zero);
     final rb = container.read(rulebookProvider);
     expect(rb, isNotNull);
     expect(rb!.creation.startingXp, 35);
     expect(rb.clanDisciplines('Tremere'), ['Auspex', 'Domination', 'Thaumaturgie']);
+    expect(rb.ritualCostPerLevel, 3);
   });
 
   test('catégorie sans élément proposé : valeurs de base ; ligne de génération en brouillon ignorée (revue)', () {

@@ -55,4 +55,4 @@ final class RulebookProvider
   }
 }
 
-String _$rulebookHash() => r'3a97a9bd3cdf2a6c3a8710099160c453d27201b3';
+String _$rulebookHash() => r'2d84d45ae2cb1b6c05608eb00de25c14905a7899';

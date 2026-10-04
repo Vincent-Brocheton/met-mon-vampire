@@ -12,7 +12,8 @@ part 'rulebook_provider.g.dart';
 Rulebook? rulebook(Ref ref) {
   final entries = ref.watch(allRuleEntriesProvider);
   final settings = ref.watch(xpSettingsProvider);
+  final categories = ref.watch(allRuleSettingsProvider);
   bool waiting(AsyncValue<Object?> v) => !v.hasValue && !v.hasError;
-  if (waiting(entries) || waiting(settings)) return null;
-  return Rulebook(entries.value ?? const {}, settings.value?.creation ?? const CreationValues());
+  if (waiting(entries) || waiting(settings) || waiting(categories)) return null;
+  return Rulebook(entries.value ?? const {}, settings.value?.creation ?? const CreationValues(), categories.value ?? const {});
 }

@@ -149,10 +149,13 @@ class GenRow {
 
 /// Données de règles lues par la création et l'XP. Une catégorie vide prend ses valeurs de base.
 class Rulebook {
-  const Rulebook([this._entries = const {}, this.creation = const CreationValues()]);
+  const Rulebook([this._entries = const {}, this.creation = const CreationValues(), this.settings = const {}]);
 
   final Map<String, List<RuleEntry>> _entries;
   final CreationValues creation;
+
+  /// Réglages des catégories (`rules/{cat}`), par exemple le coût par niveau des rituels.
+  final Map<String, Map<String, dynamic>> settings;
 
   static final _base = <String, List<RuleEntry>>{};
   static final _indexes = Expando<Map<String, Map<String, RuleEntry>>>();
@@ -248,6 +251,62 @@ class Rulebook {
         final String p => p,
         _ => 'all',
       };
+
+  /// Coût d'un rituel par niveau (réglage de la catégorie, 2 par défaut).
+  int get ritualCostPerLevel => _count(settings['rituals']?['costPerLevel']) ?? 2;
+
+  int ritualLevel(String name) => (_int('rituals', name, 'level') ?? 1).clamp(1, 5);
+
+  String? ritualSchool(String name) => switch (find('rituals', name)?.data['school']) {
+        final String s => s,
+        _ => null,
+      };
+
+  /// Disciplines et voies d'une école : la leur, ou celle de leur discipline mère.
+  List<String> schoolDisciplines(String school) {
+    String? schoolOf(RuleEntry? e) => switch (e?.data['school']) {
+          final String s => s,
+          _ => null,
+        };
+    String? parent(RuleEntry e) => switch (e.data['parent']) {
+          final String p => p,
+          _ => null,
+        };
+    return [
+      for (final e in all('disciplines'))
+        if (schoolOf(e) == school || schoolOf(find('disciplines', parent(e))) == school) e.name,
+    ];
+  }
+
+  bool hasPrerequisites(String technique) => ((find('techniques', technique)?.data['prerequisites'] as List?) ?? const []).isNotEmpty;
+
+  /// Alternatives de prérequis : chaque ligne « Présence 2 + Auspex 1 » donne une liste (discipline, niveau).
+  /// Une ligne illisible est ignorée.
+  List<List<(String, int)>> techniquePrerequisites(String technique) {
+    final out = <List<(String, int)>>[];
+    for (final line in (find('techniques', technique)?.data['prerequisites'] as List?) ?? const []) {
+      final parts = <(String, int)>[];
+      var readable = true;
+      for (final p in '$line'.split('+')) {
+        final m = RegExp(r'^(.+?)\s+(\d+)$').firstMatch(p.trim());
+        if (m == null) {
+          readable = false;
+          break;
+        }
+        parts.add((m.group(1)!.trim(), int.parse(m.group(2)!)));
+      }
+      if (readable && parts.isNotEmpty) out.add(parts);
+    }
+    return out;
+  }
+
+  String? elderDiscipline(String name) => switch (find('elderPowers', name)?.data['discipline']) {
+        final String d => d,
+        _ => null,
+      };
+
+  int elderCost(String name, {required bool inClan}) =>
+      _int('elderPowers', name, inClan ? 'costInClan' : 'costOutOfClan') ?? (inClan ? 18 : 24);
 
   /// Ligne du rang ; rang absent du référentiel (ou en brouillon, interdit) : valeurs de base.
   GenRow gen(GenRank rank) {
