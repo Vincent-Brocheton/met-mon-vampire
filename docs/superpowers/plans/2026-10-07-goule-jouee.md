@@ -384,8 +384,8 @@ void main() {
     await tester.tap(find.byKey(const Key('buy-kind')));
     await tester.pumpAndSettle();
     expect(find.text('Discipline'), findsNothing);
-    expect(find.text('Technique'), findsNothing);
-    expect(find.text('Coûts pour une goule'), findsOneWidget);
+    expect(find.text('Technique'), findsOneWidget, reason: 'seulement la ligne du tableau des coûts, pas le menu');
+    expect(find.text('COÛTS POUR UNE GOULE'), findsOneWidget, reason: 'titre de section en majuscules');
   });
 }
 ```
@@ -657,7 +657,7 @@ Dans `test/xp/spend_screen_test.dart` :
     expect(find.text('Technique'), findsNothing);
     await tester.tap(find.text('Compétence').last);
     await tester.pumpAndSettle();
-    expect(find.text('Coûts pour une goule'), findsOneWidget);
+    expect(find.text('COÛTS POUR UNE GOULE'), findsOneWidget);
   });
 
 ```
@@ -976,7 +976,7 @@ void main() {
       theme: buildTheme(withFonts: false),
       home: Scaffold(body: SingleChildScrollView(child: CharacterSheetView(mila()))),
     ));
-    expect(find.text('État de goule'), findsOneWidget);
+    expect(find.text('ÉTAT DE GOULE'), findsOneWidget);
   });
 }
 ```

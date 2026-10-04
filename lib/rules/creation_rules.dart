@@ -72,9 +72,32 @@ int freeLevelOf(Character c, String kind, String name) => levelOf(c, kind, name)
 bool isInClan(Character c, String discipline, {Rulebook rb = const Rulebook()}) =>
     _findD(c.disciplines, discipline)?.inClan ?? rb.clanDisciplines(c.clan).contains(discipline);
 
+/// Valeurs de création : la ligne « Goule » pour une goule, sinon le rang de la Génération choisie.
+GenRow creationRow(Character c, {Rulebook rb = const Rulebook()}) => c.ghoul != null ? rb.ghoulRow() : rb.gen(rankFor(c) ?? GenRank.neonate);
+
+/// Points de disciplines d'une goule, pris chez son domitor.
+const ghoulDisciplinePoints = 5;
+
+/// Achat impossible pour une goule, à la création comme ensuite ; null sinon.
+String? ghoulPurchaseError(Character c, String kind, String name) {
+  if (c.ghoul == null) return null;
+  return switch (kind) {
+    Buy.discipline => 'Les disciplines d’une goule ne s’achètent pas avec l’XP.',
+    Buy.technique || Buy.elderPower => 'Une goule n’apprend ni technique ni pouvoir d’ancien.',
+    Buy.background when name == generationName => 'Une goule n’a pas de Génération.',
+    _ => null,
+  };
+}
+
+/// Niveau d'une discipline de goule (0 la retire).
+void setGhoulDiscipline(Character c, String name, int level) {
+  c.disciplines.removeWhere((d) => d.name == name);
+  if (level > 0) c.disciplines.add(Discipline(name, level, inClan: true));
+}
+
 /// Coût d'un achat au niveau [toLevel], selon le rang actuel (recalculé à chaque changement de Génération).
 int purchaseCost(Character c, String kind, String name, int toLevel, {Rulebook rb = const Rulebook()}) {
-  final row = rb.gen(rankFor(c) ?? GenRank.neonate);
+  final row = creationRow(c, rb: rb);
   return switch (kind) {
     Buy.attribute => 3,
     Buy.skill => toLevel * row.traitFactor,
@@ -102,7 +125,7 @@ int capFor(Character c, String kind, String name, {Rulebook rb = const Rulebook(
 /// Points bonus du rang que la catégorie [cat] peut encore prendre (les autres catégories gardent les leurs).
 int _bonusLeftFor(Character c, AttrCategory cat, Rulebook rb) {
   final placed = _sum([for (final a in AttrCategory.values) if (a != cat) max(0, c.attributes[a]!.value - 10)]);
-  return max(0, rb.gen(rankFor(c) ?? GenRank.neonate).attributeBonus - placed);
+  return max(0, creationRow(c, rb: rb).attributeBonus - placed);
 }
 
 /// Valeur de l'atout de lignée, s'il n'est pas déjà pris comme atout.
@@ -200,6 +223,8 @@ void _setLevel(Character c, String kind, String name, int level, Rulebook rb) {
 
 /// Achète un niveau. Renvoie un message si l'achat est impossible.
 String? addPurchase(Character c, String kind, String name, {Rulebook rb = const Rulebook()}) {
+  final ghoulError = ghoulPurchaseError(c, kind, name);
+  if (ghoulError != null) return ghoulError;
   final to = levelOf(c, kind, name) + 1;
   final ritual = kind == Buy.ritual ? rb.find('rituals', name) : null;
   if (ritual != null && ritual.data['atCreation'] != true) return 'Ce rituel ne s’apprend pas à la création.';
@@ -284,10 +309,11 @@ void _renumberPurchases(Character c, Rulebook rb) {
 
 /// Recalcule rang, Sang, Volonté, Humanité, Santé, attributs et compteurs d'XP.
 void applyDerived(Character c, {Rulebook rb = const Rulebook()}) {
-  final rank = rankFor(c);
+  final ghoul = c.ghoul != null;
+  final rank = ghoul ? null : rankFor(c);
   c.genRank = rank;
-  final row = rank == null ? null : rb.gen(rank);
-  if (row == null || !row.numbers.contains(c.genNumber)) c.genNumber = null;
+  final row = ghoul ? rb.ghoulRow() : (rank == null ? null : rb.gen(rank));
+  if (ghoul || row == null || !row.numbers.contains(c.genNumber)) c.genNumber = null;
   c
     ..blood = row?.blood ?? 0
     ..bloodPerTurn = row?.bloodPerTurn ?? 0
@@ -376,7 +402,9 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   }
 
   final clan = rb.find('clans', c.clan);
-  if (c.clan == null) {
+  if (c.ghoul != null) {
+    add(3, CheckLevel.ok, ghoulLine(c.ghoul!));
+  } else if (c.clan == null) {
     add(3, CheckLevel.todo, 'Choisissez un clan');
   } else if (clan == null) {
     add(3, CheckLevel.warn, 'Clan ${c.clan} hors liste : à confirmer par le conte');
@@ -400,7 +428,7 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   add(4, ranked && focused ? CheckLevel.ok : CheckLevel.todo,
       ranked && focused ? 'Attributs répartis $attributes, un focus chacun' : 'Classez les attributs $attributes et choisissez un focus par catégorie');
   final bonus = _sum(c.attributeBonus.values);
-  final allowed = rb.gen(rankFor(c) ?? GenRank.neonate).attributeBonus;
+  final allowed = creationRow(c, rb: rb).attributeBonus;
   if (bonus > allowed) add(4, CheckLevel.error, 'Points bonus d’attribut : $bonus placés, $allowed au plus');
 
   _slots(out, 5, ('compétence', 'compétences'), [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)], v.skillSlots,
@@ -429,14 +457,18 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
     final cap = rb.backgroundCap(b.name);
     if (b.level > cap) add(6, CheckLevel.error, '${b.name} : $cap au plus');
   }
-  if (generationLevel(c) == 0) {
+  if (c.ghoul != null) {
+    if (generationLevel(c) > 0) add(6, CheckLevel.error, 'Une goule n’a pas de Génération');
+  } else if (generationLevel(c) == 0) {
     add(6, CheckLevel.error, 'Sans point de Génération, le personnage est un mortel');
   } else if (c.genNumber == null) {
     add(6, CheckLevel.todo, 'Choisissez la génération');
   }
 
   final inClan = c.disciplines.where((d) => d.inClan).toList();
-  if (inClan.length != 3) {
+  if (c.ghoul != null) {
+    _ghoulDisciplines(out, c);
+  } else if (inClan.length != 3) {
     final choose = clan != null && rb.clanDisciplines(c.clan).isEmpty;
     add(7, CheckLevel.todo, choose ? 'Choisissez trois disciplines communes' : 'Trois disciplines en clan attendues');
   } else {
@@ -446,7 +478,7 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   for (final d in c.disciplines) {
     state(7, 'disciplines', 'Discipline', d.name);
   }
-  for (final d in c.disciplines.where((d) => !d.inClan)) {
+  for (final d in c.disciplines.where((d) => !d.inClan && c.ghoul == null)) {
     if (freeLevelOf(c, Buy.discipline, d.name) > 0) add(7, CheckLevel.error, '${d.name} hors clan : uniquement par achat');
     if (d.level > 0 && !rb.isCommon(d.name)) add(7, CheckLevel.error, '${d.name} hors clan : seules les disciplines communes à la création');
   }
@@ -505,6 +537,21 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
 
   if ((c.story ?? '').trim().isEmpty) add(10, CheckLevel.warn, 'Récit vide : quelques lignes aideront le conte');
   return out;
+}
+
+void _ghoulDisciplines(List<Check> out, Character c) {
+  final g = c.ghoul!;
+  final total = _sum(c.disciplines.map((d) => d.level));
+  final level = total < ghoulDisciplinePoints ? CheckLevel.todo : (total > ghoulDisciplinePoints ? CheckLevel.error : CheckLevel.ok);
+  out.add(Check(7, level, 'Disciplines de goule : $total points sur $ghoulDisciplinePoints'));
+  for (final d in c.disciplines) {
+    final own = g.domitorDisciplines.where((x) => x.name == d.name).firstOrNull;
+    if (own == null) {
+      out.add(Check(7, CheckLevel.error, '${d.name} : le domitor ne la possède pas'));
+    } else if (d.level > own.level) {
+      out.add(Check(7, CheckLevel.error, '${d.name} : niveau ${d.level} au-delà de celui du domitor (${own.level})'));
+    }
+  }
 }
 
 bool canSubmit(List<Check> checks) => checks.every((k) => k.level == CheckLevel.ok || k.level == CheckLevel.warn);

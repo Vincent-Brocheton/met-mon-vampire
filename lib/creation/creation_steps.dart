@@ -13,9 +13,13 @@ import '../rules/creation_rules.dart';
 import '../rules/met_lists.dart' show focuses;
 
 /// Introduction de l'étape [step], selon les valeurs de création de la chronique.
-String stepIntroOf(int step, CreationValues v) {
+String stepIntroOf(int step, CreationValues v, {bool ghoul = false}) {
   final a = v.attributeSlots, d = v.disciplineSlots;
   return switch (step) {
+    3 when ghoul => 'Une goule n’a pas de clan : elle sert son domitor, dont elle tire ses disciplines.',
+    6 when ghoul => 'Répartissez vos points gratuits : ${v.backgroundSlots.join(' / ')}. Une goule n’a pas de Génération.',
+    7 when ghoul => 'Répartissez $ghoulDisciplinePoints points entre les disciplines de votre domitor, sans dépasser son niveau. '
+        'Elles ne s’achètent pas avec l’XP.',
     1 => 'Qui est votre personnage ? Donnez-lui un nom, un concept et un archétype. Le récit complet se rédige à la dernière étape.',
     2 => 'Votre personnage commence avec ${v.startingXp + v.defaultBonus} XP. Vous les dépenserez au fil des étapes suivantes.',
     3 => 'Le clan fixe vos trois disciplines en clan. Un clan peu commun ou rare coûte un atout.',
@@ -35,11 +39,11 @@ String stepIntroOf(int step, CreationValues v) {
 Widget creationStep(int step, Character c, VoidCallback changed, {Rulebook rb = const Rulebook()}) => switch (step) {
       1 => _Inspiration(c, rb, changed),
       2 => _InitialXp(c, rb),
-      3 => _ClanStep(c, rb, changed),
+      3 => c.ghoul != null ? _GhoulClanStep(c) : _ClanStep(c, rb, changed),
       4 => _AttributesStep(c, rb, changed),
       5 => _SkillsStep(c, rb, changed),
       6 => _BackgroundsStep(c, rb, changed),
-      7 => _DisciplinesStep(c, rb, changed),
+      7 => c.ghoul != null ? _GhoulDisciplinesStep(c, changed) : _DisciplinesStep(c, rb, changed),
       8 => _MeritsStep(c, rb, changed),
       9 => _PurchasesStep(c, rb, changed),
       _ => _FinishStep(c, changed),
@@ -147,6 +151,59 @@ class _InitialXp extends StatelessWidget {
       ]),
       const SizedBox(height: 20),
       _section(context, 'À savoir', [for (final r in rules) Text('• $r', style: t.bodyMedium)]),
+    ]);
+  }
+}
+
+/// Étape 3 d'une goule : son domitor, en lecture.
+class _GhoulClanStep extends StatelessWidget {
+  const _GhoulClanStep(this.c);
+  final Character c;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return _section(context, 'Domitor', [
+      Text(ghoulLine(c.ghoul!), style: t.titleMedium),
+      const SizedBox(height: 6),
+      Text('Le domitor est choisi par le conte. Ses disciplines sont celles que vous pourrez apprendre.', style: t.bodySmall),
+    ]);
+  }
+}
+
+/// Étape 7 d'une goule : 5 points entre les disciplines du domitor, au plus son niveau.
+class _GhoulDisciplinesStep extends StatelessWidget {
+  const _GhoulDisciplinesStep(this.c, this.changed);
+  final Character c;
+  final VoidCallback changed;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final total = c.disciplines.fold<int>(0, (s, d) => s + d.level);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Text('$total / $ghoulDisciplinePoints points', style: t.titleMedium?.copyWith(color: AppColors.gold)),
+      const SizedBox(height: 12),
+      for (final own in c.ghoul!.domitorDisciplines)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Panel(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Expanded(child: Text('${own.name} (domitor : ${own.level})', style: t.titleMedium)),
+              DotPicker(
+                label: own.name,
+                value: c.disciplines.where((d) => d.name == own.name).firstOrNull?.level ?? 0,
+                max: own.level,
+                onChanged: (v) {
+                  setGhoulDiscipline(c, own.name, v);
+                  changed();
+                },
+              ),
+            ]),
+          ),
+        ),
+      if (c.ghoul!.domitorDisciplines.isEmpty) Text('Le domitor n’a aucune discipline recopiée : demandez au conte.', style: t.bodyMedium),
     ]);
   }
 }
@@ -421,14 +478,17 @@ class _BackgroundsStep extends StatelessWidget {
         c: c,
         rb: rb,
         kind: Buy.background,
-        names: rb.offeredNames('backgrounds'),
+        names: [for (final n in rb.offeredNames('backgrounds')) if (c.ghoul == null || n != generationName) n],
         max: slots.reduce(max),
         noteLabel: 'Précisions',
         needsNote: (n) => n != generationName && rb.backgroundAsk(n) != null,
         changed: changed,
       ),
       const SizedBox(height: 20),
-      _section(context, 'Génération', [
+      if (c.ghoul != null)
+        _section(context, 'Sang', [Text('Goule · Sang ${rb.ghoulRow().blood}, ${rb.ghoulRow().bloodPerTurn} par tour', style: t.bodyMedium)])
+      else
+        _section(context, 'Génération', [
         Text(
           rank == null || row == null
               ? 'Aucun point de Génération : le personnage serait un mortel.'
@@ -696,7 +756,8 @@ class _PurchasesStepState extends State<_PurchasesStep> {
     final t = Theme.of(context).textTheme;
     final names = _names(c, rb);
     final rank = rankFor(c) ?? GenRank.neonate;
-    final row = rb.gen(rank);
+    final row = creationRow(c, rb: rb);
+    final ghoul = c.ghoul != null;
     final cat = _cat;
     void buy() {
       final name = _name;
@@ -720,7 +781,7 @@ class _PurchasesStepState extends State<_PurchasesStep> {
               isExpanded: true,
               initialValue: _kind,
               decoration: const InputDecoration(labelText: 'Type'),
-              items: [for (final e in _kinds.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+              items: [for (final e in _kinds.entries) if (ghoulPurchaseError(c, e.key, '') == null) DropdownMenuItem(value: e.key, child: Text(e.value))],
               onChanged: (k) => setState(() {
                 _kind = k ?? _kind;
                 _name = _kind == Buy.humanity ? humanityName : null;
@@ -767,17 +828,17 @@ class _PurchasesStepState extends State<_PurchasesStep> {
         Text('Total dépensé : ${budgetOf(c, rb: rb).purchases} XP en achats, ${budgetOf(c, rb: rb).merits} en atouts', style: t.titleMedium),
       ]),
       const SizedBox(height: 20),
-      _section(context, 'Coûts ${rank.label}', [
+      _section(context, ghoul ? 'Coûts pour une goule' : 'Coûts ${rank.label}', [
         for (final (k, v) in [
           ('Attribut', '3 XP'),
           ('Compétence, historique', 'Niveau × ${row.traitFactor}'),
-          ('Discipline en clan', 'Niveau × 3'),
-          ('Hors clan (communes, $maxOutOfClanDots points au plus)', 'Niveau × ${row.outOfClanFactor}'),
-          ('Génération', 'Niveau × 2'),
+          ('Discipline en clan', ghoul ? 'Jamais en XP' : 'Niveau × 3'),
+          ('Hors clan (communes, $maxOutOfClanDots points au plus)', ghoul ? 'Jamais en XP' : 'Niveau × ${row.outOfClanFactor}'),
+          ('Génération', ghoul ? 'Interdite' : 'Niveau × 2'),
           ('Humanité', '10 XP le point, 6 au plus'),
           ('Rituel', 'Niveau × ${rb.ritualCostPerLevel}'),
-          ('Technique', row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP'),
-          ('Pouvoir d’ancien', row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang'),
+          ('Technique', ghoul ? 'Jamais en XP' : (row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP')),
+          ('Pouvoir d’ancien', ghoul ? 'Jamais en XP' : (row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang')),
         ])
           Row(children: [Expanded(child: Text(k, style: t.bodyMedium)), Text(v, style: t.bodyMedium)]),
       ]),

@@ -176,7 +176,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         const SizedBox(height: 6),
         Text(creationSteps[_step - 1], style: isWide(context) ? t.displaySmall : t.headlineMedium),
         const SizedBox(height: 8),
-        Text(stepIntroOf(_step, rb.creation), style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+        Text(stepIntroOf(_step, rb.creation, ghoul: c.ghoul != null), style: t.bodyLarge?.copyWith(color: AppColors.textSecondary)),
       ]);
       final footer = Container(
         padding: const EdgeInsets.only(top: 16),
