@@ -135,4 +135,31 @@ void main() {
     expect(find.text('Pyramide stricte.'), findsOneWidget);
     expect(find.text('Brujah'), findsNothing);
   });
+  testWidgets('étape 9 : rituel refusé puis accepté', (tester) async {
+    final rb = Rulebook({
+      'rituals': [
+        RuleEntry(name: 'Goût du sang', data: {'school': 'thaumaturgy', 'level': 1, 'atCreation': true}),
+        RuleEntry(name: 'Défense du refuge', data: {'school': 'thaumaturgy', 'level': 2, 'atCreation': true}),
+      ],
+    });
+    final c = valid();
+    await pumpStep(tester, 9, c, rb: rb);
+    Future<void> choose(Key key, String text) async {
+      await tester.tap(find.byKey(key));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(text).last);
+      await tester.pumpAndSettle();
+    }
+
+    await choose(const Key('buy-kind'), 'Rituel');
+    await choose(const Key('buy-name-ritual'), 'Défense du refuge (niveau 2)');
+    await tester.tap(find.text('Ajouter'));
+    await tester.pump();
+    expect(find.text('Il manque un rituel de niveau 1'), findsOneWidget);
+    expect(c.rituals, isEmpty);
+    await choose(const Key('buy-name-ritual'), 'Goût du sang (niveau 1)');
+    await tester.tap(find.text('Ajouter'));
+    await tester.pump();
+    expect(c.rituals.single.name, 'Goût du sang');
+  });
 }

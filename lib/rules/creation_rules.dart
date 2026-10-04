@@ -3,6 +3,7 @@ import 'dart:math';
 import '../characters/character.dart';
 import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
+import 'powers_rules.dart';
 
 const maxMeritPoints = 7;
 const maxOutOfClanDots = 3;
@@ -21,6 +22,9 @@ abstract final class Buy {
   static const background = 'background';
   static const discipline = 'discipline';
   static const humanity = 'humanity';
+  static const ritual = 'ritual';
+  static const technique = 'technique';
+  static const elderPower = 'elderPower';
 }
 
 int _sum(Iterable<int> xs) => xs.fold(0, (a, b) => a + b);
@@ -57,6 +61,9 @@ int levelOf(Character c, String kind, String name) => switch (kind) {
       Buy.background => _find(c.backgrounds, name)?.level ?? 0,
       Buy.discipline => _findD(c.disciplines, name)?.level ?? 0,
       Buy.humanity => 5 + purchasedCount(c, Buy.humanity, humanityName),
+      Buy.ritual => c.rituals.any((r) => nameKey(r.name) == nameKey(name)) ? 1 : 0,
+      Buy.technique => c.techniques.any((t) => nameKey(t) == nameKey(name)) ? 1 : 0,
+      Buy.elderPower => c.elderPowers.any((e) => nameKey(e.name) == nameKey(name)) ? 1 : 0,
       _ => 0,
     };
 
@@ -74,19 +81,29 @@ int purchaseCost(Character c, String kind, String name, int toLevel, {Rulebook r
     Buy.background => toLevel * (name == generationName ? 2 : row.traitFactor),
     Buy.discipline => toLevel * (isInClan(c, name, rb: rb) ? 3 : row.outOfClanFactor),
     Buy.humanity => 10,
+    Buy.ritual => ritualCost(name, rb),
+    Buy.technique => row.techniqueCost,
+    Buy.elderPower => elderCost(c, name, rb),
     _ => 0,
   };
 }
 
 /// Plafond d'un trait à la création.
 int capFor(Character c, String kind, String name, {Rulebook rb = const Rulebook()}) => switch (kind) {
-      Buy.attribute => 10,
+      Buy.attribute => 10 + _bonusLeftFor(c, AttrCategory.values.byName(name), rb),
       Buy.humanity => 6,
       Buy.background when name == generationName => 3,
       Buy.skill => rb.skillCap(name, rankFor(c)),
       Buy.background => rb.backgroundCap(name),
+      Buy.ritual || Buy.technique || Buy.elderPower => 1,
       _ => 5,
     };
+
+/// Points bonus du rang que la catégorie [cat] peut encore prendre (les autres catégories gardent les leurs).
+int _bonusLeftFor(Character c, AttrCategory cat, Rulebook rb) {
+  final placed = _sum([for (final a in AttrCategory.values) if (a != cat) max(0, c.attributes[a]!.value - 10)]);
+  return max(0, rb.gen(rankFor(c) ?? GenRank.neonate).attributeBonus - placed);
+}
 
 /// Valeur de l'atout de lignée, s'il n'est pas déjà pris comme atout.
 int lineageCost(Character c, {Rulebook rb = const Rulebook()}) {
@@ -167,6 +184,15 @@ void _setLevel(Character c, String kind, String name, int level, Rulebook rb) {
       } else {
         d.level = level;
       }
+    case Buy.ritual:
+      c.rituals.removeWhere((r) => nameKey(r.name) == nameKey(name));
+      if (level > 0) c.rituals.add(Ritual(name, rb.ritualSchool(name) ?? '', rb.ritualLevel(name)));
+    case Buy.technique:
+      c.techniques.removeWhere((t) => nameKey(t) == nameKey(name));
+      if (level > 0) c.techniques.add(name);
+    case Buy.elderPower:
+      c.elderPowers.removeWhere((e) => nameKey(e.name) == nameKey(name));
+      if (level > 0) c.elderPowers.add(ElderPower(name, rb.elderDiscipline(name) ?? ''));
     case Buy.humanity:
       c.humanity = level;
   }
@@ -175,6 +201,15 @@ void _setLevel(Character c, String kind, String name, int level, Rulebook rb) {
 /// Achète un niveau. Renvoie un message si l'achat est impossible.
 String? addPurchase(Character c, String kind, String name, {Rulebook rb = const Rulebook()}) {
   final to = levelOf(c, kind, name) + 1;
+  final ritual = kind == Buy.ritual ? rb.find('rituals', name) : null;
+  if (ritual != null && ritual.data['atCreation'] != true) return 'Ce rituel ne s’apprend pas à la création.';
+  final powerError = switch (kind) {
+    Buy.ritual => ritualError(c, name, rb),
+    Buy.technique => techniqueError(c, name, rb),
+    Buy.elderPower => elderError(c, name, rb),
+    _ => null,
+  };
+  if (powerError != null) return powerError;
   final cap = capFor(c, kind, name, rb: rb);
   if (to > cap) return 'Plafond atteint ($cap).';
   if (kind == Buy.discipline && !isInClan(c, name, rb: rb)) {
@@ -264,6 +299,8 @@ void applyDerived(Character c, {Rulebook rb = const Rulebook()}) {
     final i = c.attributeRanks.indexOf(cat);
     c.attributes[cat]!.value = (i >= 0 ? slots[i] : 0) + purchasedCount(c, Buy.attribute, cat.name);
   }
+  // Création : les points bonus placés se lisent dans les valeurs (au-delà de 10).
+  c.attributeBonus = {for (final cat in AttrCategory.values) cat: max(0, c.attributes[cat]!.value - 10)};
   _renumberPurchases(c, rb);
   final b = budgetOf(c, rb: rb);
   c
@@ -362,6 +399,9 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
   final attributes = v.attributeSlots.join(' / ');
   add(4, ranked && focused ? CheckLevel.ok : CheckLevel.todo,
       ranked && focused ? 'Attributs répartis $attributes, un focus chacun' : 'Classez les attributs $attributes et choisissez un focus par catégorie');
+  final bonus = _sum(c.attributeBonus.values);
+  final allowed = rb.gen(rankFor(c) ?? GenRank.neonate).attributeBonus;
+  if (bonus > allowed) add(4, CheckLevel.error, 'Points bonus d’attribut : $bonus placés, $allowed au plus');
 
   _slots(out, 5, ('compétence', 'compétences'), [for (final s in c.skills) freeLevelOf(c, Buy.skill, s.name)], v.skillSlots,
       'Compétences ${slotsText(v.skillSlots)}');
@@ -434,6 +474,21 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
     add(9, CheckLevel.ok, '${b.spent} XP dépensés, ${b.setAside} mis de côté');
     if (b.lost > 0) add(9, CheckLevel.warn, '${b.lost} XP perdus (${v.maxSetAside} au plus mis de côté)');
   }
+
+  for (final r in c.rituals) {
+    state(9, 'rituals', 'Rituel', r.name);
+  }
+  for (final t in c.techniques) {
+    state(9, 'techniques', 'Technique', t);
+  }
+  for (final e in c.elderPowers) {
+    state(9, 'elderPowers', 'Pouvoir d’ancien', e.name);
+    if (!elderInClan(c, e.name, rb)) add(9, CheckLevel.warn, 'Professeur nécessaire : ${e.name} hors clan, à confirmer par le conte');
+  }
+  for (final p in powerProblems(c, rb)) {
+    add(9, CheckLevel.error, p);
+  }
+  if (c.rituals.isNotEmpty) add(9, CheckLevel.warn, 'Rituels choisis à la création : à confirmer par le conte');
 
   // Les règles Firestore ne recalculent rien : une fiche écrite hors de l'application, ou calculée
   // avant un changement des valeurs de création, se voit ici (Review Focus 3).

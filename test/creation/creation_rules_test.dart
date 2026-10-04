@@ -331,6 +331,55 @@ void main() {
       final rb = Rulebook({'disciplines': tweak('disciplines', 'Présence', (e) => e.data['common'] = false)});
       expect(addPurchase(valid(), Buy.discipline, 'Présence', rb: rb), contains('communes'));
     });
+    Rulebook magic() => Rulebook({
+          'rituals': [
+            RuleEntry(name: 'Goût du sang', data: {'school': 'thaumaturgy', 'level': 1, 'atCreation': true}),
+            RuleEntry(name: 'Défense du refuge', data: {'school': 'thaumaturgy', 'level': 2, 'atCreation': true}),
+            RuleEntry(name: 'Rituel tardif', data: {'school': 'thaumaturgy', 'level': 1}),
+          ],
+          'techniques': [
+            RuleEntry(name: 'Regard ardent', data: {'prerequisites': ['Thaumaturgie 2']}),
+          ],
+        });
+
+    test('rituels et techniques à la création : contrôles, coût, avertissement du conte', () {
+      final rb = magic();
+      final c = valid();
+      expect(addPurchase(c, Buy.ritual, 'Défense du refuge', rb: rb), 'Il manque un rituel de niveau 1');
+      expect(addPurchase(c, Buy.ritual, 'Rituel tardif', rb: rb), 'Ce rituel ne s’apprend pas à la création.');
+      expect(addPurchase(c, Buy.ritual, 'Goût du sang', rb: rb), isNull);
+      expect(c.rituals.single.level, 1);
+      expect(c.purchases.last.cost, 2);
+      expect(addPurchase(c, Buy.technique, 'Regard ardent', rb: rb), isNull);
+      expect(c.purchases.last.cost, 12);
+      applyDerived(c, rb: rb);
+      expect(warnings(c, rb), contains('Rituels choisis à la création : à confirmer par le conte'));
+      expect(removePurchase(c, c.purchases.length - 1, rb: rb), isNull);
+      expect(c.techniques, isEmpty);
+    });
+
+    test('pouvoir d’ancien refusé hors du rang Pretender Elder', () {
+      final rb = Rulebook({
+        'elderPowers': [RuleEntry(name: 'Clairvoyance', data: {'discipline': 'Auspex'})],
+      });
+      expect(addPurchase(valid(), Buy.elderPower, 'Clairvoyance', rb: rb), 'Pouvoirs d’anciens interdits au rang Neonate.');
+    });
+
+    test('points bonus d’attribut : plafond 10 + point du rang, contrôle du total', () {
+      final c = valid();
+      for (var i = 0; i < 3; i++) {
+        expect(addPurchase(c, Buy.attribute, AttrCategory.mental.name), isNull);
+      }
+      expect(addPurchase(c, Buy.attribute, AttrCategory.mental.name), isNull, reason: '11 : le point bonus du Neonate');
+      expect(addPurchase(c, Buy.attribute, AttrCategory.mental.name), 'Plafond atteint (11).');
+      applyDerived(c);
+      expect(c.attributeBonus[AttrCategory.mental], 1);
+      expect(blockingWith(c, const Rulebook()), isNot(contains(startsWith('Points bonus'))));
+      c.attributes[AttrCategory.social]!.value = 11;
+      c.attributeBonus[AttrCategory.social] = 1;
+      expect(
+          creationChecks(c).where((k) => k.level == CheckLevel.error).map((k) => k.text), contains('Points bonus d’attribut : 2 placés, 1 au plus'));
+    });
   });
 
   test('coût enregistré d’un achat recalculé quand le facteur du rang change (revue)', () {

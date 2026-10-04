@@ -639,6 +639,9 @@ class _PurchasesStepState extends State<_PurchasesStep> {
     Buy.skill: 'Compétence',
     Buy.background: 'Historique',
     Buy.discipline: 'Discipline',
+    Buy.ritual: 'Rituel',
+    Buy.technique: 'Technique',
+    Buy.elderPower: 'Pouvoir d’ancien',
     Buy.humanity: 'Humanité',
   };
 
@@ -646,6 +649,9 @@ class _PurchasesStepState extends State<_PurchasesStep> {
         Buy.skill => 'skills',
         Buy.background => 'backgrounds',
         Buy.discipline => 'disciplines',
+        Buy.ritual => 'rituals',
+        Buy.technique => 'techniques',
+        Buy.elderPower => 'elderPowers',
         _ => null,
       };
 
@@ -656,6 +662,19 @@ class _PurchasesStepState extends State<_PurchasesStep> {
         Buy.discipline => {
             for (final d in {...c.disciplines.where((d) => d.inClan).map((d) => d.name), ...rb.commonDisciplines()}) d: d,
           },
+        Buy.ritual => {
+            for (final e in rb.offered('rituals'))
+              if (e.data['atCreation'] == true && levelOf(c, Buy.ritual, e.name) == 0)
+                e.name: '${e.name} (niveau ${rb.ritualLevel(e.name)})${_approval(rb, 'rituals', e.name)}',
+          },
+        Buy.technique => {
+            for (final e in rb.offered('techniques'))
+              if (levelOf(c, Buy.technique, e.name) == 0) e.name: '${e.name}${_approval(rb, 'techniques', e.name)}',
+          },
+        Buy.elderPower => {
+            for (final e in rb.offered('elderPowers'))
+              if (levelOf(c, Buy.elderPower, e.name) == 0) e.name: '${e.name}${_approval(rb, 'elderPowers', e.name)}',
+          },
         _ => {humanityName: humanityName},
       };
 
@@ -664,6 +683,9 @@ class _PurchasesStepState extends State<_PurchasesStep> {
         Buy.skill => 'Compétence · ${p.name}',
         Buy.background => 'Historique · ${p.name}',
         Buy.discipline => '${p.name} (${isInClan(widget.c, p.name, rb: widget.rb) ? 'en clan' : 'hors clan'})',
+        Buy.ritual => 'Rituel · ${p.name}',
+        Buy.technique => 'Technique · ${p.name}',
+        Buy.elderPower => 'Pouvoir d’ancien · ${p.name}',
         _ => p.name,
       };
 
@@ -682,6 +704,8 @@ class _PurchasesStepState extends State<_PurchasesStep> {
       final error = addPurchase(c, _kind, name, rb: rb);
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      } else if (_kind == Buy.ritual || _kind == Buy.technique || _kind == Buy.elderPower) {
+        _name = null; // appris : il quitte la liste
       }
       widget.changed();
     }
@@ -708,7 +732,8 @@ class _PurchasesStepState extends State<_PurchasesStep> {
             child: DropdownButtonFormField<String>(
               key: Key('buy-name-$_kind'),
               isExpanded: true,
-              initialValue: _name,
+              // Un rituel, une technique ou un pouvoir acheté sort de la liste : plus de sélection.
+              initialValue: names.containsKey(_name) ? _name : null,
               decoration: const InputDecoration(labelText: 'Élément'),
               items: [for (final e in names.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
               onChanged: (n) => setState(() => _name = n),
@@ -750,6 +775,9 @@ class _PurchasesStepState extends State<_PurchasesStep> {
           ('Hors clan (communes, $maxOutOfClanDots points au plus)', 'Niveau × ${row.outOfClanFactor}'),
           ('Génération', 'Niveau × 2'),
           ('Humanité', '10 XP le point, 6 au plus'),
+          ('Rituel', 'Niveau × ${rb.ritualCostPerLevel}'),
+          ('Technique', row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP'),
+          ('Pouvoir d’ancien', row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang'),
         ])
           Row(children: [Expanded(child: Text(k, style: t.bodyMedium)), Text(v, style: t.bodyMedium)]),
       ]),
