@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'redirect.dart';
 import 'rulebook/referential_screen.dart';
@@ -110,6 +111,10 @@ GoRouter router(Ref ref) {
               basePath: '/joueur/personnages/${s.pathParameters['id']}',
               history: true,
             ),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/lieux',
+            builder: (_, s) => CharacterPlacesScreen(characterId: s.pathParameters['id']!),
           ),
           page('/joueur/pnj', soon('PNJ confiés')),
           GoRoute(

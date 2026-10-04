@@ -33,6 +33,7 @@ void main() {
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
         characterRepositoryProvider.overrideWith((ref) => repo),
         characterProvider('x').overrideWith((ref) => stream.stream),
+        noPlaces,
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),

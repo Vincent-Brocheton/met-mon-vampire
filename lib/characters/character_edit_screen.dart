@@ -7,6 +7,7 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../rules/met_lists.dart' show focuses;
@@ -200,6 +201,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch)),
               const SizedBox(height: 22),
               NotesPanel(id: latest.id),
+              const SizedBox(height: 20),
+              PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
             ]),
         ),
         if (changes.isNotEmpty)

@@ -7,6 +7,7 @@ import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/characters/character_screen.dart';
 import 'package:portail_met/core/theme.dart';
 
+import '../fakes.dart';
 import 'character_test.dart' show sample;
 
 void main() {
@@ -17,6 +18,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         characterProvider('x').overrideWith((ref) => stream),
+        noPlaces,
         characterHistoryProvider('x').overrideWith((ref) => Stream.value([
               HistoryEntry(id: 'h', at: DateTime(2026, 9, 2), byName: 'Léa', kind: 'edit', summary: ['Présence ● → ●●'], reason: 'Demande validée', xpSpent: 6),
             ])),
