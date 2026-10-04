@@ -14,6 +14,7 @@ String? _gen(Character c) =>
 /// Résumé lisible des différences, une ligne par changement (historique, fenêtre d'enregistrement).
 List<String> describeChanges(Character a, Character b) {
   final out = <String>[];
+  if (a.ghoul != null && b.ghoul == null) out.add('Goule étreinte par ${b.sire ?? '?'}');
   void text(String label, String? x, String? y) {
     if ((x ?? '') != (y ?? '')) out.add('$label : ${_v(x)} → ${_v(y)}');
   }

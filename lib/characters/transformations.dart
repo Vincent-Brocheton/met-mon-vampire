@@ -39,6 +39,12 @@ String? _embraceInto(Character n, Character sire, int genNumber, String? first, 
   return null;
 }
 
+/// Avertissement pour un sire dont le clan n'a pas de disciplines propres ; null sinon.
+String? embraceNote(Character sire, {Rulebook rb = const Rulebook()}) =>
+    (sire.clan ?? '').isNotEmpty && rb.clanDisciplines(sire.clan).isEmpty
+        ? '${sire.clan} : pas de disciplines propres, à choisir dans C3 après l’étreinte.'
+        : null;
+
 Transformed _result(Character n, String? error) => error == null ? (after: n, error: null) : (after: null, error: error);
 
 /// Goule jouée étreinte : la fiche d'origine ne change pas, la copie est renvoyée.
@@ -67,8 +73,13 @@ Transformed embracedDraft(
 }) {
   if (rankOfNumber(genNumber, rb: rb) == null) return (after: null, error: 'Génération ${genNumber}e absente du tableau des générations');
   if ((sire.clan ?? '').isEmpty) return (after: null, error: 'Le sire n’a pas de clan');
+  final rank = rankOfNumber(genNumber, rb: rb)!;
   final n = Character(id: '', name: name, kind: CharacterKind.pj, playerUid: playerUid, playerName: playerName)
     ..sire = sire.name
+    // Génération imposée : l'historique au niveau du rang (un des points gratuits) et le numéro.
+    ..backgrounds = [Trait(generationName, rankLevel(rank))]
+    ..genRank = rank
+    ..genNumber = genNumber
     ..embrace = EmbraceState(sireId: sire.id, sireName: sire.name, clan: sire.clan!, genNumber: genNumber);
   setClan(n, sire.clan, rb: rb);
   return (after: n, error: null);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/session.dart';
+import '../auth/session_providers.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
 import '../characters/transformations.dart';
@@ -26,10 +27,14 @@ List<Character> _vampires(WidgetRef ref) => [
         if (c.ghoul == null && c.status == CharacterStatus.active) c,
     ];
 
-List<AppUser> _players(WidgetRef ref) => [
-      for (final u in ref.watch(allUsersProvider).value ?? const <AppUser>[])
-        if (u.role != Role.pending && u.role != Role.disabled) u,
-    ];
+/// Joueurs possibles, sans le conteur lui-même (les règles lui refusent sa propre fiche).
+List<AppUser> _players(WidgetRef ref) {
+  final me = ref.watch(currentUserProvider).value?.uid;
+  return [
+    for (final u in ref.watch(allUsersProvider).value ?? const <AppUser>[])
+      if (u.uid != me && u.role != Role.pending && u.role != Role.disabled) u,
+  ];
+}
 
 /// « Étreindre… » : sire (proposé : [initialSireId]), génération (sire + 1), discipline à 2 points, PNJ ou PJ.
 class EmbraceDialog extends ConsumerStatefulWidget {
@@ -53,6 +58,7 @@ class _EmbraceDialogState extends ConsumerState<EmbraceDialog> {
   final _reason = TextEditingController();
   String? _first;
   bool _pj = false;
+  bool _prefilled = false;
   String? _playerUid;
 
   @override
@@ -69,6 +75,7 @@ class _EmbraceDialogState extends ConsumerState<EmbraceDialog> {
   }
 
   void _pickSire(Character? s) => setState(() {
+        _prefilled = true;
         _sireId = s?.id;
         _first = null;
         if (s?.genNumber != null) _gen.text = '${s!.genNumber! + 1}';
@@ -80,7 +87,11 @@ class _EmbraceDialogState extends ConsumerState<EmbraceDialog> {
     final t = Theme.of(context).textTheme;
     final sires = _vampires(ref);
     final sire = sires.where((s) => s.id == _sireId).firstOrNull;
-    if (sire != null && _gen.text.isEmpty && sire.genNumber != null) _gen.text = '${sire.genNumber! + 1}';
+    // Pré-remplie une seule fois, quand le sire proposé est connu : le conte peut ensuite vider le champ.
+    if (!_prefilled && sire != null) {
+      _prefilled = true;
+      if (_gen.text.isEmpty && sire.genNumber != null) _gen.text = '${sire.genNumber! + 1}';
+    }
     final number = int.tryParse(_gen.text.trim());
     final rank = number == null ? null : rankOfNumber(number, rb: rb);
     final clanDisciplines = rb.clanDisciplines(sire?.clan);
@@ -163,6 +174,8 @@ class _EmbraceDialogState extends ConsumerState<EmbraceDialog> {
               decoration: const InputDecoration(labelText: 'Motif'),
               onChanged: (_) => setState(() {}),
             ),
+            if (sire != null && embraceNote(sire, rb: rb) != null)
+              Padding(padding: const EdgeInsets.only(top: 8), child: Text(embraceNote(sire, rb: rb)!, style: const TextStyle(color: AppColors.goldLight))),
             if (debt > 0) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Dette de $debt XP', style: const TextStyle(color: AppColors.goldLight))),
             if (problem != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(problem, style: t.bodySmall)),
           ]),

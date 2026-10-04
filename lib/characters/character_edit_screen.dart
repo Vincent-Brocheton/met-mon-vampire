@@ -266,7 +266,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
               const SizedBox(height: 20),
               ServantsSection(character: latest, linkOf: (_) => '/conteur/goules'),
-              if (latest.ghoul != null) ...[
+              if (latest.ghoul != null && latest.status == CharacterStatus.active) ...[
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerLeft,

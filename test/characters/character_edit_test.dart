@@ -133,6 +133,12 @@ void main() {
     expect(repo.calls, ['saveEdit:Gorgée']);
   });
 
+  testWidgets('C3 : pas d’étreinte pour une goule retirée (revue)', (tester) async {
+    await pump(tester, ghoulSheet()..status = CharacterStatus.retired);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('c3-embrace')), findsNothing);
+  });
+
   testWidgets('C3 : étreinte impossible tant que des changements ne sont pas enregistrés (revue)', (tester) async {
     await pump(tester, ghoulSheet());
     await tester.pumpAndSettle();

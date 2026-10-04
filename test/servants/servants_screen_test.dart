@@ -192,6 +192,30 @@ void main() {
     expect((servants.lastSaved!.kind, servants.lastSaved!.domitorId), ('human', 'x'));
   });
 
+  testWidgets('fenêtres : sans le conteur parmi les joueurs, génération effaçable, pas d’étreinte d’animal (revue)', (tester) async {
+    await pump(tester, files: [rexFile(), ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
+    await tester.tap(find.text('Rex'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('sv-embrace')), findsNothing, reason: 'goule animale');
+    await tester.tap(find.text('Jeanne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-to-ghoul')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('gh-player')));
+    await tester.pumpAndSettle();
+    expect(find.text('Léa G.'), findsNothing);
+    await tester.tap(find.text('Inès T.').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-embrace')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'em-sire', 'Isaure de Valcourt');
+    await tester.enterText(find.byKey(const Key('em-gen')), '');
+    await tester.pump();
+    expect(tester.widget<TextField>(find.byKey(const Key('em-gen'))).controller!.text, '');
+  });
+
   testWidgets('narrateur : lecture seule', (tester) async {
     await pump(tester, user: julien);
     expect(find.byKey(const Key('sv-new-mortal')), findsNothing);

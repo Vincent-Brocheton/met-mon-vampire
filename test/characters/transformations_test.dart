@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/characters/describe_changes.dart';
 import 'package:portail_met/characters/transformations.dart';
 import 'package:portail_met/rules/creation_rules.dart';
 
@@ -22,6 +23,7 @@ void main() {
     expect([for (final b in a.backgrounds) if (b.name == generationName) b.level], [1]);
     expect((a.xpSpent, debtOf(a)), (10, 0));
     expect(g.ghoul, isNotNull, reason: 'la fiche d’origine ne change pas');
+    expect(describeChanges(g, a).first, 'Goule étreinte par Isaure de Valcourt', reason: 'revue : ligne de tête de l’historique');
   });
 
   test('étreinte refusée : génération hors du tableau, sire sans clan (Review Focus 3)', () {
@@ -31,6 +33,10 @@ void main() {
     expect(embraceGhoul(sample(), sire: sample(), genNumber: 11).error, 'Ce n’est pas une goule');
     expect(rankOfNumber(9), GenRank.ancilla);
     expect(rankLevel(GenRank.pretender), 3);
+    final caitiff = sample()..clan = 'Caïtiff';
+    expect(embraceGhoul(g, sire: caitiff, genNumber: 11).after!.disciplines, isEmpty);
+    expect(embraceNote(caitiff), 'Caïtiff : pas de disciplines propres, à choisir dans C3 après l’étreinte.', reason: 'revue');
+    expect(embraceNote(sample()), isNull);
   });
 
   test('PNJ étreint et amorce de PJ étreinte (Review Focus 4)', () {
@@ -43,6 +49,9 @@ void main() {
     expect(sample().toMap().containsKey('embrace'), isFalse);
     List<(CheckLevel, String)> at(int step) => [for (final k in creationChecks(pj)) if (k.step == step) (k.level, k.text)];
     expect(at(3), contains((CheckLevel.ok, 'Étreint par Isaure de Valcourt · clan Toreador')));
+    expect(at(6).where((k) => k.$2.startsWith('Génération imposée')), isEmpty, reason: 'revue : Génération et numéro pré-remplis');
+    expect([for (final b in pj.backgrounds) (b.name, b.level)], [(generationName, 1)]);
+    pj.genNumber = 12;
     expect(at(6), contains((CheckLevel.error, 'Génération imposée par l’étreinte : 11e')));
     pj.clan = 'Brujah';
     expect(at(3), contains((CheckLevel.error, 'Clan imposé par l’étreinte : Toreador')));

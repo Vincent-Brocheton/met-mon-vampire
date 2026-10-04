@@ -6,6 +6,9 @@ import 'package:portail_met/creation/creation_steps.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rules/creation_rules.dart';
 
+import 'package:portail_met/characters/transformations.dart';
+
+import '../characters/character_test.dart' show sample;
 import '../characters/ghoul_test.dart' show mila;
 
 List<(CheckLevel, String)> at(Character c, int step) => [for (final k in creationChecks(c)) if (k.step == step) (k.level, k.text)];
@@ -97,5 +100,17 @@ void main() {
     rebuild(() => step = 10);
     await tester.pump();
     expect(find.text('Goule'), findsOneWidget, reason: 'revue : carte Sang');
+  });
+
+  testWidgets('amorce étreinte : génération imposée affichée à l’étape 6 (revue)', (tester) async {
+    tester.view.physicalSize = const Size(1440, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final pj = embracedDraft('Paul', playerUid: 'u2', playerName: 'Inès T.', sire: sample(), genNumber: 11).after!;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildTheme(withFonts: false),
+      home: Scaffold(body: SingleChildScrollView(child: creationStep(6, pj, () {}))),
+    ));
+    expect(find.text('Génération imposée par l’étreinte : 11e'), findsOneWidget);
   });
 }

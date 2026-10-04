@@ -490,6 +490,11 @@ class _BackgroundsStep extends StatelessWidget {
     final row = rank == null ? null : rb.gen(rank);
     final slots = rb.creation.backgroundSlots;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (c.embrace != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text('Génération imposée par l’étreinte : ${c.embrace!.genNumber}e', style: t.titleSmall),
+        ),
       _slotChips(context, slots, [for (final b in c.backgrounds) freeLevelOf(c, Buy.background, b.name)]),
       const SizedBox(height: 16),
       _FreeLevels(

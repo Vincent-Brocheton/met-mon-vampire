@@ -541,7 +541,7 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
             OutlinedButton(key: const Key('sv-to-servant'), onPressed: _busy ? null : _toServant, child: const Text('Devenir serviteur de…')),
             OutlinedButton(key: const Key('sv-to-ghoul'), onPressed: _busy ? null : _toGhoul, child: const Text('Devenir goule jouée…')),
           ],
-          if ((mortal && _base.version > 0) || r.entry != null)
+          if ((mortal && _base.version > 0) || (r.entry != null && r.entry!.kind != ServantKind.animal))
             OutlinedButton(key: const Key('sv-embrace'), onPressed: _busy ? null : _embrace, child: const Text('Étreindre…')),
         ]),
       ],
