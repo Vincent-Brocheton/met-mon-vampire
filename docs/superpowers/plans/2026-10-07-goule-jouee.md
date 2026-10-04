@@ -1064,7 +1064,7 @@ class GhoulPanel extends StatelessWidget {
         const SizedBox(height: 10),
         Text(ghoulLine(g), style: t.titleSmall),
         const SizedBox(height: 6),
-        InfoRow('Lien envers ${g.domitorName}', g.bond == 0 ? 'aucun' : dots(g.bond)),
+        InfoRow('Lien de sang', g.bond == 0 ? 'aucun' : dots(g.bond)),
         InfoRow('Vitae', '${g.vitae} / 5'),
         InfoRow('Dernière gorgée', last == null ? '—' : formatDay(last)),
         if (alert != null) Text(alert, style: t.bodySmall?.copyWith(color: AppColors.linkHover)),

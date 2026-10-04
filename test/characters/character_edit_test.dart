@@ -15,6 +15,7 @@ import 'package:portail_met/servants/servants_repository.dart';
 
 import '../fakes.dart';
 import 'character_test.dart' show sample;
+import 'ghoul_test.dart' show ghoulState;
 
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
@@ -33,6 +34,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         noPlaces,
         noServantFiles,
+        allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
@@ -93,6 +95,41 @@ void main() {
     await tester.tap(find.text('Confirmer'));
     await tester.pumpAndSettle();
     expect(servants.calls, ['players:x-s1:zoe']);
+  });
+
+  /// Goule active dont le domitor est 'x' : ici la fiche elle-même, ce qui suffit à vérifier la recopie
+  /// (Auspex 3 remplace Présence 2).
+  Character ghoulSheet() => sample()
+    ..ghoul = (ghoulState()..domitorDisciplines = [const DomitorDiscipline('Présence', 2)])
+    ..clan = null
+    ..humanity = 5;
+
+  testWidgets('goule : Humanité qui ne baisse pas (Review Focus 5)', (tester) async {
+    final repo = await pump(tester, ghoulSheet());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Retirer un point : Humanité'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    expect(find.text('L’Humanité d’une goule ne peut pas baisser.'), findsOneWidget);
+    expect(repo.calls, isEmpty);
+  });
+
+  testWidgets('goule : gorgée et copie du domitor dans C3', (tester) async {
+    final repo = await pump(tester, ghoulSheet());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ghoul-drink')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('ghoul-refresh')));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Vitae 4 → 5'), findsOneWidget);
+    expect(find.text('Disciplines du domitor recopiées'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('reason')), 'Gorgée');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['saveEdit:Gorgée']);
   });
 
   testWidgets('Annuler restaure exactement la fiche lue (Review Focus 5)', (tester) async {

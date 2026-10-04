@@ -5,6 +5,7 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import 'character.dart';
 import 'describe_changes.dart';
+import 'ghoul_panel.dart';
 
 /// Lecture refusée par les règles (fiche d'un autre joueur).
 bool isDenied(Object error) => error is FirebaseException && error.code == 'permission-denied';
@@ -93,7 +94,7 @@ class DotsRow extends StatelessWidget {
 }
 
 String identityLine(Character c) =>
-    [c.clan, c.sect, c.genRank?.label].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+    [if (c.ghoul != null) 'Goule de ${c.ghoul!.domitorName}', c.clan, c.sect, c.genRank?.label].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
 String _generation(Character c) =>
     c.genRank == null ? '' : '${c.genRank!.label}${c.genNumber == null ? '' : ' (${c.genNumber}e)'}';
@@ -186,15 +187,17 @@ class CharacterSheetView extends StatelessWidget {
             for (final e in c.elderPowers) InfoRow('Pouvoir d’ancien · ${e.name}', e.discipline),
           ]);
 
+    final ghoul = c.ghoul == null ? null : GhoulPanel(c.ghoul!);
+
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (final (i, w) in items.indexed) ...[if (i > 0) const SizedBox(height: 20), w],
         ]);
 
     if (!isWide(context)) {
-      return column([identity, derived, xp, attributes, skills, backgrounds, disciplines, meritsFlaws, ?powers]);
+      return column([?ghoul, identity, derived, xp, attributes, skills, backgrounds, disciplines, meritsFlaws, ?powers]);
     }
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: column([identity, derived, xp])),
+      Expanded(child: column([?ghoul, identity, derived, xp])),
       const SizedBox(width: 20),
       Expanded(flex: 2, child: column([attributes, skills, backgrounds, disciplines, meritsFlaws, ?powers])),
     ]);

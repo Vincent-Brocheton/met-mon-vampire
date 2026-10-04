@@ -110,6 +110,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     final by = actorOf(ref.read(currentUserProvider).value);
     final changes = _changes;
     if (by == null || changes.isEmpty || _saving) return;
+    if (_draft!.ghoul != null && _draft!.humanity < _base!.humanity) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('L’Humanité d’une goule ne peut pas baisser.')));
+      return;
+    }
     final reason = await askReason(context, changes);
     if (reason == null || !mounted) return;
     setState(() => _saving = true);
@@ -396,6 +400,60 @@ class _Editor extends ConsumerWidget {
       Text('Disponible : ${c.xpAvailable} XP', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.gold)),
     ]);
 
+    final g = c.ghoul;
+    final domitor = g == null ? null : ref.watch(allCharactersProvider).value?.where((x) => x.id == g.domitorId).firstOrNull;
+    final ghoulSection = g == null
+        ? null
+        : section('État de goule', [
+            Text(ghoulLine(g), style: Theme.of(context).textTheme.titleSmall),
+            KeyedSubtree(
+              key: ValueKey('vitae-${g.vitae}'),
+              child: DropdownButtonFormField<int>(
+                key: const Key('ghoul-vitae'),
+                initialValue: g.vitae.clamp(0, 5),
+                decoration: const InputDecoration(labelText: 'Vitae (sur 5)'),
+                items: [for (var v = 0; v <= 5; v++) DropdownMenuItem(value: v, child: Text('$v'))],
+                onChanged: (v) => set(() => g.vitae = v ?? g.vitae),
+              ),
+            ),
+            DropdownButtonFormField<int>(
+              key: const Key('ghoul-bond'),
+              initialValue: g.bond.clamp(0, 3),
+              decoration: const InputDecoration(labelText: 'Lien de sang'),
+              items: [for (var v = 0; v <= 3; v++) DropdownMenuItem(value: v, child: Text(v == 0 ? 'Aucun' : dots(v)))],
+              onChanged: (v) => set(() => g.bond = v ?? g.bond),
+            ),
+            Row(children: [
+              Expanded(child: Text(g.lastDrink == null ? 'Aucune gorgée notée' : 'Dernière gorgée : ${formatDay(g.lastDrink)}')),
+              OutlinedButton(
+                key: const Key('ghoul-drink'),
+                onPressed: () => set(() {
+                  g.lastDrink = DateTime.now();
+                  g.vitae = (g.vitae + 1).clamp(0, 5);
+                }),
+                child: const Text('+ Gorgée'),
+              ),
+            ]),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton(
+                key: const Key('ghoul-refresh'),
+                onPressed: domitor == null
+                    ? null
+                    : () => set(() {
+                          final copy = GhoulState.of(domitor);
+                          g
+                            ..domitorName = copy.domitorName
+                            ..domitorClan = copy.domitorClan
+                            ..domitorDisciplines = copy.domitorDisciplines;
+                        }),
+                child: const Text('Recopier les disciplines du domitor'),
+              ),
+            ),
+            if (domitor != null && (domitor.status == CharacterStatus.retired || domitor.status == CharacterStatus.dead))
+              const Text('Le domitor est une fiche retirée ou morte', style: TextStyle(color: AppColors.goldLight)),
+          ]);
+
     final lists = [
       section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
       section('Historiques', [TraitListEditor(items: c.backgrounds, options: [for (final n in names('backgrounds')) if (n != servantsBackground) n], noteLabel: 'Précisions', onChanged: onChanged)]),
@@ -435,9 +493,9 @@ class _Editor extends ConsumerWidget {
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (final (i, w) in items.indexed) ...[if (i > 0) const SizedBox(height: 20), w],
         ]);
-    if (!isWide(context)) return column([identity, attributes, derived, ...lists]);
+    if (!isWide(context)) return column([identity, attributes, derived, ?ghoulSection, ...lists]);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Expanded(child: column([identity, derived])),
+      Expanded(child: column([identity, derived, ?ghoulSection])),
       const SizedBox(width: 20),
       Expanded(child: column([attributes, ...lists])),
     ]);
