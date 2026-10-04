@@ -18,6 +18,7 @@ String stepIntroOf(int step, CreationValues v, {bool ghoul = false}) {
   return switch (step) {
     3 when ghoul => 'Une goule n’a pas de clan : elle sert son domitor, dont elle tire ses disciplines.',
     6 when ghoul => 'Répartissez vos points gratuits : ${v.backgroundSlots.join(' / ')}. Une goule n’a pas de Génération.',
+    9 when ghoul => 'Dépensez l’XP restante. Les coûts sont ceux d’une goule ; ils sont calculés automatiquement.',
     7 when ghoul => 'Répartissez $ghoulDisciplinePoints points entre les disciplines de votre domitor, sans dépasser son niveau. '
         'Elles ne s’achètent pas avec l’XP.',
     1 => 'Qui est votre personnage ? Donnez-lui un nom, un concept et un archétype. Le récit complet se rédige à la dernière étape.',
@@ -718,7 +719,10 @@ class _PurchasesStepState extends State<_PurchasesStep> {
   Map<String, String> _names(Character c, Rulebook rb) => switch (_kind) {
         Buy.attribute => {for (final a in AttrCategory.values) a.name: a.label},
         Buy.skill => {for (final s in {...rb.offeredNames('skills'), ...c.skills.map((s) => s.name)}) s: s},
-        Buy.background => {for (final b in {...rb.offeredNames('backgrounds'), ...c.backgrounds.map((b) => b.name)}) b: b},
+        Buy.background => {
+            for (final b in {...rb.offeredNames('backgrounds'), ...c.backgrounds.map((b) => b.name)})
+              if (c.ghoul == null || b != generationName) b: b,
+          },
         Buy.discipline => {
             for (final d in {...c.disciplines.where((d) => d.inClan).map((d) => d.name), ...rb.commonDisciplines()}) d: d,
           },
@@ -868,7 +872,7 @@ class _FinishStep extends StatelessWidget {
         );
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Wrap(spacing: 12, runSpacing: 12, children: [
-        derived('Sang', '${c.blood} · ${c.bloodPerTurn} par tour', c.genRank?.label ?? '—'),
+        derived('Sang', '${c.blood} · ${c.bloodPerTurn} par tour', c.ghoul != null ? 'Goule' : (c.genRank?.label ?? '—')),
         derived('Volonté', '${c.willpower}', 'Valeur normale'),
         derived('Santé', c.health, 'Sain · Blessé · Incapacité'),
         derived('Humanité', '${c.humanity}', 'Moralité de départ'),

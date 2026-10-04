@@ -116,7 +116,7 @@ int capFor(Character c, String kind, String name, {Rulebook rb = const Rulebook(
       Buy.attribute => 10 + _bonusLeftFor(c, AttrCategory.values.byName(name), rb),
       Buy.humanity => 6,
       Buy.background when name == generationName => 3,
-      Buy.skill => rb.skillCap(name, rankFor(c)),
+      Buy.skill => rb.skillCap(name, rankFor(c), row: creationRow(c, rb: rb)),
       Buy.background => rb.backgroundCap(name),
       Buy.ritual || Buy.technique || Buy.elderPower => 1,
       _ => 5,
@@ -437,7 +437,7 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
     final mode = rb.domainMode(s.name);
     if ((mode == 'perDot' || mode == 'multiple') && (s.note ?? '').trim().isEmpty) add(5, CheckLevel.todo, 'Précisez le domaine de ${s.name}');
     state(5, 'skills', 'Compétence', s.name);
-    final cap = rb.skillCap(s.name, rankFor(c));
+    final cap = rb.skillCap(s.name, rankFor(c), row: creationRow(c, rb: rb));
     if (s.level > cap) add(5, CheckLevel.error, '${s.name} : $cap au plus');
   }
 

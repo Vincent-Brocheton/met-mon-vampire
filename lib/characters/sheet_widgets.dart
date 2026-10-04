@@ -94,7 +94,7 @@ class DotsRow extends StatelessWidget {
 }
 
 String identityLine(Character c) =>
-    [if (c.ghoul != null) 'Goule de ${c.ghoul!.domitorName}', c.clan, c.sect, c.genRank?.label].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+    [if (c.ghoul != null) ghoulLine(c.ghoul!), c.clan, c.sect, c.genRank?.label].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
 
 String _generation(Character c) =>
     c.genRank == null ? '' : '${c.genRank!.label}${c.genNumber == null ? '' : ' (${c.genNumber}e)'}';

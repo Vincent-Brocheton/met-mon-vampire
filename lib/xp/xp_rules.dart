@@ -142,7 +142,7 @@ List<(String, String)> costTable(Character c, {Rulebook rb = const Rulebook()}) 
 int capOf(Character c, XpKind k, String name, {Rulebook rb = const Rulebook()}) => switch (k) {
       XpKind.attribute => 10,
       XpKind.humanity => 6,
-      XpKind.skill => rb.skillCap(name, c.genRank),
+      XpKind.skill => rb.skillCap(name, c.genRank, row: rb.rowFor(c)),
       XpKind.background => rb.backgroundCap(name),
       _ => 5,
     };

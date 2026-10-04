@@ -334,6 +334,7 @@ class _Editor extends ConsumerWidget {
       ChoiceField(label: 'Clan', value: c.clan, options: names('clans'), onChanged: (v) => set(() => c.clan = v)),
       TextFieldRow(label: 'Lignée', value: c.lineage, onChanged: (v) => set(() => c.lineage = v)),
       ChoiceField(label: 'Secte', value: c.sect, options: names('sects'), onChanged: (v) => set(() => c.sect = v)),
+      if (c.ghoul == null)
       DropdownButtonFormField<GenRank?>(
         initialValue: c.genRank,
         decoration: const InputDecoration(labelText: 'Rang de génération'),
@@ -346,7 +347,7 @@ class _Editor extends ConsumerWidget {
           if (g == null || !rb.gen(g).numbers.contains(c.genNumber)) c.genNumber = null;
         }),
       ),
-      if (c.genRank != null)
+      if (c.ghoul == null && c.genRank != null)
         DropdownButtonFormField<int?>(
           // Numéro retiré du référentiel ou en double : le menu ne doit pas planter.
           initialValue: rb.gen(c.genRank!).numbers.contains(c.genNumber) ? c.genNumber : null,
@@ -381,7 +382,7 @@ class _Editor extends ConsumerWidget {
         PointsField(
           label: 'Points bonus ${cat.label}',
           value: c.attributeBonus[cat] ?? 0,
-          max: rb.gen(c.genRank ?? GenRank.neonate).attributeBonus,
+          max: rb.rowFor(c).attributeBonus,
           asDots: false,
           onChanged: (v) => set(() => c.attributeBonus[cat] = v),
         ),

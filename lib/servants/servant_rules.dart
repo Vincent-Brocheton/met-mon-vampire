@@ -1,5 +1,5 @@
 import '../characters/character.dart';
-import '../core/widgets.dart' show formatDay;
+import '../core/dates.dart';
 import '../rulebook/rulebook.dart';
 import 'servant_file.dart';
 

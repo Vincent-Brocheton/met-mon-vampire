@@ -56,6 +56,22 @@ void main() {
     expect(own.gen(GenRank.ancilla).blood, rb.gen(GenRank.ancilla).blood, reason: 'les autres rangs gardent leurs valeurs de base');
   });
 
+  test('repli sur le Neonate de la chronique, plafond des compétences de la ligne « Goule » (revue)', () {
+    final neonate = Rulebook({
+      'generations': [
+        RuleEntry(name: 'Neonate', data: {'rank': 'neonate', 'traitFactor': 3}),
+      ],
+    });
+    expect(neonate.ghoulRow().traitFactor, 3, reason: 'sans ligne « Goule », celle du Neonate de la chronique');
+    expect(neonate.ghoulRow().blood, 10);
+    final own = Rulebook({
+      'generations': [
+        RuleEntry(name: 'Goule', data: {'rank': ghoulRank, 'skillCap': 3}),
+      ],
+    });
+    expect(own.skillCap('Médecine', null, row: own.rowFor(mila())), 3);
+  });
+
   test('résumé des changements d’une goule', () {
     final a = mila();
     final b = a.clone();

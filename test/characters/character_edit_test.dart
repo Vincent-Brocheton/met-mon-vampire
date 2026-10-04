@@ -113,6 +113,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('L’Humanité d’une goule ne peut pas baisser.'), findsOneWidget);
     expect(repo.calls, isEmpty);
+    expect(find.text('Rang de génération'), findsNothing, reason: 'revue : pas de génération pour une goule');
   });
 
   testWidgets('goule : gorgée et copie du domitor dans C3', (tester) async {

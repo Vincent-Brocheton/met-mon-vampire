@@ -235,7 +235,8 @@ class Rulebook {
       };
 
   /// Plafond de la compétence, borné par celui du rang.
-  int skillCap(String skill, GenRank? rank) => min(_int('skills', skill, 'cap') ?? 5, gen(rank ?? GenRank.neonate).skillCap);
+  /// [row] : valeurs de la fiche quand elles ne viennent pas d'un rang (goule).
+  int skillCap(String skill, GenRank? rank, {GenRow? row}) => min(_int('skills', skill, 'cap') ?? 5, (row ?? gen(rank ?? GenRank.neonate)).skillCap);
 
   int backgroundCap(String name) => _int('backgrounds', name, 'cap') ?? 5;
 
@@ -320,7 +321,8 @@ class Rulebook {
   /// Valeurs d'une goule : la ligne « Goule » du tableau des générations, ou celles d'un Neonate
   /// avec Sang 10, 1 par tour, sans technique ni pouvoir d'ancien.
   GenRow ghoulRow() {
-    final base = GenRow.fromData(const {'blood': 10, 'bloodPerTurn': 1, 'techniqueCost': 0}, _baseRows[GenRank.neonate]!);
+    // Sans ligne « Goule » : le Neonate de la chronique (pas celui du livre), avec le sang et les interdits d'une goule.
+    final base = GenRow.fromData(const {'blood': 10, 'bloodPerTurn': 1, 'techniqueCost': 0}, gen(GenRank.neonate));
     final e = all('generations').where((e) => e.state.offered && e.data['rank'] == ghoulRank).firstOrNull;
     return e == null ? base : GenRow.fromData(e.data, base);
   }

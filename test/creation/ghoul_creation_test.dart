@@ -43,6 +43,7 @@ void main() {
     expect((c.blood, c.bloodPerTurn, c.genRank, c.genNumber), (10, 1, null, null));
     expect(at(c, 9).where((k) => k.$2.contains('incohérentes')), isEmpty);
     expect(stepIntroOf(7, const CreationValues(), ghoul: true), contains('5 points'));
+    expect(stepIntroOf(9, const CreationValues(), ghoul: true), isNot(contains('génération')), reason: 'revue');
   });
 
   test('brouillon écrit hors de l’application : achats et techniques interdits signalés à la soumission (revue)', () {
@@ -86,5 +87,15 @@ void main() {
     expect(find.text('Discipline'), findsNothing);
     expect(find.text('Technique'), findsOneWidget, reason: 'seulement la ligne du tableau des coûts, pas le menu');
     expect(find.text('COÛTS POUR UNE GOULE'), findsOneWidget, reason: 'titre de section en majuscules');
+    await tester.tap(find.text('Historique').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('buy-name-background')));
+    await tester.pumpAndSettle();
+    expect(find.text('Génération'), findsOneWidget, reason: 'revue : seulement la ligne « Interdite » du tableau des coûts, pas le menu');
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    rebuild(() => step = 10);
+    await tester.pump();
+    expect(find.text('Goule'), findsOneWidget, reason: 'revue : carte Sang');
   });
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../auth/session.dart';
 import 'theme.dart';
 
+export 'dates.dart';
+
 bool isWide(BuildContext context) => MediaQuery.sizeOf(context).width >= kWideBreakpoint;
 
 /// Le logo goutte des maquettes.
@@ -145,9 +147,7 @@ String initialsOf(String name) => name
     .map((p) => p[0].toUpperCase())
     .join();
 
-const _months = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 
-String formatDay(DateTime? d) => d == null ? '—' : '${d.day} ${_months[d.month - 1]}';
 
 Color roleColor(Role role) => switch (role) {
       Role.principal || Role.conteur => AppColors.goldLight,

@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import '../core/widgets.dart' show formatDay;
+import '../core/dates.dart';
 import 'character.dart';
 
 /// Points en pastilles ; 0 s'écrit « — ».

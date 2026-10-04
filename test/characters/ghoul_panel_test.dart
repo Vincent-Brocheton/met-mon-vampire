@@ -17,7 +17,7 @@ void main() {
     expect(find.text('4 / 5'), findsOneWidget);
     expect(find.text('Buvez avant le ${formatDay(DateTime(2026, 10, 26))}, sinon son âge le rattrape : 10 ans par jour.'), findsOneWidget);
     expect(find.text('ne peut pas baisser'), findsOneWidget);
-    expect(identityLine(mila()), 'Goule de Isaure de Valcourt');
+    expect(identityLine(mila()), 'Goule de Isaure de Valcourt · clan du domitor : Toreador', reason: 'revue : en-tête de la spec');
   });
 
   testWidgets('fiche en lecture d’une goule : panneau affiché', (tester) async {
