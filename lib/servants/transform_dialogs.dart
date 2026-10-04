@@ -24,7 +24,7 @@ class EmbraceChoice {
 /// Fiches de vampires actives (sires et domitors possibles).
 List<Character> _vampires(WidgetRef ref) => [
       for (final c in ref.watch(allCharactersProvider).value ?? const <Character>[])
-        if (c.ghoul == null && c.status == CharacterStatus.active) c,
+        if (c.isActiveVampire) c,
     ];
 
 /// Joueurs possibles, sans le conteur lui-même (les règles lui refusent sa propre fiche).

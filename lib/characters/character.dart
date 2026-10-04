@@ -402,6 +402,9 @@ class Character {
   String? get bloodClan => ghoul?.domitorClan ?? clan;
   String? get bloodLineage => ghoul?.domitorLineage ?? lineage;
 
+  /// Fiche de vampire active : sire ou domitor possible.
+  bool get isActiveVampire => ghoul == null && status == CharacterStatus.active;
+
   int get xpAvailable => xpInitial + xpEarned - xpSpent;
 
   /// Les quatre clés tardives, vides comprises. Pour les écritures qui peuvent tout changer (brouillon du joueur,

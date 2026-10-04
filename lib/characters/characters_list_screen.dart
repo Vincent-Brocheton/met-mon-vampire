@@ -245,7 +245,7 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
 
   List<Character> _domitors() => [
         for (final c in ref.read(allCharactersProvider).value ?? const <Character>[])
-          if (c.ghoul == null && c.status == CharacterStatus.active) c,
+          if (c.isActiveVampire) c,
       ];
 
   /// Copie du domitor choisi, lue dans la liste à jour.
