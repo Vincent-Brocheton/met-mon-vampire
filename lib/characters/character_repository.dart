@@ -88,17 +88,34 @@ class CharacterRepository {
     return ref.id;
   }
 
-  /// Modification tracée (C3). Refusée par les règles si la fiche a changé entre-temps (version).
-  Future<void> saveEdit(Character before, Character after, String reason, Actor by) => _commit(
+  /// Fiche complète créée d'un coup (étreinte d'un mortel ou d'un serviteur) ; renvoie l'id.
+  Future<String> createSheet(Character c, Actor by, String summary) async {
+    final ref = _col.doc();
+    final h = ref.collection('history').doc();
+    final sheet = Character.fromMap(ref.id, c.toMap())
+      ..version = 1
+      ..lastHistoryId = h.id;
+    final now = FieldValue.serverTimestamp();
+    await (_db.batch()
+          ..set(ref, {...sheet.toMap(), 'createdAt': now, 'updatedAt': now})
+          ..set(h, _entry(by, 'creation', [summary], '')))
+        .commit();
+    return ref.id;
+  }
+
+  /// Modification tracée (C3, transformations). Refusée par les règles si la fiche a changé entre-temps (version).
+  /// [extra] : clés écrites en plus, par exemple la suppression de `ghoul` à l'étreinte.
+  Future<void> saveEdit(Character before, Character after, String reason, Actor by, {String? kind, Map<String, Object?> extra = const {}}) =>
+      _commit(
         after,
         fromVersion: before.version,
         by: by,
-        kind: before.status != after.status ? 'status' : 'edit',
+        kind: kind ?? (before.status != after.status ? 'status' : 'edit'),
         summary: describeChanges(before, after),
         reason: reason,
         delta: xpDelta(before, after),
         // Un rituel retiré après un premier enregistrement doit être effacé (revue du plan C).
-        extra: after.laterKeys(),
+        extra: {...after.laterKeys(), ...extra},
       );
 
   /// Brouillon du joueur : version +1, pas d'historique (règle playerDraftSave).

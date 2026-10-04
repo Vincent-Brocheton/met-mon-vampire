@@ -62,11 +62,27 @@ class FakeCharacterRepository implements CharacterRepository {
   /// Appelé pendant saveEdit (simule l'instantané local de Firestore avant la fin du commit).
   void Function()? onSaveEdit;
 
+  Character? lastAfter;
+  String? lastKind;
+  Map<String, Object?>? lastExtra;
+  Character? lastCreated;
+
   @override
-  Future<void> saveEdit(Character before, Character after, String reason, Actor by) async {
+  Future<void> saveEdit(Character before, Character after, String reason, Actor by, {String? kind, Map<String, Object?> extra = const {}}) async {
     calls.add('saveEdit:$reason');
+    lastAfter = after;
+    lastKind = kind;
+    lastExtra = extra;
     onSaveEdit?.call();
     if (error != null) throw error!;
+  }
+
+  @override
+  Future<String> createSheet(Character c, Actor by, String summary) async {
+    calls.add('createSheet:${c.name}');
+    if (error != null) throw error!;
+    lastCreated = c;
+    return 'new-sheet';
   }
 
   GhoulState? lastGhoul;
