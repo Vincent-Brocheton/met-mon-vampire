@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
+import '../core/trace.dart';
 import 'place.dart';
 import 'place_rules.dart';
 
@@ -36,12 +37,12 @@ class PlacesRepository {
   Stream<String> watchNote(String id) =>
       _col.doc(id).collection('private').doc('note').snapshots().map((d) => d.data()?['text'] as String? ?? '');
 
-  Stream<List<PlaceEntry>> watchHistory(String id) => _col
+  Stream<List<TraceEntry>> watchHistory(String id) => _col
       .doc(id)
       .collection('history')
       .orderBy('at', descending: true)
       .snapshots()
-      .map((q) => [for (final d in q.docs) PlaceEntry.fromMap(d.data())]);
+      .map((q) => [for (final d in q.docs) TraceEntry.fromMap(d.data())]);
 
   /// Crée (id vide) ou modifie [p] dans un lot : lieu (version + 1), entrée d'historique, résumé public
   /// (écrit si connu de tous, supprimé sinon) et note secrète. Renvoie l'id.
@@ -115,4 +116,4 @@ Stream<List<Place>> characterPlaces(Ref ref, String characterId) {
 Stream<String> placeNote(Ref ref, String id) => ref.watch(placesRepositoryProvider).watchNote(id);
 
 @riverpod
-Stream<List<PlaceEntry>> placeHistory(Ref ref, String id) => ref.watch(placesRepositoryProvider).watchHistory(id);
+Stream<List<TraceEntry>> placeHistory(Ref ref, String id) => ref.watch(placesRepositoryProvider).watchHistory(id);

@@ -8,6 +8,7 @@ import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart' show dots;
 import '../core/empty_state.dart';
 import '../core/theme.dart';
+import '../core/trace.dart';
 import '../core/widgets.dart';
 import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
@@ -538,20 +539,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
         const SizedBox(height: 16),
         const SectionTitle('Historique'),
         const SizedBox(height: 8),
-        asyncView(ref.watch(placeHistoryProvider(_d.id)), (entries) {
-          if (entries.isEmpty) return Text('Aucune entrée.', style: t.bodySmall);
-          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (final e in entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${formatDay(e.at)} · ${e.byName}', style: t.bodySmall),
-                  for (final s in e.summary) Text(s, style: t.bodyMedium),
-                  if (e.reason.isNotEmpty) Text('Motif : ${e.reason}', style: t.bodySmall),
-                ]),
-              ),
-          ]);
-        }),
+        asyncView(ref.watch(placeHistoryProvider(_d.id)), TraceHistory.new),
       ],
     ]);
   }

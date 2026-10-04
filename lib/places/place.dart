@@ -105,20 +105,3 @@ class Place {
   /// Copie profonde (nouvelles qualités) pour l'édition.
   Place copy() => Place.fromMap(id, {...toMap(), 'version': version});
 }
-
-/// Entrée de l'historique d'un lieu.
-class PlaceEntry {
-  const PlaceEntry({required this.at, required this.byName, required this.summary, required this.reason});
-
-  factory PlaceEntry.fromMap(Map<String, dynamic> m) => PlaceEntry(
-        at: (m['at'] as Timestamp?)?.toDate(),
-        byName: m['byName'] as String? ?? '',
-        summary: [for (final s in (m['summary'] as List?) ?? const []) '$s'],
-        reason: m['reason'] as String? ?? '',
-      );
-
-  final DateTime? at;
-  final String byName;
-  final List<String> summary;
-  final String reason;
-}

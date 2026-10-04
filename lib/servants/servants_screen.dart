@@ -9,6 +9,7 @@ import '../characters/describe_changes.dart' show dots;
 import '../characters/transformations.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
+import '../core/trace.dart';
 import '../core/widgets.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -536,20 +537,7 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
         const SizedBox(height: 16),
         const SectionTitle('Historique'),
         const SizedBox(height: 8),
-        asyncView(ref.watch(servantHistoryProvider(_base.id)), (entries) {
-          if (entries.isEmpty) return Text('Aucune entrée.', style: t.bodySmall);
-          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            for (final e in entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${formatDay(e.at)} · ${e.byName}', style: t.bodySmall),
-                  for (final s in e.summary) Text(s, style: t.bodyMedium),
-                  if (e.reason.isNotEmpty) Text('Motif : ${e.reason}', style: t.bodySmall),
-                ]),
-              ),
-          ]);
-        }),
+        asyncView(ref.watch(servantHistoryProvider(_base.id)), TraceHistory.new),
       ],
     ]);
   }

@@ -3,7 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
-import '../places/place.dart' show PlaceEntry;
+import '../core/trace.dart';
 import 'servant_file.dart';
 import 'servant_rules.dart';
 
@@ -32,12 +32,12 @@ class ServantsRepository {
   Stream<String> watchNote(String id) =>
       _col.doc(id).collection('private').doc('note').snapshots().map((d) => d.data()?['text'] as String? ?? '');
 
-  Stream<List<PlaceEntry>> watchHistory(String id) => _col
+  Stream<List<TraceEntry>> watchHistory(String id) => _col
       .doc(id)
       .collection('history')
       .orderBy('at', descending: true)
       .snapshots()
-      .map((q) => [for (final d in q.docs) PlaceEntry.fromMap(d.data())]);
+      .map((q) => [for (final d in q.docs) TraceEntry.fromMap(d.data())]);
 
   /// Crée ([before] en version 0) ou modifie [f] dans un lot : fiche (version + 1), historique, note. Renvoie l'id.
   /// Un mortel neuf a un id vide : Firestore en génère un.
@@ -133,4 +133,4 @@ Stream<List<ServantFile>> characterServantFiles(Ref ref, String characterId) {
 Stream<String> servantNote(Ref ref, String id) => ref.watch(servantsRepositoryProvider).watchNote(id);
 
 @riverpod
-Stream<List<PlaceEntry>> servantHistory(Ref ref, String id) => ref.watch(servantsRepositoryProvider).watchHistory(id);
+Stream<List<TraceEntry>> servantHistory(Ref ref, String id) => ref.watch(servantsRepositoryProvider).watchHistory(id);

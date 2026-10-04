@@ -292,11 +292,11 @@ final placeHistoryProvider = PlaceHistoryFamily._();
 final class PlaceHistoryProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<PlaceEntry>>,
-          List<PlaceEntry>,
-          Stream<List<PlaceEntry>>
+          AsyncValue<List<TraceEntry>>,
+          List<TraceEntry>,
+          Stream<List<TraceEntry>>
         >
-    with $FutureModifier<List<PlaceEntry>>, $StreamProvider<List<PlaceEntry>> {
+    with $FutureModifier<List<TraceEntry>>, $StreamProvider<List<TraceEntry>> {
   PlaceHistoryProvider._({
     required PlaceHistoryFamily super.from,
     required String super.argument,
@@ -320,12 +320,12 @@ final class PlaceHistoryProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<PlaceEntry>> $createElement(
+  $StreamProviderElement<List<TraceEntry>> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<List<PlaceEntry>> create(Ref ref) {
+  Stream<List<TraceEntry>> create(Ref ref) {
     final argument = this.argument as String;
     return placeHistory(ref, argument);
   }
@@ -341,10 +341,10 @@ final class PlaceHistoryProvider
   }
 }
 
-String _$placeHistoryHash() => r'1e1f4ba44513c3182be5f8b51e60a57a5c080d50';
+String _$placeHistoryHash() => r'3506ff6c58e63d25a07f9f14a96a0e2cd43d6692';
 
 final class PlaceHistoryFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<List<PlaceEntry>>, String> {
+    with $FunctionalFamilyOverride<Stream<List<TraceEntry>>, String> {
   PlaceHistoryFamily._()
     : super(
         retry: null,

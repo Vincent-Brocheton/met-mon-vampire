@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/core/trace.dart';
 import 'package:portail_met/places/place.dart';
 import 'package:portail_met/places/places_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
@@ -248,7 +249,7 @@ class FakePlacesRepository implements PlacesRepository {
   Stream<String> watchNote(String id) => Stream.value('');
 
   @override
-  Stream<List<PlaceEntry>> watchHistory(String id) => Stream.value(const []);
+  Stream<List<TraceEntry>> watchHistory(String id) => Stream.value(const []);
 
   @override
   Future<String> save(Place before, Place p, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
@@ -286,7 +287,7 @@ class FakeServantsRepository implements ServantsRepository {
   Stream<String> watchNote(String id) => Stream.value('');
 
   @override
-  Stream<List<PlaceEntry>> watchHistory(String id) => Stream.value(const []);
+  Stream<List<TraceEntry>> watchHistory(String id) => Stream.value(const []);
 
   @override
   Future<String> save(ServantFile before, ServantFile f, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
