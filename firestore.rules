@@ -335,10 +335,13 @@ service cloud.firestore {
     }
     function itemRequestOk() {
       let d = request.resource.data;
+      let c = get(/databases/$(database)/documents/characters/$(d.characterId)).data;
       return signedIn() && d.state == 'requested' && d.version == 1 && d.playerUid == request.auth.uid
         && d.get('extraQuality', null) == null && d.refusal == '' && !d.keys().hasAny(['lastHistoryId'])
         && d.qualities.size() <= 2
-        && get(/databases/$(database)/documents/characters/$(d.characterId)).data.playerUid == request.auth.uid;
+        && c.playerUid == request.auth.uid && c.status == 'active' && d.characterName == c.name
+        && d.createdAt == request.time && d.updatedAt == request.time
+        && d.updatedByName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName;
     }
 
     match /items/{id} {

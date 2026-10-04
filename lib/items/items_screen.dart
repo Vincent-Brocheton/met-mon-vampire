@@ -243,7 +243,8 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
     super.dispose();
   }
 
-  Future<void> _save({String? reason}) async {
+  /// [state] et [refusal] ne s'appliquent qu'à un enregistrement accepté ; un refus passe outre les contrôles.
+  Future<void> _save({String? reason, ItemState? state, String? refusal}) async {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null) return;
     _d
@@ -260,7 +261,10 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
         ..characterName = holder.name
         ..playerUid = holder.playerUid ?? '';
     }
-    if (itemChecks(_d, widget.rb).errors.isNotEmpty) {
+    final target = _d.copy()
+      ..state = state ?? _d.state
+      ..refusal = refusal ?? _d.refusal;
+    if (target.state != ItemState.refused && itemChecks(target, widget.rb).errors.isNotEmpty) {
       setState(() => _error = 'Corrigez les erreurs avant d’enregistrer.');
       return;
     }
@@ -272,7 +276,7 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
     try {
       final id = await ref
           .read(itemsRepositoryProvider)
-          .save(_base, _d, by, note: _note.text, noteBefore: _noteBefore, reason: reason ?? _reason.text);
+          .save(_base, target, by, note: _note.text, noteBefore: _noteBefore, reason: reason ?? _reason.text);
       messenger.showSnackBar(const SnackBar(content: Text('Objet enregistré.')));
       widget.onSaved(id);
     } catch (_) {
@@ -285,10 +289,7 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
   }
 
   Future<void> _validate() async {
-    _d
-      ..state = ItemState.active
-      ..refusal = '';
-    await _save(reason: 'Demande validée');
+    await _save(reason: 'Demande validée', state: ItemState.active, refusal: '');
   }
 
   Future<void> _refuse() async {
@@ -309,10 +310,7 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Indiquez un motif.')));
       return;
     }
-    _d
-      ..state = ItemState.refused
-      ..refusal = text;
-    await _save(reason: 'Demande refusée');
+    await _save(reason: 'Demande refusée', state: ItemState.refused, refusal: text);
   }
 
   Future<void> _delete() async {

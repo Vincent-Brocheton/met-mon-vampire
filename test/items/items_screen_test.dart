@@ -116,6 +116,22 @@ void main() {
     expect(repo.lastReason, 'Demande validée');
   });
 
+  testWidgets('demande invalide : validation bloquée sans changer l’état, refus possible', (tester) async {
+    final repo = await pump(tester, items: [phone()..qualities = ['Fer froid', 'Brutale']]);
+    await tester.tap(find.byKey(const Key('it-row-r1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('it-validate')));
+    await tester.pumpAndSettle();
+    expect(repo.calls, isEmpty);
+    expect(find.descendant(of: find.byKey(const Key('it-state')), matching: find.text('Demande à valider')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('it-refuse')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('refusal')), 'Qualités non autorisées.');
+    await tester.tap(find.byKey(const Key('refusal-ok')));
+    await tester.pumpAndSettle();
+    expect((repo.lastSaved!.state, repo.lastSaved!.refusal), (ItemState.refused, 'Qualités non autorisées.'));
+  });
+
   testWidgets('demande : refuser avec motif', (tester) async {
     final repo = await pump(tester);
     await tester.tap(find.byKey(const Key('it-row-r1')));

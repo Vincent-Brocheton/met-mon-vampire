@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, writeBatch, serverTimestamp, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, writeBatch, serverTimestamp, collection, query, where, Timestamp } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -25,6 +25,7 @@ beforeEach(async () => {
     const users = { lea: 'conteur', julien: 'narrateur', zoe: 'joueur', max: 'joueur' };
     for (const [uid, role] of Object.entries(users)) await setDoc(doc(db, `users/${uid}`), { displayName: uid, email: `${uid}@ex.fr`, role });
     await setDoc(doc(db, 'characters/c1'), { name: 'Isaure', playerUid: 'zoe', kind: 'pj', status: 'active' });
+    await setDoc(doc(db, 'characters/c3'), { name: 'Octave', playerUid: 'zoe', kind: 'pj', status: 'dead' });
     await setDoc(doc(db, 'characters/c2'), { name: 'Rafael', playerUid: 'max', kind: 'pj', status: 'active' });
     await setDoc(doc(db, 'items/i1'), item({ lastHistoryId: 'h1' }));
     await setDoc(doc(db, 'items/i1/private/note'), { text: 'Secret' });
@@ -63,6 +64,10 @@ test('demande du joueur : pour son personnage, en son nom (Review Focus 1)', asy
   await assertFails(setDoc(doc(as('zoe'), 'items/n3'), request({ playerUid: 'max' })));
   await assertFails(setDoc(doc(as('max'), 'items/n4'), request({ playerUid: 'max' })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n5'), request({ characterId: 'absent' })));
+  await assertFails(setDoc(doc(as('zoe'), 'items/n6'), request({ characterId: 'c3', characterName: 'Octave' })));
+  await assertFails(setDoc(doc(as('zoe'), 'items/n7'), request({ updatedByName: 'Léa (conteur)' })));
+  await assertFails(setDoc(doc(as('zoe'), 'items/n8'), request({ createdAt: Timestamp.fromMillis(0) })));
+  await assertFails(setDoc(doc(as('zoe'), 'items/n9'), request({ characterName: 'Autre' })));
 });
 
 test('demande du joueur : rien au-delà d’une demande (Review Focus 2)', async () => {
