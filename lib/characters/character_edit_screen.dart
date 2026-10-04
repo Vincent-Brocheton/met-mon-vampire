@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,8 @@ import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../rules/met_lists.dart' show focuses;
+import '../servants/servants_repository.dart';
+import '../servants/servants_section.dart';
 import 'character.dart';
 import 'character_repository.dart';
 import 'character_screen.dart';
@@ -113,6 +117,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     setState(() => _saving = true);
     try {
       await ref.read(characterRepositoryProvider).saveEdit(_base!, _draft!, reason, by);
+      // Serviteurs retirés : leur fiche détaillée est marquée libérée (lot séparé, sans bloquer l'enregistrement).
+      final kept = {for (final s in _draft!.servants) s.id};
+      for (final s in _base!.servants) {
+        if (!kept.contains(s.id)) unawaited(ref.read(servantsRepositoryProvider).release(s.id, by).catchError((_) {}));
+      }
       if (mounted) {
         setState(() {
           _base = _draft!.clone()..version = _base!.version + 1;
@@ -203,6 +212,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               NotesPanel(id: latest.id),
               const SizedBox(height: 20),
               PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
+              const SizedBox(height: 20),
+              ServantsSection(character: latest, linkOf: (_) => '/conteur/goules'),
             ]),
         ),
         if (changes.isNotEmpty)
@@ -369,6 +380,7 @@ class _Editor extends ConsumerWidget {
     final lists = [
       section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
       section('Historiques', [TraitListEditor(items: c.backgrounds, options: [for (final n in names('backgrounds')) if (n != servantsBackground) n], noteLabel: 'Précisions', onChanged: onChanged)]),
+      section('Serviteurs', [ServantListEditor(characterId: c.id, items: c.servants, onChanged: onChanged)]),
       section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
       section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
       section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),

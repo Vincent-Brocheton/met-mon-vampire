@@ -6,6 +6,7 @@ import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../places/character_places_screen.dart';
+import '../servants/servants_section.dart';
 import 'character.dart';
 import 'character_repository.dart';
 import 'sheet_widgets.dart';
@@ -53,6 +54,11 @@ class CharacterScreen extends ConsumerWidget {
           CharacterSheetView(c),
           const SizedBox(height: 20),
           PlacesSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/lieux' : '/conteur/lieux'),
+          const SizedBox(height: 20),
+          ServantsSection(
+            character: c,
+            linkOf: (sid) => basePath.startsWith('/joueur') ? '$basePath/serviteurs/$sid' : '/conteur/goules',
+          ),
         ],
       ]);
     }, onRetry: () => ref.invalidate(characterProvider(id)));

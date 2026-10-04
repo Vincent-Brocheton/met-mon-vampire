@@ -19,6 +19,7 @@ void main() {
       overrides: [
         characterProvider('x').overrideWith((ref) => stream),
         noPlaces,
+        noServantFiles,
         characterHistoryProvider('x').overrideWith((ref) => Stream.value([
               HistoryEntry(id: 'h', at: DateTime(2026, 9, 2), byName: 'Léa', kind: 'edit', summary: ['Présence ● → ●●'], reason: 'Demande validée', xpSpent: 6),
             ])),

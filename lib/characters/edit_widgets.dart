@@ -314,3 +314,81 @@ class NameListEditor extends StatelessWidget {
     ]);
   }
 }
+
+/// Serviteurs (C3) : nom, type, rang ; l'identifiant reste celui de la fiche détaillée.
+class ServantListEditor extends StatelessWidget {
+  const ServantListEditor({super.key, required this.characterId, required this.items, required this.onChanged});
+
+  final String characterId;
+  final List<Servant> items;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final s in items)
+        Container(
+          key: ObjectKey(s),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('servant-name-${s.id}'),
+                  initialValue: s.name,
+                  decoration: const InputDecoration(labelText: 'Nom', isDense: true),
+                  onChanged: (v) {
+                    s.name = v.trim();
+                    onChanged();
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 160,
+                child: DropdownButtonFormField<ServantKind>(
+                  initialValue: s.kind,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Type', isDense: true),
+                  items: [for (final k in ServantKind.values) DropdownMenuItem(value: k, child: Text(k.label))],
+                  onChanged: (k) {
+                    s.kind = k ?? s.kind;
+                    onChanged();
+                  },
+                ),
+              ),
+              IconButton(
+                tooltip: 'Retirer ${s.name}',
+                onPressed: () {
+                  items.remove(s);
+                  onChanged();
+                },
+                icon: const Icon(Icons.close, size: 18),
+              ),
+            ]),
+            PointsField(
+              label: 'Rang',
+              value: s.rank,
+              max: 5,
+              onChanged: (v) {
+                s.rank = v.clamp(1, 5);
+                onChanged();
+              },
+            ),
+          ]),
+        ),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton(
+          onPressed: () {
+            items.add(Servant(newServantId(characterId), 'Nouveau serviteur', ServantKind.human, 1));
+            onChanged();
+          },
+          child: const Text('+ Serviteur'),
+        ),
+      ),
+    ]);
+  }
+}

@@ -25,6 +25,7 @@ import 'places/places_screen.dart';
 import 'redirect.dart';
 import 'rulebook/referential_screen.dart';
 import 'servants/servants_screen.dart';
+import 'servants/servants_section.dart';
 import 'shell/app_shell.dart';
 import 'xp/corrections_screen.dart';
 import 'xp/my_requests_screen.dart';
@@ -116,6 +117,10 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/lieux',
             builder: (_, s) => CharacterPlacesScreen(characterId: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/serviteurs/:sid',
+            builder: (_, s) => ServantScreen(characterId: s.pathParameters['id']!, servantId: s.pathParameters['sid']!),
           ),
           page('/joueur/pnj', soon('PNJ confiés')),
           GoRoute(
