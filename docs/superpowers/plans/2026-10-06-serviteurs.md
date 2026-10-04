@@ -742,12 +742,13 @@ DueState? dueState(DateTime? lastDrink, DateTime now) {
   if (lastDrink == null) return null;
   final due = dueDate(lastDrink);
   if (now.isAfter(due)) return DueState.late;
-  if (now.isAfter(due.subtract(const Duration(days: 7)))) return DueState.soon;
+  if (now.isAfter(DateTime(due.year, due.month, due.day - 7))) return DueState.soon;
   return DueState.ok;
 }
 
 /// Points indisponibles pour le domitor : 6 semaines après la libération.
-DateTime unavailableUntil(DateTime releasedAt) => releasedAt.add(const Duration(days: 42));
+DateTime unavailableUntil(DateTime releasedAt) =>
+    DateTime(releasedAt.year, releasedAt.month, releasedAt.day + 42, releasedAt.hour, releasedAt.minute); // jours de calendrier : sans décalage à l'heure d'hiver
 
 int animalPoints(List<String> qualities, Rulebook rb) => qualities.fold(0, (s, q) => s + (rb.cost('animalQualities', q) ?? 0));
 
