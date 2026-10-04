@@ -109,6 +109,35 @@ class Purchase {
   Map<String, dynamic> toMap() => {'kind': kind, 'name': name, 'toLevel': toLevel, 'cost': cost};
 }
 
+/// Rituel appris ; école et niveau recopiés du référentiel.
+class Ritual {
+  Ritual(this.name, this.school, this.level);
+
+  factory Ritual.fromMap(Map<String, dynamic> m) => Ritual(m['name'] as String? ?? '', m['school'] as String? ?? '', _int(m['level']));
+
+  final String name;
+  final String school;
+  final int level;
+
+  Map<String, dynamic> toMap() => {'name': name, 'school': school, 'level': level};
+}
+
+/// Pouvoir d'ancien appris, et sa discipline.
+class ElderPower {
+  ElderPower(this.name, this.discipline);
+
+  factory ElderPower.fromMap(Map<String, dynamic> m) => ElderPower(m['name'] as String? ?? '', m['discipline'] as String? ?? '');
+
+  final String name;
+  final String discipline;
+
+  Map<String, dynamic> toMap() => {'name': name, 'discipline': discipline};
+}
+
+/// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
+/// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus'];
+
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
   Character({
@@ -162,6 +191,11 @@ class Character {
       ..disciplines = _maps(m['disciplines']).map(Discipline.fromMap).toList()
       ..merits = _maps(m['merits']).map(Trait.fromMap).toList()
       ..flaws = _maps(m['flaws']).map(Trait.fromMap).toList()
+      ..rituals = _maps(m['rituals']).map(Ritual.fromMap).toList()
+      ..techniques = [for (final t in (m['techniques'] as List?) ?? const []) '$t']
+      ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
+      ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
+      ..storedKeys = {for (final k in _laterKeys) if (m.containsKey(k)) k}
       ..blood = _int(m['blood'])
       ..bloodPerTurn = _int(m['bloodPerTurn'])
       ..willpower = _int(m['willpower'])
@@ -201,6 +235,15 @@ class Character {
   List<Discipline> disciplines = [];
   List<Trait> merits = [];
   List<Trait> flaws = [];
+  List<Ritual> rituals = [];
+  List<String> techniques = [];
+  List<ElderPower> elderPowers = [];
+
+  /// Points bonus de Génération placés : le plafond de la catégorie passe à 10 + ce nombre.
+  Map<AttrCategory, int> attributeBonus = {for (final a in AttrCategory.values) a: 0};
+
+  /// Clés tardives présentes dans le document lu (voir _laterKeys).
+  Set<String> storedKeys = {};
   int blood = 0, bloodPerTurn = 0, willpower = 0, humanity = 0;
   String health = '3 · 3 · 3';
   int xpInitial = 0, xpBonus = 0, xpEarned = 0, xpSpent = 0;
@@ -247,6 +290,11 @@ class Character {
         'disciplines': [for (final d in disciplines) d.toMap()],
         'merits': [for (final t in merits) t.toMap()],
         'flaws': [for (final t in flaws) t.toMap()],
+        if (rituals.isNotEmpty || storedKeys.contains('rituals')) 'rituals': [for (final r in rituals) r.toMap()],
+        if (techniques.isNotEmpty || storedKeys.contains('techniques')) 'techniques': [...techniques],
+        if (elderPowers.isNotEmpty || storedKeys.contains('elderPowers')) 'elderPowers': [for (final e in elderPowers) e.toMap()],
+        if (attributeBonus.values.any((v) => v != 0) || storedKeys.contains('attributeBonus'))
+          'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         'blood': blood,
         'bloodPerTurn': bloodPerTurn,
         'willpower': willpower,

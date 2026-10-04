@@ -42,6 +42,12 @@ List<String> describeChanges(Character a, Character b) {
   _disciplines(out, a.disciplines, b.disciplines);
   _points(out, 'Atout', a.merits, b.merits);
   _points(out, 'Handicap', a.flaws, b.flaws);
+  _names(out, 'Rituel', [for (final r in a.rituals) r.name], [for (final r in b.rituals) r.name]);
+  _names(out, 'Technique', a.techniques, b.techniques);
+  _names(out, 'Pouvoir d’ancien', [for (final e in a.elderPowers) e.name], [for (final e in b.elderPowers) e.name]);
+  for (final cat in AttrCategory.values) {
+    number('Points bonus ${cat.label}', a.attributeBonus[cat] ?? 0, b.attributeBonus[cat] ?? 0);
+  }
   number('Sang', a.blood, b.blood);
   number('Sang par tour', a.bloodPerTurn, b.bloodPerTurn);
   number('Volonté', a.willpower, b.willpower);
@@ -106,6 +112,15 @@ void _points(List<String> out, String label, List<Trait> a, List<Trait> b) {
   }
 }
 
+void _names(List<String> out, String label, List<String> a, List<String> b) {
+  for (final n in b) {
+    if (!a.contains(n)) out.add('+ $label $n');
+  }
+  for (final n in a) {
+    if (!b.contains(n)) out.add('− $label $n');
+  }
+}
+
 Map<String, int> xpDelta(Character a, Character b) => {
       'initial': b.xpInitial - a.xpInitial,
       'earned': b.xpEarned - a.xpEarned,
@@ -117,7 +132,7 @@ Map<String, int> xpDelta(Character a, Character b) => {
 Character rebase(Character base, Character draft, Character incoming) {
   const eq = DeepCollectionEquality();
   final b = base.toMap(), d = draft.toMap(), n = incoming.toMap();
-  final merged = {for (final k in n.keys) k: eq.equals(b[k], d[k]) ? n[k] : d[k]}
+  final merged = {for (final k in {...n.keys, ...d.keys}) k: eq.equals(b[k], d[k]) ? n[k] : d[k]}
     ..['version'] = n['version']
     ..['lastHistoryId'] = n['lastHistoryId'];
   return Character.fromMap(incoming.id, merged)

@@ -91,3 +91,11 @@ test('refus commenté ; narrateur et conteur-joueur ne décident pas', async () 
   await assertFails(traced('julien', 'leareview', { status: 'active' }, 'validation'));
   await assertFails(traced('lea', 'leareview', { status: 'active' }, 'validation'));
 });
+
+test('listes tardives : libres au brouillon, refusées dans une soumission (plan C, Review Focus 1)', async () => {
+  await assertFails(traced('zoe', 'draft', { status: 'review', techniques: ['Regard ardent'] }, 'submission'));
+  await assertSucceeds(save('zoe', 'draft', {
+    rituals: [{ name: 'Goût du sang', school: 'thaumaturgy', level: 1 }],
+    attributeBonus: { physical: 0, social: 0, mental: 1 },
+  }));
+});
