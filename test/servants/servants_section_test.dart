@@ -82,6 +82,14 @@ void main() {
     expect(items.last.name.length, 80, reason: 'revue : 80 caractères au plus');
     await tester.enterText(find.byKey(ValueKey('servant-name-${items.last.id}')), 'Mila');
     await tester.pump();
+    await tester.tap(find.text('+ Serviteur'));
+    await tester.pump();
+    expect(items.last.name, 'Nouveau serviteur', reason: 'revue : nom par défaut sans doublon');
+    await tester.enterText(find.byKey(ValueKey('servant-name-${items.last.id}')), 'rex');
+    await tester.pump();
+    expect(find.text('Deux serviteurs portent le même nom : Rex'), findsOneWidget);
+    await tester.tap(find.byTooltip('Retirer rex'));
+    await tester.pump();
     await tester.tap(find.byTooltip('Retirer Rex'));
     await tester.pump();
     expect(items.map((s) => s.name), ['Mila']);

@@ -281,6 +281,9 @@ class FakeServantsRepository implements ServantsRepository {
   Object? releaseError;
 
   @override
+  Future<void> setPlayers(String id, List<String> players, Actor by) async => calls.add('players:$id:${players.join(',')}');
+
+  @override
   Future<void> release(String id, Actor by) async {
     calls.add('release:$id');
     if (releaseError != null) throw releaseError!;

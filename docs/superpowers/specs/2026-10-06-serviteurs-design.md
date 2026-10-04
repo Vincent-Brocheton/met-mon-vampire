@@ -32,7 +32,7 @@ Maquettes : C-Goules, C-Animaux, J-Goule (pour 6c), J-Animal (remplacée par l'�
 
 Nouvelle clé tardive `servants` : `[{id, name, kind: 'human'|'animal', rank: 1..5}]`.
 - Elle est écrite comme les autres clés tardives : seulement si elle n'est pas vide, ou si elle était déjà présente (`laterKeys` / `draftData`).
-- L'identifiant est stable et unique, au format `<characterId>-s<n>`.
+- L'identifiant est stable, unique et jamais réutilisé : `<characterId>-s<horodatage en base 36><compteur>` pour un nouveau serviteur, `<characterId>-s1` pour la conversion de l'ancien historique.
 - Ce que l'XP touche : l'ajout d'un serviteur et son rang.
 - L'historique de la fiche note « + Serviteur Mila ●● », « Serviteur Mila ●● → ●●● » et « − Serviteur Mila ●● ».
 

@@ -82,6 +82,16 @@ class ServantsRepository {
     await save(before, before.copy()..releasedAt = DateTime.now(), by, reason: 'Retiré de la fiche du domitor');
   }
 
+  /// Joueur du domitor changé : l'accès à la fiche détaillée, si elle existe, suit.
+  Future<void> setPlayers(String id, List<String> players, Actor by) async {
+    final d = await _col.doc(id).get();
+    final data = d.data();
+    if (data == null) return;
+    final before = ServantFile.fromMap(id, data);
+    if (before.holderPlayers.join(',') == players.join(',')) return;
+    await save(before, before.copy()..holderPlayers = players, by, reason: 'Joueur du domitor changé');
+  }
+
   /// Supprime la fiche, sa note et son historique.
   Future<void> delete(String id) async {
     // ponytail: un seul lot, limité à 500 écritures ; découper si une fiche a plus de 498 entrées d'historique.

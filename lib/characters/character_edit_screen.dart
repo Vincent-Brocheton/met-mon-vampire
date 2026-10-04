@@ -126,6 +126,16 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           failed.add(s.name);
         }
       }
+      // Joueur changé : l'accès aux fiches détaillées des serviteurs suit.
+      if (_base!.playerUid != _draft!.playerUid) {
+        for (final s in _draft!.servants) {
+          try {
+            await ref.read(servantsRepositoryProvider).setPlayers(s.id, [?_draft!.playerUid], by);
+          } catch (_) {
+            failed.add(s.name);
+          }
+        }
+      }
       if (mounted) {
         setState(() {
           _base = _draft!.clone()..version = _base!.version + 1;
@@ -134,7 +144,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(failed.isEmpty
               ? 'Fiche enregistrée.'
-              : '${failed.join(', ')} : libération non notée sur sa fiche. Ouvrez-la dans « Goules et mortels » et enregistrez.'),
+              : '${failed.join(', ')} : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'),
         ));
       }
     } catch (_) {
@@ -307,6 +317,7 @@ class _Editor extends ConsumerWidget {
       ),
       if (c.kind == CharacterKind.pj)
         DropdownButtonFormField<String>(
+          key: const Key('c3-player'),
           initialValue: players.any((u) => u.uid == c.playerUid) ? c.playerUid : null,
           decoration: const InputDecoration(labelText: 'Joueur'),
           items: [for (final u in players) DropdownMenuItem(value: u.uid, child: Text(u.displayName))],

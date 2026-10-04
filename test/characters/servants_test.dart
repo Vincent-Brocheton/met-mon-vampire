@@ -42,6 +42,8 @@ void main() {
       ],
     });
     expect(unnamed.servants.single.name, 'Serviteur');
+    expect(withConversion(c.clone(), ['Gain mensuel']), ['Gain mensuel', 'Historique « Serviteurs » converti en serviteur'], reason: 'revue : la conversion laisse une trace');
+    expect(withConversion(Character.fromMap('x', c.toMap()), ['Gain mensuel']), ['Gain mensuel'], reason: 'déjà convertie : pas de nouvelle ligne');
     final long = Character.fromMap('x', {
       ...m,
       'backgrounds': [

@@ -278,6 +278,9 @@ class Character {
   List<ElderPower> elderPowers = [];
   List<Servant> servants = [];
 
+  /// Lue avec l'ancien historique « Serviteurs », converti : la prochaine écriture le note dans l'historique.
+  bool legacyServants = false;
+
   /// Points bonus de Génération placés : le plafond de la catégorie passe à 10 + ce nombre.
   Map<AttrCategory, int> attributeBonus = {for (final a in AttrCategory.values) a: 0};
 
@@ -372,6 +375,7 @@ class Character {
     final b = backgrounds.where((t) => t.name == servantsBackground).firstOrNull;
     if (b == null) return;
     backgrounds.remove(b);
+    legacyServants = true;
     final note = (b.note ?? '').trim();
     final first = '$id-s1';
     servants.add(Servant(
@@ -383,6 +387,7 @@ class Character {
   }
 
   Character clone() => Character.fromMap(id, toMap())
+    ..legacyServants = legacyServants
     ..createdAt = createdAt
     ..updatedAt = updatedAt
     ..gainedThrough = gainedThrough;

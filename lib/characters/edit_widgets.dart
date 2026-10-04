@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
+import '../rulebook/rule_entry.dart' show nameKey;
 import 'character.dart';
 import 'describe_changes.dart';
 
@@ -325,7 +326,16 @@ class ServantListEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Deux serviteurs du même nom se confondraient dans l'XP (achat et annulation par le nom).
+    final seen = <String, String>{};
+    final duplicates = <String>{};
+    for (final s in items) {
+      final first = seen.putIfAbsent(nameKey(s.name), () => s.name);
+      if (first != s.name || items.where((x) => nameKey(x.name) == nameKey(s.name)).length > 1) duplicates.add(first);
+    }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final d in duplicates)
+        Text('Deux serviteurs portent le même nom : $d', style: const TextStyle(color: AppColors.linkHover)),
       for (final s in items)
         Container(
           key: ObjectKey(s),
@@ -384,7 +394,11 @@ class ServantListEditor extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: OutlinedButton(
           onPressed: () {
-            items.add(Servant(newServantId(characterId), 'Nouveau serviteur', ServantKind.human, 1));
+            var name = 'Nouveau serviteur';
+            for (var n = 2; items.any((s) => nameKey(s.name) == nameKey(name)); n++) {
+              name = 'Nouveau serviteur $n';
+            }
+            items.add(Servant(newServantId(characterId), name, ServantKind.human, 1));
             onChanged();
           },
           child: const Text('+ Serviteur'),

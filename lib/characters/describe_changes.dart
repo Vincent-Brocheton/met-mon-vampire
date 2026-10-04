@@ -140,6 +140,10 @@ void _servants(List<String> out, List<Servant> a, List<Servant> b) {
   }
 }
 
+/// Ligne d'historique de la conversion de l'ancien historique « Serviteurs », à sa première écriture.
+List<String> withConversion(Character c, List<String> summary) =>
+    c.legacyServants ? [...summary, 'Historique « Serviteurs » converti en serviteur'] : summary;
+
 Map<String, int> xpDelta(Character a, Character b) => {
       'initial': b.xpInitial - a.xpInitial,
       'earned': b.xpEarned - a.xpEarned,

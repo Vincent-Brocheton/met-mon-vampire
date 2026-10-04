@@ -188,7 +188,8 @@ class CharacterRepository {
         'updatedAt': FieldValue.serverTimestamp(),
         ...extra,
       })
-      ..set(h, _entry(by, kind, summary, reason, delta));
+      ..set(h, _entry(by, kind, withConversion(c, summary), reason, delta));
+    c.legacyServants = false;
   }
 
   Future<void> _commit(

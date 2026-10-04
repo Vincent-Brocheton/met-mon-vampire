@@ -19,7 +19,7 @@ import 'character_test.dart' show sample;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, List<AppUser> users = const [lea]}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -28,7 +28,7 @@ void main() {
       overrides: [
         rulebookProvider.overrideWith((ref) => rb),
         currentUserProvider.overrideWith((ref) => Stream.value(me)),
-        allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        allUsersProvider.overrideWith((ref) => Stream.value(users)),
         characterRepositoryProvider.overrideWith((ref) => repo),
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         noPlaces,
@@ -75,7 +75,24 @@ void main() {
     await tester.tap(find.text('Confirmer'));
     await tester.pumpAndSettle();
     expect(servants.calls, ['release:x-s1']);
-    expect(find.text('Rex : libération non notée sur sa fiche. Ouvrez-la dans « Goules et mortels » et enregistrez.'), findsOneWidget);
+    expect(find.text('Rex : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'), findsOneWidget);
+  });
+
+  testWidgets('C3 : joueur changé, l’accès aux fiches des serviteurs suit (revue)', (tester) async {
+    const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
+    final servants = FakeServantsRepository();
+    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, users: const [lea, zoe]);
+    await tester.pumpAndSettle(); // liste des joueurs reçue
+    await tester.tap(find.byKey(const Key('c3-player')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zoé A.').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reason')), 'Changement de joueuse');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(servants.calls, ['players:x-s1:zoe']);
   });
 
   testWidgets('Annuler restaure exactement la fiche lue (Review Focus 5)', (tester) async {
