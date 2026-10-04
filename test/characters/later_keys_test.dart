@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/characters/character.dart';
+import 'package:portail_met/characters/character_repository.dart' show draftData;
 import 'package:portail_met/characters/describe_changes.dart';
 import 'package:portail_met/characters/sheet_widgets.dart';
 import 'package:portail_met/core/theme.dart';
@@ -54,5 +55,14 @@ void main() {
     expect(find.text('Regard ardent'), findsOneWidget);
     expect(find.text('Pouvoir d’ancien · Clairvoyance'), findsOneWidget);
     expect(find.textContaining('1 point bonus'), findsOneWidget);
+  });
+
+  test('brouillon et C3 : une liste vidée sur la même copie est bien effacée (revue)', () {
+    final c = sample()..rituals.add(Ritual('Goût du sang', 'thaumaturgy', 1));
+    c.rituals.clear();
+    expect(c.toMap().containsKey('rituals'), isFalse, reason: 'la copie de travail ignore que la clé a été écrite');
+    expect(draftData(c)['rituals'], isEmpty);
+    expect(draftData(c)['attributeBonus'], {'physical': 0, 'social': 0, 'mental': 0});
+    expect(c.laterKeys().keys, containsAll(['rituals', 'techniques', 'elderPowers', 'attributeBonus']));
   });
 }

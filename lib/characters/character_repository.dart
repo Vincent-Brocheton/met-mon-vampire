@@ -95,11 +95,13 @@ class CharacterRepository {
         summary: describeChanges(before, after),
         reason: reason,
         delta: xpDelta(before, after),
+        // Un rituel retiré après un premier enregistrement doit être effacé (revue du plan C).
+        extra: after.laterKeys(),
       );
 
   /// Brouillon du joueur : version +1, pas d'historique (règle playerDraftSave).
   Future<void> saveDraft(Character c) => _col.doc(c.id).update({
-        ...c.toMap(),
+        ...draftData(c),
         'version': c.version + 1,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -197,9 +199,10 @@ class CharacterRepository {
     required List<String> summary,
     required String reason,
     Map<String, int> delta = const {'initial': 0, 'earned': 0, 'spent': 0},
+    Map<String, Object?> extra = const {},
   }) {
     final batch = _db.batch();
-    stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta);
+    stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta, extra: extra);
     return batch.commit();
   }
 
@@ -246,3 +249,7 @@ Stream<String> characterNotes(Ref ref, String id) => ref.watch(characterReposito
 
 @riverpod
 Stream<List<Character>> reviewQueue(Ref ref) => ref.watch(characterRepositoryProvider).watchReview();
+
+/// Écriture du brouillon par le joueur : les clés tardives toujours, vides comprises (règle playerDraftSave).
+/// Sinon, un rituel acheté puis retiré dans la même séance resterait dans le document.
+Map<String, dynamic> draftData(Character c) => {...c.toMap(), ...c.laterKeys()};
