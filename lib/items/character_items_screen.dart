@@ -92,8 +92,10 @@ class _CharacterItemsScreenState extends ConsumerState<CharacterItemsScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final rb = ref.watch(rulebookProvider) ?? const Rulebook();
-    final c = ref.watch(characterProvider(widget.characterId)).value;
+    final rb = ref.watch(rulebookProvider);
+    if (rb == null) return const Center(child: CircularProgressIndicator());
+    final character = ref.watch(characterProvider(widget.characterId));
+    final c = character.value;
     // Garde la session écoutée : l'envoi la lit.
     ref.watch(currentUserProvider);
     return asyncView(ref.watch(characterItemsProvider(widget.characterId)), (items) {
@@ -120,7 +122,13 @@ class _CharacterItemsScreenState extends ConsumerState<CharacterItemsScreen> {
             ),
         ]),
       );
-      final form = c == null || c.status != CharacterStatus.active ? null : _requestForm(context, c, rb);
+      final Widget? form = character.hasError
+          ? Text('Fiche illisible : la demande d’objet est indisponible.', style: t.bodyMedium)
+          : c == null
+              ? (character.isLoading ? const LinearProgressIndicator() : null)
+              : c.status == CharacterStatus.active
+                  ? _requestForm(context, c, rb)
+                  : null;
       final title = PageTitle('Équipement',
           subtitle: c == null ? null : 'Ce que ${c.name} possède. Un nouvel objet est validé par le conte avant d’entrer en jeu.');
       if (!isWide(context)) {
@@ -166,9 +174,11 @@ class _CharacterItemsScreenState extends ConsumerState<CharacterItemsScreen> {
                 initialValue: _draft.category,
                 decoration: const InputDecoration(labelText: 'Catégorie'),
                 items: [for (final cat in ItemCategory.values) DropdownMenuItem(value: cat, child: Text(cat.label))],
-                onChanged: (v) => setState(() => _draft
-                  ..category = v ?? _draft.category
-                  ..qualities = []),
+                onChanged: (v) => setState(() {
+                  _draft.category = v ?? _draft.category;
+                  final keep = qualityOptions(rb, _draft.category);
+                  _draft.qualities = [for (final q in _draft.qualities) if (keep.contains(q)) q];
+                }),
               ),
             ),
           ),

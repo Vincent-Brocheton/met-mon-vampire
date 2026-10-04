@@ -74,6 +74,7 @@ test('demande du joueur : rien au-delà d’une demande (Review Focus 2)', async
   await assertFails(setDoc(doc(as('zoe'), 'items/n1'), request({ state: 'active' })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n2'), request({ extraQuality: 'Chef-d’œuvre' })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n3'), request({ qualities: ['A', 'B', 'C'] })));
+  await assertFails(setDoc(doc(as('zoe'), 'items/n8'), request({ qualities: [{ a: 1 }] })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n4'), request({ refusal: 'x' })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n5'), request({ secret: true })));
   await assertFails(setDoc(doc(as('zoe'), 'items/n6'), request({ name: '' })));
@@ -94,6 +95,10 @@ test('le conte écrit avec version et historique ; le narrateur lit seulement', 
   await assertFails(saved('julien', 'n3', item({})));
   await assertFails(saved('lea', 'n4', item({ name: 'x'.repeat(81) })));
   await assertFails(saved('lea', 'n5', item({ state: 'perdu' })));
+  await assertFails(saved('lea', 'n6', item({ qualities: [1] })));
+  await assertFails(saved('lea', 'n7', item({ qualities: ['x'.repeat(81)] })));
+  await assertFails(saved('lea', 'n8', item({ extraQuality: 5 })));
+  await assertSucceeds(saved('lea', 'n9', item({ qualities: ['A', 'B'], extraQuality: 'Chef-d’œuvre' })));
   await assertSucceeds(saved('lea', 'i1', item({ state: 'confiscated', version: 2 })));
   await assertFails(saved('lea', 'r1', item({ state: 'active', version: 1 })));
   await assertSucceeds(saved('lea', 'r1', item({ state: 'active', version: 2 })));

@@ -407,6 +407,12 @@ class FakeItemsRepository implements ItemsRepository {
   }
 
   @override
+  Future<void> setPlayer(String characterId, String playerUid, Actor by) async {
+    calls.add('player:$characterId:$playerUid');
+    if (error != null) throw error!;
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

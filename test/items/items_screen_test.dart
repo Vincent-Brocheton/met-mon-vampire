@@ -105,6 +105,17 @@ void main() {
     expect(repo.lastSaved!.playerUid, 'u1');
   });
 
+  testWidgets('changement de catégorie : seules les qualités de la nouvelle catégorie restent', (tester) async {
+    final repo = await pump(tester, items: [cane()..extraQuality = 'Chef-d’œuvre']);
+    await tester.tap(find.byKey(const Key('it-row-i1')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'it-category', 'Matériel divers');
+    await tester.tap(find.byKey(const Key('it-save')));
+    await tester.pumpAndSettle();
+    expect(repo.lastSaved!.qualities, ['Dissimulable']);
+    expect(repo.lastSaved!.extraQuality, 'Chef-d’œuvre');
+  });
+
   testWidgets('demande : valider', (tester) async {
     final repo = await pump(tester);
     await tester.tap(find.byKey(const Key('it-row-r1')));

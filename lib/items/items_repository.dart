@@ -78,6 +78,16 @@ class ItemsRepository {
     return ref.id;
   }
 
+  /// Joueur du porteur changé (C3) : l'accès à ses objets suit, chaque objet étant réenregistré et tracé.
+  Future<void> setPlayer(String characterId, String playerUid, Actor by) async {
+    final q = await _col.where('characterId', isEqualTo: characterId).get();
+    for (final d in q.docs) {
+      final before = Item.fromMap(d.id, d.data());
+      if (before.playerUid == playerUid) continue;
+      await save(before, before.copy()..playerUid = playerUid, by, reason: 'Joueur du porteur changé');
+    }
+  }
+
   /// Conte : supprime l'objet, sa note et son historique.
   Future<void> delete(String id) => deleteTraced(_db, _col.doc(id));
 

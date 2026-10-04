@@ -9,6 +9,7 @@ import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../items/character_items_screen.dart';
+import '../items/items_repository.dart';
 import '../npcs/my_npc_loans_screen.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
@@ -170,6 +171,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           } catch (_) {
             failed.add(s.name);
           }
+        }
+        try {
+          await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
+        } catch (_) {
+          failed.add('Équipement');
         }
       }
       if (mounted) {

@@ -316,6 +316,9 @@ service cloud.firestore {
     }
 
     // Équipement (sous-projet 6f) : lu par l'équipe et le joueur du porteur ; demandé par le joueur, géré par le conte.
+    function itemName(q, i) {
+      return q.size() <= i || (q[i] is string && q[i].size() > 0 && q[i].size() <= 80);
+    }
     function itemValid() {
       let d = request.resource.data;
       return d.keys().hasOnly(['name', 'category', 'grade', 'qualities', 'extraQuality', 'characterId', 'characterName', 'playerUid',
@@ -323,6 +326,8 @@ service cloud.firestore {
         && d.name is string && d.name.size() > 0 && d.name.size() <= 80
         && d.category in ['melee', 'ranged', 'armor', 'gear'] && d.grade in ['normal', 'cheap']
         && d.qualities is list && d.qualities.size() <= 5
+        && itemName(d.qualities, 0) && itemName(d.qualities, 1) && itemName(d.qualities, 2) && itemName(d.qualities, 3) && itemName(d.qualities, 4)
+        && (d.get('extraQuality', null) == null || (d.extraQuality is string && d.extraQuality.size() <= 80))
         && d.state in ['requested', 'active', 'refused', 'confiscated', 'destroyed']
         && d.characterId is string && d.playerUid is string
         && d.description is string && d.description.size() <= 2000

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
+import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/items/character_items_screen.dart';
@@ -29,7 +30,7 @@ void main() {
         version: 2,
       );
 
-  Future<FakeItemsRepository> pump(WidgetTester tester, {List<Item>? items}) async {
+  Future<FakeItemsRepository> pump(WidgetTester tester, {List<Item>? items, Stream<Character?>? character, bool noRulebook = false}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -37,14 +38,15 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(camille)),
-        rulebookProvider.overrideWith((ref) => rb),
+        rulebookProvider.overrideWith((ref) => noRulebook ? null : rb),
         itemsRepositoryProvider.overrideWith((ref) => repo),
         characterItemsProvider('x').overrideWith((ref) => Stream.value(items ?? [cane(), refused()])),
-        characterProvider('x').overrideWith((ref) => Stream.value(sample())),
+        characterProvider('x').overrideWith((ref) => character ?? Stream.value(sample())),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterItemsScreen(characterId: 'x'))),
     ));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     return repo;
   }
 
@@ -82,6 +84,18 @@ void main() {
     expect(find.text('Brutale'), findsWidgets);
     expect(find.text('Fer froid'), findsNothing);
     expect(find.text('Chef-d’œuvre'), findsNothing);
+  });
+
+  testWidgets('fiche illisible : message à la place du formulaire', (tester) async {
+    await pump(tester, character: Stream.error(Exception('refus')));
+    expect(find.text('Fiche illisible : la demande d’objet est indisponible.'), findsOneWidget);
+    expect(find.byKey(const Key('rq-send')), findsNothing);
+  });
+
+  testWidgets('référentiel en chargement : attente, pas de formulaire', (tester) async {
+    await pump(tester, noRulebook: true);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byKey(const Key('rq-send')), findsNothing);
   });
 
   testWidgets('liste : motif du refus, suppression d’une demande refusée seulement', (tester) async {

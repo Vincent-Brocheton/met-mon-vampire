@@ -8,6 +8,7 @@ import 'package:portail_met/characters/character_edit_screen.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
@@ -20,7 +21,7 @@ import 'ghoul_test.dart' show ghoulState;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, List<AppUser> users = const [lea]}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, List<AppUser> users = const [lea]}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -38,6 +39,7 @@ void main() {
         noNpcLoans,
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
+        itemsRepositoryProvider.overrideWith((ref) => items ?? FakeItemsRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),
@@ -105,7 +107,8 @@ void main() {
   testWidgets('C3 : joueur changé, l’accès aux fiches des serviteurs suit (revue)', (tester) async {
     const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
     final servants = FakeServantsRepository();
-    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, users: const [lea, zoe]);
+    final items = FakeItemsRepository();
+    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, items: items, users: const [lea, zoe]);
     await tester.pumpAndSettle(); // liste des joueurs reçue
     await tester.tap(find.byKey(const Key('c3-player')));
     await tester.pumpAndSettle();
@@ -117,6 +120,7 @@ void main() {
     await tester.tap(find.text('Confirmer'));
     await tester.pumpAndSettle();
     expect(servants.calls, ['players:x-s1:zoe']);
+    expect(items.calls, ['player:x:zoe']);
   });
 
   /// Goule active dont le domitor est 'x' : ici la fiche elle-même, ce qui suffit à vérifier la recopie

@@ -389,7 +389,15 @@ class _ItemEditorState extends ConsumerState<_ItemEditor> {
             initialValue: _d.category,
             decoration: const InputDecoration(labelText: 'Catégorie'),
             items: [for (final c in ItemCategory.values) DropdownMenuItem(value: c, child: Text(c.label))],
-            onChanged: ro ? null : (v) => setState(() => _d.category = v ?? _d.category),
+            onChanged: ro
+                ? null
+                : (v) => setState(() {
+                      _d.category = v ?? _d.category;
+                      // Seules les qualités de la nouvelle catégorie restent.
+                      final keep = {...qualityOptions(rb, _d.category), ...extraOptions(rb, _d.category)};
+                      _d.qualities = [for (final q in _d.qualities) if (keep.contains(q)) q];
+                      if (!keep.contains(_d.extraQuality)) _d.extraQuality = null;
+                    }),
           ),
         ),
         const SizedBox(width: 10),
