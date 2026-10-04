@@ -258,6 +258,15 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
   }
 
   Future<void> _toServant() async {
+    final row = widget.row;
+    final entry = row.entry;
+    final owner = row.domitor;
+    if (entry != null && owner != null) {
+      // Déjà sur la fiche du domitor (conversion interrompue) : on termine sans redemander ni débiter.
+      await _transform((by) => mortalToServant(ref.read(characterRepositoryProvider), ref.read(servantsRepositoryProvider),
+          mortal: _base, domitor: owner, kind: entry.kind, rank: entry.rank, reason: 'Reprise de la conversion', by: by, rb: widget.rb));
+      return;
+    }
     final r = await showDialog<(Character?, ServantKind, int, String)>(context: context, builder: (_) => ServantOfDialog(name: _base.name));
     final d = r?.$1;
     if (r == null || d == null) return;

@@ -181,6 +181,17 @@ void main() {
     expect(servants.calls.last, 'delete:m1');
   });
 
+  testWidgets('reprise de « Devenir serviteur de… » : fiche convertie sans redemander le domitor (revue)', (tester) async {
+    final (servants, chars) = await pump(tester, files: [ServantFile(id: 'x-s2', kind: 'mortal', name: 'Mila', attachment: '', version: 1)]);
+    await tester.tap(find.text('Mila'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-to-servant')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('so-domitor')), findsNothing);
+    expect(chars.calls, isEmpty);
+    expect((servants.lastSaved!.kind, servants.lastSaved!.domitorId), ('human', 'x'));
+  });
+
   testWidgets('narrateur : lecture seule', (tester) async {
     await pump(tester, user: julien);
     expect(find.byKey(const Key('sv-new-mortal')), findsNothing);

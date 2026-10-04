@@ -272,7 +272,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton(
                     key: const Key('c3-embrace'),
-                    onPressed: () => _embraceGhoul(latest),
+                    // Une étreinte sur un brouillon non enregistré serait écrasée au prochain enregistrement.
+                    onPressed: _changes.isEmpty ? () => _embraceGhoul(latest) : null,
                     child: const Text('Étreindre…'),
                   ),
                 ),

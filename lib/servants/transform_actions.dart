@@ -20,7 +20,10 @@ Future<String?> mortalToServant(
   required Actor by,
   Rulebook rb = const Rulebook(),
 }) async {
-  await chars.saveEdit(domitor, withServant(domitor, mortal.id, mortal.name, kind, rank, rb: rb), reason, by, kind: 'xp');
+  // Reprise après un échec : le domitor a déjà ce serviteur, seule la fiche reste à convertir.
+  if (!domitor.servants.any((s) => s.id == mortal.id)) {
+    await chars.saveEdit(domitor, withServant(domitor, mortal.id, mortal.name, kind, rank, rb: rb), reason, by, kind: 'xp');
+  }
   try {
     await servants.save(
       mortal,
@@ -48,7 +51,13 @@ Future<String?> embraceFollower(
   required String reason,
   required Actor by,
 }) async {
-  await chars.createSheet(sheet, by, 'Fiche créée par l’étreinte de ${row.name}');
+  final owner = row.domitor;
+  // Le conte ne peut modifier qu'une fiche jouée ou close : refus avant toute écriture.
+  if (row.entry != null && owner != null && owner.kind == CharacterKind.pj && !owner.status.settled) {
+    return 'Le domitor ${owner.name} a une fiche en création : étreignez ${row.name} après sa validation.';
+  }
+  // Même identifiant que la fiche d'origine : une relance ne crée pas de seconde fiche.
+  await chars.createSheet(sheet, by, 'Fiche créée par l’étreinte de ${row.name}', id: row.id);
   try {
     final d = row.domitor;
     if (row.entry != null && d != null) {

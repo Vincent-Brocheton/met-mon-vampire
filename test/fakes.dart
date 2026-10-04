@@ -66,6 +66,7 @@ class FakeCharacterRepository implements CharacterRepository {
   String? lastKind;
   Map<String, Object?>? lastExtra;
   Character? lastCreated;
+  String? lastCreatedId;
 
   @override
   Future<void> saveEdit(Character before, Character after, String reason, Actor by, {String? kind, Map<String, Object?> extra = const {}}) async {
@@ -78,8 +79,9 @@ class FakeCharacterRepository implements CharacterRepository {
   }
 
   @override
-  Future<String> createSheet(Character c, Actor by, String summary) async {
+  Future<String> createSheet(Character c, Actor by, String summary, {String? id}) async {
     calls.add('createSheet:${c.name}');
+    lastCreatedId = id;
     if (error != null) throw error!;
     lastCreated = c;
     return 'new-sheet';

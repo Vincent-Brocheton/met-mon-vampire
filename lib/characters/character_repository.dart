@@ -89,8 +89,9 @@ class CharacterRepository {
   }
 
   /// Fiche complète créée d'un coup (étreinte d'un mortel ou d'un serviteur) ; renvoie l'id.
-  Future<String> createSheet(Character c, Actor by, String summary) async {
-    final ref = _col.doc();
+  /// [id] imposé : une seconde création sous le même identifiant est refusée par les règles (pas de doublon).
+  Future<String> createSheet(Character c, Actor by, String summary, {String? id}) async {
+    final ref = _col.doc(id);
     final h = ref.collection('history').doc();
     final sheet = Character.fromMap(ref.id, c.toMap())
       ..version = 1

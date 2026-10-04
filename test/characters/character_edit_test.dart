@@ -133,6 +133,14 @@ void main() {
     expect(repo.calls, ['saveEdit:Gorgée']);
   });
 
+  testWidgets('C3 : étreinte impossible tant que des changements ne sont pas enregistrés (revue)', (tester) async {
+    await pump(tester, ghoulSheet());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ghoul-drink')));
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(find.byKey(const Key('c3-embrace'))).onPressed, isNull);
+  });
+
   testWidgets('C3 : étreindre une goule, clé ghoul supprimée (Review Focus 1)', (tester) async {
     final repo = await pump(tester, ghoulSheet());
     await tester.pumpAndSettle();

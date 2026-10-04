@@ -31,7 +31,7 @@ void main() {
     final retry = chars.lastAfter!;
     final message = await mortalToServant(chars, servants, mortal: jeanne(), domitor: retry, kind: ServantKind.human, rank: 2, reason: 'Recrutée', by: by);
     expect(message, contains('relancez'));
-    expect((chars.lastAfter!.servants.length, chars.lastAfter!.xpSpent), (1, retry.xpSpent), reason: 'déjà serviteur : ni doublon ni second débit');
+    expect(chars.calls, ['saveEdit:Recrutée'], reason: 'revue : déjà serviteur, pas de nouvelle écriture du domitor');
   });
 
   test('mortel étreint : nouvelle fiche, puis suppression du mortel', () async {
@@ -53,6 +53,19 @@ void main() {
     expect(chars.calls, ['createSheet:Rex', 'saveEdit:Étreint']);
     expect(chars.lastAfter!.servants.map((s) => s.id), ['x-s2']);
     expect(servants.calls, ['release:x-s1']);
+  });
+
+  test('étreinte : fiche créée sous l’identifiant d’origine ; domitor en création refusé sans écriture (revue)', () async {
+    final chars = FakeCharacterRepository();
+    final servants = FakeServantsRepository();
+    final sheet = embracedNpc('Jeanne', sire: sample(), genNumber: 11).after!;
+    await embraceFollower(chars, servants, row: ServantRow(file: jeanne()), sheet: sheet, reason: 'Étreinte', by: by);
+    expect(chars.lastCreatedId, 'm1');
+    final draft = isaure()..status = CharacterStatus.draft;
+    final message = await embraceFollower(chars, servants,
+        row: ServantRow(entry: draft.servants.first, domitor: draft, file: rexFile()), sheet: sheet, reason: 'Étreint', by: by);
+    expect(message, contains('en création'));
+    expect(chars.calls, ['createSheet:Jeanne'], reason: 'aucune écriture pour le second');
   });
 
   test('mortel devient goule jouée : amorce de goule, puis suppression ; échec partiel signalé', () async {
