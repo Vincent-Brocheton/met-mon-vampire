@@ -133,7 +133,7 @@ final class MyNpcLoansProvider
   }
 }
 
-String _$myNpcLoansHash() => r'bc12c0ec58c207008462094a7ae5d20b15dafb65';
+String _$myNpcLoansHash() => r'747a6e7f13a6a2dbc00a228a7a1b09bc938b717b';
 
 @ProviderFor(characterNpcLoans)
 final characterNpcLoansProvider = CharacterNpcLoansFamily._();

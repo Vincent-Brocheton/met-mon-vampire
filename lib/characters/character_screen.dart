@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../items/character_items_screen.dart';
 import '../places/character_places_screen.dart';
 import '../servants/servants_section.dart';
 import 'character.dart';
@@ -54,6 +55,8 @@ class CharacterScreen extends ConsumerWidget {
           CharacterSheetView(c),
           const SizedBox(height: 20),
           PlacesSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/lieux' : '/conteur/lieux'),
+          const SizedBox(height: 20),
+          ItemsSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/equipement' : '/conteur/objets'),
           const SizedBox(height: 20),
           ServantsSection(
             character: c,

@@ -8,6 +8,8 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../items/character_items_screen.dart';
+import '../items/items_repository.dart';
 import '../npcs/my_npc_loans_screen.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
@@ -170,6 +172,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
             failed.add(s.name);
           }
         }
+        try {
+          await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
+        } catch (_) {
+          failed.add('Équipement');
+        }
       }
       if (mounted) {
         setState(() {
@@ -265,6 +272,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               NotesPanel(id: latest.id),
               const SizedBox(height: 20),
               PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
+              const SizedBox(height: 20),
+              ItemsSection(characterId: latest.id, link: '/conteur/objets'),
               const SizedBox(height: 20),
               ServantsSection(character: latest, linkOf: (_) => '/conteur/goules'),
               if (latest.kind == CharacterKind.pnj) ...[

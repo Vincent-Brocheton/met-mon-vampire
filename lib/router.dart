@@ -20,6 +20,8 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'items/character_items_screen.dart';
+import 'items/items_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
 import 'places/character_places_screen.dart';
@@ -121,6 +123,10 @@ GoRouter router(Ref ref) {
             builder: (_, s) => CharacterPlacesScreen(characterId: s.pathParameters['id']!),
           ),
           GoRoute(
+            path: '/joueur/personnages/:id/equipement',
+            builder: (_, s) => CharacterItemsScreen(characterId: s.pathParameters['id']!),
+          ),
+          GoRoute(
             path: '/joueur/personnages/:id/serviteurs/:sid',
             builder: (_, s) => ServantScreen(characterId: s.pathParameters['id']!, servantId: s.pathParameters['sid']!),
           ),
@@ -139,6 +145,7 @@ GoRouter router(Ref ref) {
           page('/conteur/fiches', const CharactersListScreen()),
           page('/conteur/lieux', const PlacesScreen()),
           page('/conteur/goules', const ServantsScreen()),
+          page('/conteur/objets', const ItemsScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
