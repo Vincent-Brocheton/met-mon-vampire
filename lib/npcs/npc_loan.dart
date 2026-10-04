@@ -49,7 +49,7 @@ class NpcLoan {
         limits: m['limits'] as String? ?? '',
         sheetAt: _date(m['sheetAt']),
         revokedAt: _date(m['revokedAt']),
-        playerNotes: m['playerNotes'] as String? ?? '',
+        playerNotes: m['playerNotes'] is String ? m['playerNotes'] as String : '',
         notesAt: _date(m['notesAt']),
         version: (m['version'] as num?)?.toInt() ?? 0,
         updatedByName: m['updatedByName'] as String?,

@@ -109,18 +109,23 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
 
   Future<void> _extend(NpcLoan l) async {
     final field = TextEditingController(text: _day(l.until));
-    final day = await showDialog<DateTime>(
+    final text = await showDialog<String>(
       context: context,
       builder: (d) => AlertDialog(
         title: Text('Prolonger le prêt de ${l.characterName}'),
         content: TextField(key: const Key('extend-until'), controller: field, decoration: const InputDecoration(labelText: 'Jusqu’au (JJ/MM/AAAA)')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d), child: const Text('Annuler')),
-          FilledButton(key: const Key('extend-ok'), onPressed: () => Navigator.pop(d, parseDay(field.text)), child: const Text('Prolonger')),
+          FilledButton(key: const Key('extend-ok'), onPressed: () => Navigator.pop(d, field.text), child: const Text('Prolonger')),
         ],
       ),
     );
-    if (day == null || !mounted) return;
+    if (text == null || !mounted) return;
+    final day = parseDay(text);
+    if (day == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dates attendues au format JJ/MM/AAAA.')));
+      return;
+    }
     if (day.isBefore(startOfDay(l.from))) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La fin précède le début')));
       return;

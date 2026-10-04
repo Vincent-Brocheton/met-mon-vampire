@@ -53,6 +53,8 @@ test('notes du joueur : seulement elles, pendant la période, si autorisées (Re
   await assertSucceeds(notes('now'));
   await assertFails(notes('now', { limits: 'aucune' }));
   await assertFails(notes('now', { notesAt: Timestamp.fromMillis(Date.now() - day) }));
+  await assertFails(notes('now', { playerNotes: { a: 1 } }));
+  await assertFails(notes('now', { playerNotes: 'x'.repeat(5001) }));
   await assertFails(notes('past'));
   await assertFails(notes('revoked'));
   await assertFails(updateDoc(doc(as('max'), 'npcLoans/now'), { playerNotes: 'x', notesAt: serverTimestamp() }));

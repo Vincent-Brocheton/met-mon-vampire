@@ -139,6 +139,7 @@ class _NpcLoanScreenState extends ConsumerState<NpcLoanScreen> {
                 key: const Key('loan-player-notes'),
                 controller: _notes,
                 maxLines: 4,
+                maxLength: 5000,
                 decoration: const InputDecoration(hintText: 'Ce que le PNJ a dit, promis ou appris pendant la partie…'),
               ),
               const SizedBox(height: 10),

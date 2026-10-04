@@ -91,6 +91,13 @@ void main() {
     expect(find.textContaining('1 en cours'), findsOneWidget);
     await tester.tap(find.byKey(const Key('loan-extend-l1')));
     await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('extend-until')), '31/02/2030');
+    await tester.tap(find.byKey(const Key('extend-ok')));
+    await tester.pumpAndSettle();
+    expect(find.text('Dates attendues au format JJ/MM/AAAA.'), findsOneWidget);
+    expect(repo.calls, isEmpty);
+    await tester.tap(find.byKey(const Key('loan-extend-l1')));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('extend-until')), '31/12/2030');
     await tester.tap(find.byKey(const Key('extend-ok')));
     await tester.pumpAndSettle();

@@ -364,7 +364,8 @@ service cloud.firestore {
           && request.resource.data.until > request.resource.data.from)
         || (signedIn() && resource.data.playerUid == request.auth.uid && resource.data.allowNotes == true && loanOpen(resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerNotes', 'notesAt'])
-          && request.resource.data.notesAt == request.time);
+          && request.resource.data.notesAt == request.time
+          && request.resource.data.playerNotes is string && request.resource.data.playerNotes.size() <= 5000);
       allow delete: if managesAccounts();
 
       match /sheet/{doc} {
