@@ -70,6 +70,12 @@ void _revert(Character n, XpItem i) {
       n.techniques.remove(i.name);
     case XpKind.elderPower:
       n.elderPowers.removeWhere((e) => e.name == i.name);
+    case XpKind.servant:
+      if (i.fromLevel == 0) {
+        n.servants.removeWhere((s) => s.name == i.name);
+      } else {
+        n.servants.firstWhere((s) => s.name == i.name).rank = i.fromLevel;
+      }
     case XpKind.humanity:
       n.humanity = i.fromLevel;
     case XpKind.flawBuyback:

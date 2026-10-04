@@ -368,7 +368,7 @@ class _Editor extends ConsumerWidget {
 
     final lists = [
       section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
-      section('Historiques', [TraitListEditor(items: c.backgrounds, options: names('backgrounds'), noteLabel: 'Précisions', onChanged: onChanged)]),
+      section('Historiques', [TraitListEditor(items: c.backgrounds, options: [for (final n in names('backgrounds')) if (n != servantsBackground) n], noteLabel: 'Précisions', onChanged: onChanged)]),
       section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
       section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
       section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),

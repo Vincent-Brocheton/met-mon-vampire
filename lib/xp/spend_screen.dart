@@ -153,7 +153,8 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
     final name = _kind == XpKind.humanity ? humanityName : _name;
     final item = name == null ? null : draftItem(c, r.items, _kind, name, note: _note.text, rb: rb);
     final error = item == null ? null : itemError(c, r.items, item, usable: usable, rb: rb);
-    final options = elementOptions(c, _kind, rb: rb);
+    // Un serviteur ajouté à la demande peut y monter de rang.
+    final options = elementOptions(_kind == XpKind.servant ? applyRequest(c, r.items, rb: rb) : c, _kind, rb: rb);
     final spec = name == null ? null : noteSpec(_kind, name, rb: rb);
     final rank = (c.genRank ?? GenRank.neonate).label;
     final problems = sendProblems(c, r.items, usable: usable, rb: rb);

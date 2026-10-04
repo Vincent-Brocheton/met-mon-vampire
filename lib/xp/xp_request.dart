@@ -31,7 +31,8 @@ enum XpKind {
   technique('Technique'),
   elderPower('Pouvoir d’ancien'),
   humanity('Humanité'),
-  flawBuyback('Rachat d’un handicap');
+  flawBuyback('Rachat d’un handicap'),
+  servant('Serviteur');
 
   const XpKind(this.label);
   final String label;
@@ -39,7 +40,7 @@ enum XpKind {
 
 /// Pastilles pour les traits ; chiffre pour attributs, Humanité, atouts et handicaps.
 String levelText(XpKind k, int n) => switch (k) {
-      XpKind.skill || XpKind.background || XpKind.discipline => dots(n),
+      XpKind.skill || XpKind.background || XpKind.discipline || XpKind.servant => dots(n),
       XpKind.ritual || XpKind.technique || XpKind.elderPower => n > 0 ? 'appris' : '—',
       _ => '$n',
     };

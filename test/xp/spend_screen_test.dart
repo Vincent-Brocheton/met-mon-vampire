@@ -89,6 +89,19 @@ void main() {
     expect(find.text('demandes new-req'), findsOneWidget);
   });
 
+  testWidgets('nouveau serviteur : nom demandé, puis montée dans la même demande (6b)', (tester) async {
+    await pump(tester);
+    await choose(tester, const Key('xp-kind'), 'Serviteur');
+    await choose(tester, const ValueKey('xp-name-servant'), 'Nouvelle goule animale');
+    await tester.enterText(find.byKey(const Key('xp-note')), 'Rex');
+    await tester.pump();
+    expect(find.text('— → ● · 2 XP (Nouveau niveau × 2)'), findsOneWidget);
+    await tester.tap(find.text('Ajouter à la demande'));
+    await tester.pumpAndSettle();
+    await choose(tester, const ValueKey('xp-name-servant'), 'Rex (Goule animale)');
+    expect(find.text('● → ●● · 4 XP (Nouveau niveau × 2)'), findsOneWidget);
+  });
+
   testWidgets('retrait par le haut seulement', (tester) async {
     await pump(tester);
     await choose(tester, const ValueKey('xp-name-skill'), 'Linguistique');

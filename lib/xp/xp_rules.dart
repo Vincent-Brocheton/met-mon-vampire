@@ -17,6 +17,7 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
       XpKind.discipline => _discipline(c, name)?.level ?? 0,
       XpKind.merit => _trait(c.merits, name)?.level ?? 0,
       XpKind.humanity => c.humanity,
+      XpKind.servant => _servant(c, name)?.rank ?? 0,
       XpKind.flawBuyback => _trait(c.flaws, name)?.level ?? 0,
       XpKind.ritual => _knows(c.rituals.map((r) => r.name), name) ? 1 : 0,
       XpKind.technique => _knows(c.techniques, name) ? 1 : 0,
@@ -33,6 +34,15 @@ GenRow _row(Character c, Rulebook rb) => rb.gen(c.genRank ?? GenRank.neonate);
 
 /// Note d'un achat d'attribut qui place un point bonus de Génération (plafond 10 + 1).
 const bonusNote = 'point bonus';
+
+/// Valeurs de la liste « Élément » pour un nouveau serviteur ; le nom vient du champ de précision.
+const newHumanServant = '+humain';
+const newAnimalServant = '+animal';
+
+/// Type d'un nouveau serviteur, porté par la note de l'achat ; null pour une montée de rang.
+ServantKind? servantKindOfNote(String? note) => ServantKind.values.where((k) => k.label == note).firstOrNull;
+
+Servant? _servant(Character c, String name) => c.servants.where((s) => nameKey(s.name) == nameKey(name)).firstOrNull;
 
 bool _isBonus(XpItem i) => i.kind == XpKind.attribute && i.note == bonusNote;
 
@@ -75,7 +85,7 @@ String? ruleCategoryOf(XpKind k) => switch (k) {
 /// Coût au barème actuel de la fiche.
 int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => 3,
-      XpKind.skill || XpKind.background => i.toLevel * _row(c, rb).traitFactor,
+      XpKind.skill || XpKind.background || XpKind.servant => i.toLevel * _row(c, rb).traitFactor,
       XpKind.discipline => i.toLevel * (inClan(c, i.name, rb: rb) ? 3 : _row(c, rb).outOfClanFactor),
       XpKind.merit => i.toLevel,
       XpKind.humanity => 10,
@@ -87,7 +97,7 @@ int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i
 
 String ruleText(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => '3 XP par point',
-      XpKind.skill || XpKind.background => 'Nouveau niveau × ${_row(c, rb).traitFactor}',
+      XpKind.skill || XpKind.background || XpKind.servant => 'Nouveau niveau × ${_row(c, rb).traitFactor}',
       XpKind.discipline =>
         inClan(c, i.name, rb: rb) ? 'En clan · nouveau niveau × 3' : 'Hors clan · nouveau niveau × ${_row(c, rb).outOfClanFactor}',
       XpKind.merit => 'Sa valeur en XP',
@@ -113,6 +123,7 @@ List<(String, String)> costTable(Character c, {Rulebook rb = const Rulebook()}) 
     ('Technique', row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP'),
     ('Pouvoir d’ancien', row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang'),
     ('Rachat d’un handicap', '2 × sa valeur'),
+    ('Serviteur', 'Nouveau niveau × ${row.traitFactor}'),
   ];
 }
 
@@ -127,6 +138,7 @@ int capOf(Character c, XpKind k, String name, {Rulebook rb = const Rulebook()}) 
 /// Précision demandée pour un nouveau point : (libellé, obligatoire), ou null.
 (String, bool)? noteSpec(XpKind k, String name, {Rulebook rb = const Rulebook()}) => switch (k) {
       XpKind.background => ('Détail du nouveau point', rb.backgroundAsk(name) != null),
+      XpKind.servant => name == newHumanServant || name == newAnimalServant ? ('Nom du serviteur', true) : null,
       XpKind.skill => switch (rb.domainMode(name)) {
           'perDot' || 'multiple' => ('Domaine', true),
           'optional' => ('Domaine', false),
@@ -144,7 +156,7 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
     XpKind.skill => {for (final n in {...c.skills.map((t) => t.name), ...rb.offeredNames('skills')}) n: label('skills', n)},
     XpKind.background => {
         for (final n in {...c.backgrounds.map((t) => t.name), ...rb.offeredNames('backgrounds')})
-          if (n != generationName) n: label('backgrounds', n),
+          if (n != generationName && n != servantsBackground) n: label('backgrounds', n),
       },
     XpKind.discipline => {
         for (final n in {...c.disciplines.map((d) => d.name), ...rb.clanDisciplines(c.clan), ...rb.commonDisciplines()})
@@ -169,12 +181,24 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
           if (!_knows(c.elderPowers.map((x) => x.name), e.name)) e.name: label('elderPowers', e.name),
       },
     XpKind.humanity => {humanityName: humanityName},
+    XpKind.servant => {
+        newHumanServant: 'Nouvelle goule humaine',
+        newAnimalServant: 'Nouvelle goule animale',
+        for (final s in c.servants) s.name: '${s.name} (${s.kind.label})',
+      },
     XpKind.flawBuyback => {for (final f in c.flaws) f.name: '${f.name} (${f.level})'},
   };
 }
 
 /// Le prochain achat pour ce trait, sans contrôle.
 XpItem draftItem(Character c, List<XpItem> items, XpKind k, String name, {String? note, Rulebook rb = const Rulebook()}) {
+  if (k == XpKind.servant && (name == newHumanServant || name == newAnimalServant)) {
+    final real = (note ?? '').trim();
+    final from = levelWith(c, items, k, real);
+    final kind = name == newAnimalServant ? ServantKind.animal : ServantKind.human;
+    final draft = XpItem(k, real, from, from + 1, 0, note: kind.label);
+    return XpItem(k, real, from, from + 1, costOf(c, draft, rb: rb), note: kind.label);
+  }
   final from = levelWith(c, items, k, name);
   final to = switch (k) {
     XpKind.merit => rb.cost('merits', name) ?? 0,
@@ -202,6 +226,9 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
   if (item.kind == XpKind.background && item.name == generationName) {
     return 'La Génération ne s’achète qu’à la création.';
   }
+  if (item.kind == XpKind.background && item.name == servantsBackground) {
+    return 'Les serviteurs s’achètent avec le type « Serviteur ».';
+  }
   final cat = ruleCategoryOf(item.kind);
   final entry = cat == null ? null : rb.find(cat, item.name);
   // Racheter un handicap interdit reste possible.
@@ -226,6 +253,10 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
       if (_isBonus(item) && bonusLeft(c, items, rb) <= 0) {
         return 'Plus de point bonus d’attribut : ${cat.label} ${attributeCap(c, items, cat)} au plus.';
       }
+    case XpKind.servant:
+      if (item.name.trim().isEmpty) return 'Précisez le nom du serviteur.';
+      if (servantKindOfNote(item.note) != null && item.fromLevel > 0) return 'Un serviteur porte déjà ce nom.';
+      if (item.toLevel > 5) return 'Plafond atteint (5).';
     default:
       final cap = capOf(c, item.kind, item.name, rb: rb);
       if (item.toLevel > cap) return 'Plafond atteint ($cap).';
@@ -396,6 +427,13 @@ Character applyRequest(Character c, List<XpItem> items, {Rulebook rb = const Rul
         n.techniques.add(i.name);
       case XpKind.elderPower:
         n.elderPowers.add(ElderPower(i.name, rb.elderDiscipline(i.name) ?? ''));
+      case XpKind.servant:
+        final s = _servant(n, i.name);
+        if (s == null) {
+          n.servants.add(Servant(newServantId(n.id), i.name, servantKindOfNote(i.note) ?? ServantKind.human, i.toLevel));
+        } else {
+          s.rank = i.toLevel;
+        }
       case XpKind.humanity:
         n.humanity = i.toLevel;
       case XpKind.flawBuyback:
