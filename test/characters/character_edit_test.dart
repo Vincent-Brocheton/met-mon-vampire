@@ -34,6 +34,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         noPlaces,
         noServantFiles,
+        noItems,
         noNpcLoans,
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
@@ -78,6 +79,13 @@ void main() {
     await pump(tester, sample());
     await tester.pumpAndSettle();
     expect(find.text('PRÊTS'), findsNothing);
+  });
+
+  testWidgets('C3 : section « Équipement »', (tester) async {
+    await pump(tester, sample());
+    await tester.pumpAndSettle();
+    expect(find.text('ÉQUIPEMENT'), findsOneWidget);
+    expect(find.text('Aucun objet.'), findsOneWidget);
   });
 
   testWidgets('C3 : serviteur retiré, libération refusée : message (revue)', (tester) async {

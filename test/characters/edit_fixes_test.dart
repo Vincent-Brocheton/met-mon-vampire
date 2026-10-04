@@ -35,6 +35,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => stream.stream),
         noPlaces,
         noServantFiles,
+        noItems,
         noNpcLoans,
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],

@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
@@ -120,6 +121,10 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/lieux',
             builder: (_, s) => CharacterPlacesScreen(characterId: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/equipement',
+            builder: (_, s) => CharacterItemsScreen(characterId: s.pathParameters['id']!),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/serviteurs/:sid',
