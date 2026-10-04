@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 
+import '../core/widgets.dart' show formatDay;
 import 'character.dart';
 
 /// Points en pastilles ; 0 s'écrit « — ».
@@ -46,6 +47,7 @@ List<String> describeChanges(Character a, Character b) {
   _names(out, 'Technique', a.techniques, b.techniques);
   _names(out, 'Pouvoir d’ancien', [for (final e in a.elderPowers) e.name], [for (final e in b.elderPowers) e.name]);
   _servants(out, a.servants, b.servants);
+  _ghoul(out, a.ghoul, b.ghoul);
   for (final cat in AttrCategory.values) {
     number('Points bonus ${cat.label}', a.attributeBonus[cat] ?? 0, b.attributeBonus[cat] ?? 0);
   }
@@ -138,6 +140,15 @@ void _servants(List<String> out, List<Servant> a, List<Servant> b) {
   for (final s in a) {
     if (!after.containsKey(s.id)) out.add('− Serviteur ${s.name} ${dots(s.rank)}');
   }
+}
+
+void _ghoul(List<String> out, GhoulState? a, GhoulState? b) {
+  if (a == null || b == null) return;
+  if (a.vitae != b.vitae) out.add('Vitae ${a.vitae} → ${b.vitae}');
+  if (a.bond != b.bond) out.add('Lien de sang ${a.bond} → ${b.bond}');
+  if (a.lastDrink != b.lastDrink && b.lastDrink != null) out.add('Gorgée du ${formatDay(b.lastDrink)}');
+  String copy(GhoulState g) => [g.domitorName, g.domitorClan, for (final d in g.domitorDisciplines) '${d.name}:${d.level}'].join('|');
+  if (copy(a) != copy(b)) out.add('Disciplines du domitor recopiées');
 }
 
 /// Ligne d'historique de la conversion de l'ancien historique « Serviteurs », à sa première écriture.

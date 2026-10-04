@@ -148,6 +148,9 @@ class GenRow {
 }
 
 /// Données de règles lues par la création et l'XP. Une catégorie vide prend ses valeurs de base.
+/// Rang « Goule » du tableau des générations (sous-projet 6c).
+const ghoulRank = 'ghoul';
+
 class Rulebook {
   const Rulebook([this._entries = const {}, this.creation = const CreationValues(), this.settings = const {}]);
 
@@ -314,4 +317,15 @@ class Rulebook {
     final e = all('generations').where((e) => e.state.offered && e.data['rank'] == rank.name).firstOrNull;
     return e == null ? base : GenRow.fromData(e.data, base);
   }
+  /// Valeurs d'une goule : la ligne « Goule » du tableau des générations, ou celles d'un Neonate
+  /// avec Sang 10, 1 par tour, sans technique ni pouvoir d'ancien.
+  GenRow ghoulRow() {
+    final base = GenRow.fromData(const {'blood': 10, 'bloodPerTurn': 1, 'techniqueCost': 0}, _baseRows[GenRank.neonate]!);
+    final e = all('generations').where((e) => e.state.offered && e.data['rank'] == ghoulRank).firstOrNull;
+    return e == null ? base : GenRow.fromData(e.data, base);
+  }
+
+  /// Valeurs de la fiche : goule, ou rang de génération (Neonate par défaut).
+  GenRow rowFor(Character c) => c.ghoul != null ? ghoulRow() : gen(c.genRank ?? GenRank.neonate);
+
 }

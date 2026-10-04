@@ -170,9 +170,73 @@ int _servantSeq = 0;
 String newServantId(String characterId) =>
     '$characterId-s${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_servantSeq++}';
 
+/// Discipline du domitor, recopiée sur la fiche de sa goule.
+class DomitorDiscipline {
+  const DomitorDiscipline(this.name, this.level);
+
+  factory DomitorDiscipline.fromMap(Map<String, dynamic> m) => DomitorDiscipline(m['name'] as String? ?? '', _int(m['level']));
+
+  final String name;
+  final int level;
+
+  Map<String, dynamic> toMap() => {'name': name, 'level': level};
+}
+
+/// Goule jouée (sous-projet 6c) : copie du domitor, faite par le conte (le joueur ne lit pas sa fiche), et sang.
+class GhoulState {
+  GhoulState({
+    required this.domitorId,
+    required this.domitorName,
+    this.domitorClan,
+    List<DomitorDiscipline>? domitorDisciplines,
+    this.bond = 0,
+    this.vitae = 0,
+    this.lastDrink,
+  }) : domitorDisciplines = domitorDisciplines ?? [];
+
+  factory GhoulState.fromMap(Map<String, dynamic> m) => GhoulState(
+        domitorId: m['domitorId'] as String? ?? '',
+        domitorName: m['domitorName'] as String? ?? '',
+        domitorClan: m['domitorClan'] as String?,
+        domitorDisciplines: _maps(m['domitorDisciplines']).map(DomitorDiscipline.fromMap).toList(),
+        bond: _int(m['bond']),
+        vitae: _int(m['vitae']),
+        lastDrink: _date(m['lastDrink']),
+      );
+
+  /// Copie du clan et des disciplines du domitor.
+  factory GhoulState.of(Character domitor) => GhoulState(
+        domitorId: domitor.id,
+        domitorName: domitor.name,
+        domitorClan: domitor.clan,
+        domitorDisciplines: [for (final d in domitor.disciplines) if (d.level > 0) DomitorDiscipline(d.name, d.level)],
+      );
+
+  String domitorId;
+  String domitorName;
+  String? domitorClan;
+  List<DomitorDiscipline> domitorDisciplines;
+  int bond;
+  int vitae;
+  DateTime? lastDrink;
+
+  Map<String, dynamic> toMap() => {
+        'domitorId': domitorId,
+        'domitorName': domitorName,
+        'domitorClan': domitorClan,
+        'domitorDisciplines': [for (final d in domitorDisciplines) d.toMap()],
+        'bond': bond,
+        'vitae': vitae,
+        'lastDrink': _ts(lastDrink),
+      };
+}
+
+/// « Goule de Isaure de Valcourt · clan du domitor : Toreador ».
+String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == null ? '' : ' · clan du domitor : ${g.domitorClan}'}';
+
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'ghoul'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -231,6 +295,7 @@ class Character {
       ..techniques = [for (final t in (m['techniques'] as List?) ?? const []) '$t']
       ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
       ..servants = _maps(m['servants']).map(Servant.fromMap).toList()
+      ..ghoul = m['ghoul'] is Map ? GhoulState.fromMap(_map(m['ghoul'])) : null
       ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
       ..storedKeys = {for (final k in _laterKeys) if (m.containsKey(k)) k}
       ..blood = _int(m['blood'])
@@ -278,6 +343,9 @@ class Character {
   List<ElderPower> elderPowers = [];
   List<Servant> servants = [];
 
+  /// Fiche de goule jouée (sous-projet 6c) ; null pour un vampire.
+  GhoulState? ghoul;
+
   /// Lue avec l'ancien historique « Serviteurs », converti : la prochaine écriture le note dans l'historique.
   bool legacyServants = false;
 
@@ -311,6 +379,7 @@ class Character {
         'elderPowers': [for (final e in elderPowers) e.toMap()],
         'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         'servants': [for (final s in servants) s.toMap()],
+        if (ghoul != null) 'ghoul': ghoul!.toMap(),
       };
 
   /// Toutes les clés, nulles comprises (les règles comparent les clés modifiées).
@@ -348,6 +417,7 @@ class Character {
         if (attributeBonus.values.any((v) => v != 0) || storedKeys.contains('attributeBonus'))
           'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
+        if (ghoul != null) 'ghoul': ghoul!.toMap(),
         'blood': blood,
         'bloodPerTurn': bloodPerTurn,
         'willpower': willpower,

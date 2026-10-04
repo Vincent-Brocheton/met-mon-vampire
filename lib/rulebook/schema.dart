@@ -133,7 +133,7 @@ final ruleCategories = <RuleCategory>[
       filter: 'domainMode'),
   const RuleCategory('generations', 'Générations', 'Valeurs vérifiées à chaque achat et à chaque validation.',
       fields: [
-        RuleField('rank', 'Rang', FieldType.choice, options: [('neonate', 'Neonate'), ('ancilla', 'Ancilla'), ('pretender', 'Pretender Elder')]),
+        RuleField('rank', 'Rang', FieldType.choice, options: [('neonate', 'Neonate'), ('ancilla', 'Ancilla'), ('pretender', 'Pretender Elder'), ('ghoul', 'Goule')]),
         RuleField('numbers', 'Générations (une par ligne)', FieldType.list),
         RuleField('blood', 'Sang', FieldType.number),
         RuleField('bloodPerTurn', 'Sang par tour', FieldType.number),
