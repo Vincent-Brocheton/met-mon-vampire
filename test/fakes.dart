@@ -4,6 +4,8 @@ import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/trace.dart';
+import 'package:portail_met/items/item.dart';
+import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
 import 'package:portail_met/npcs/npc_loans_repository.dart';
 import 'package:portail_met/places/place.dart';
@@ -357,3 +359,56 @@ class FakeNpcLoansRepository implements NpcLoansRepository {
 
 /// Aucun prêt pour la fiche 'x'.
 final noNpcLoans = characterNpcLoansProvider('x').overrideWith((ref) => Stream.value(const <NpcLoan>[]));
+
+class FakeItemsRepository implements ItemsRepository {
+  final calls = <String>[];
+  Item? lastSaved;
+  Item? lastBefore;
+  Item? lastRequest;
+  String? lastNote;
+  String? lastReason;
+  Object? error;
+
+  @override
+  Stream<String> watchNote(String id) => Stream.value('');
+
+  @override
+  Stream<List<TraceEntry>> watchHistory(String id) => Stream.value(const []);
+
+  @override
+  Future<String> save(Item before, Item i, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
+    calls.add('save:${i.name}');
+    lastBefore = before;
+    if (error != null) throw error!;
+    lastSaved = i;
+    lastNote = note;
+    lastReason = reason;
+    return i.id.isEmpty ? 'new-item' : i.id;
+  }
+
+  @override
+  Future<String> request(Item i, Actor by) async {
+    calls.add('request:${i.name}');
+    if (error != null) throw error!;
+    lastRequest = i;
+    return 'new-request';
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    calls.add('delete:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> deleteRequest(String id) async {
+    calls.add('deleteRequest:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Aucun objet pour la fiche 'x'.
+final noItems = characterItemsProvider('x').overrideWith((ref) => Stream.value(const <Item>[]));

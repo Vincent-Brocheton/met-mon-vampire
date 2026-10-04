@@ -315,6 +315,56 @@ service cloud.firestore {
       allow delete: if managesAccounts();
     }
 
+    // Équipement (sous-projet 6f) : lu par l'équipe et le joueur du porteur ; demandé par le joueur, géré par le conte.
+    function itemValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'category', 'grade', 'qualities', 'extraQuality', 'characterId', 'characterName', 'playerUid',
+          'state', 'description', 'origin', 'refusal', 'version', 'lastHistoryId', 'createdAt', 'updatedAt', 'updatedByName'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.category in ['melee', 'ranged', 'armor', 'gear'] && d.grade in ['normal', 'cheap']
+        && d.qualities is list && d.qualities.size() <= 5
+        && d.state in ['requested', 'active', 'refused', 'confiscated', 'destroyed']
+        && d.characterId is string && d.playerUid is string
+        && d.description is string && d.description.size() <= 2000
+        && d.origin is string && d.origin.size() <= 2000
+        && d.refusal is string && d.refusal.size() <= 2000;
+    }
+    function itemHistoryOk(id) {
+      let h = getAfter(/databases/$(database)/documents/items/$(id)/history/$(request.resource.data.lastHistoryId)).data;
+      return h.byUid == request.auth.uid && h.at == request.time;
+    }
+    function itemRequestOk() {
+      let d = request.resource.data;
+      return signedIn() && d.state == 'requested' && d.version == 1 && d.playerUid == request.auth.uid
+        && d.get('extraQuality', null) == null && d.refusal == '' && !d.keys().hasAny(['lastHistoryId'])
+        && d.qualities.size() <= 2
+        && get(/databases/$(database)/documents/characters/$(d.characterId)).data.playerUid == request.auth.uid;
+    }
+
+    match /items/{id} {
+      allow read: if isStaff() || (signedIn() && resource.data.playerUid == request.auth.uid);
+      allow create: if itemValid()
+        && ((managesAccounts() && request.resource.data.version == 1 && itemHistoryOk(id)) || itemRequestOk());
+      allow update: if managesAccounts() && itemValid()
+        && request.resource.data.version == resource.data.version + 1 && itemHistoryOk(id);
+      allow delete: if managesAccounts()
+        || (signedIn() && resource.data.playerUid == request.auth.uid && resource.data.state in ['requested', 'refused']);
+
+      match /private/{doc} {
+        allow read: if isStaff();
+        allow write: if managesAccounts();
+      }
+
+      match /history/{h} {
+        allow read: if isStaff();
+        allow create: if managesAccounts()
+          && request.resource.data.byUid == request.auth.uid
+          && request.resource.data.at == request.time
+          && getAfter(/databases/$(database)/documents/items/$(id)).data.lastHistoryId == h;
+        allow delete: if managesAccounts();
+      }
+    }
+
     // Serviteurs et mortels (sous-projet 6b) : lus par l'équipe et le joueur du domitor.
     function servantValid() {
       let d = request.resource.data;
