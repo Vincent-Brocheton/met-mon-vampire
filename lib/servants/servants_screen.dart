@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../characters/character.dart';
 import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart' show dots;
+import '../characters/transformations.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -12,6 +15,8 @@ import '../rulebook/rulebook_provider.dart';
 import 'servant_file.dart';
 import 'servant_rules.dart';
 import 'servants_repository.dart';
+import 'transform_actions.dart';
+import 'transform_dialogs.dart';
 
 /// « Goules et mortels » (C-Goules, C-Animaux) : serviteurs des fiches, fiches libérées, mortels.
 class ServantsScreen extends ConsumerStatefulWidget {
@@ -233,6 +238,58 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
     _note.dispose();
     _reason.dispose();
     super.dispose();
+  }
+
+  /// Lance une transformation ; ferme la fiche et affiche le résultat.
+  Future<void> _transform(Future<String?> Function(Actor by) action) async {
+    final by = actorOf(ref.read(currentUserProvider).value);
+    if (by == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final partial = await action(by);
+      messenger.showSnackBar(SnackBar(content: Text(partial ?? 'Transformation enregistrée.')));
+      widget.onDeleted();
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Transformation refusée : rechargez la page.')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _toServant() async {
+    final r = await showDialog<(Character?, ServantKind, int, String)>(context: context, builder: (_) => ServantOfDialog(name: _base.name));
+    final d = r?.$1;
+    if (r == null || d == null) return;
+    await _transform((by) => mortalToServant(ref.read(characterRepositoryProvider), ref.read(servantsRepositoryProvider),
+        mortal: _base, domitor: d, kind: r.$2, rank: r.$3, reason: r.$4, by: by, rb: widget.rb));
+  }
+
+  Future<void> _toGhoul() async {
+    final r = await showDialog<(AppUser, Character)>(context: context, builder: (_) => GhoulOfDialog(name: _base.name));
+    if (r == null) return;
+    await _transform((by) => mortalToGhoul(ref.read(characterRepositoryProvider), ref.read(servantsRepositoryProvider),
+        mortal: _base, player: r.$1, domitor: r.$2, by: by));
+  }
+
+  Future<void> _embrace() async {
+    final row = widget.row;
+    final choice = await showDialog<EmbraceChoice>(
+      context: context,
+      builder: (_) => EmbraceDialog(name: row.name, initialSireId: row.domitor?.id, allowPj: true),
+    );
+    if (choice == null) return;
+    final player = choice.player;
+    final made = player == null
+        ? embracedNpc(row.name, sire: choice.sire, genNumber: choice.genNumber, first: choice.first, rb: widget.rb)
+        : embracedDraft(row.name, playerUid: player.uid, playerName: player.displayName, sire: choice.sire, genNumber: choice.genNumber, rb: widget.rb);
+    final sheet = made.after;
+    if (sheet == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(made.error!)));
+      return;
+    }
+    await _transform((by) => embraceFollower(ref.read(characterRepositoryProvider), ref.read(servantsRepositoryProvider),
+        row: row, sheet: sheet, reason: choice.reason, by: by));
   }
 
   Future<bool> _confirm(String title, String body, String action) async =>
@@ -471,6 +528,12 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
                     },
               child: const Text('Supprimer'),
             ),
+          if (mortal && _base.version > 0) ...[
+            OutlinedButton(key: const Key('sv-to-servant'), onPressed: _busy ? null : _toServant, child: const Text('Devenir serviteur de…')),
+            OutlinedButton(key: const Key('sv-to-ghoul'), onPressed: _busy ? null : _toGhoul, child: const Text('Devenir goule jouée…')),
+          ],
+          if ((mortal && _base.version > 0) || r.entry != null)
+            OutlinedButton(key: const Key('sv-embrace'), onPressed: _busy ? null : _embrace, child: const Text('Étreindre…')),
         ]),
       ],
       if (_base.version > 0) ...[

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/servants/servant_file.dart';
@@ -18,24 +19,28 @@ import 'servant_rules_test.dart' show isaure, rb, rexFile;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   const julien = AppUser(uid: 'julien', displayName: 'Julien', email: 'j@ex.fr', role: Role.narrateur);
+  const ines = AppUser(uid: 'u2', displayName: 'Inès T.', email: 'i@ex.fr', role: Role.joueur);
 
-  Future<FakeServantsRepository> pump(WidgetTester tester, {AppUser user = lea, List<ServantFile>? files, Stream<List<ServantFile>>? stream}) async {
+  Future<(FakeServantsRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<ServantFile>? files, Stream<List<ServantFile>>? stream}) async {
     tester.view.physicalSize = const Size(1440, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repo = FakeServantsRepository();
+    final chars = FakeCharacterRepository();
     await tester.pumpWidget(ProviderScope(
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         rulebookProvider.overrideWith((ref) => rb),
         servantsRepositoryProvider.overrideWith((ref) => repo),
+        characterRepositoryProvider.overrideWith((ref) => chars),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea, ines])),
         allServantFilesProvider.overrideWith((ref) => stream ?? Stream.value(files ?? [rexFile()])),
         allCharactersProvider.overrideWith((ref) => Stream.value([isaure()])),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: ServantsScreen())),
     ));
     await tester.pumpAndSettle();
-    return repo;
+    return (repo, chars);
   }
 
   Future<void> choose(WidgetTester tester, String key, String text) async {
@@ -56,7 +61,7 @@ void main() {
   });
 
   testWidgets('compléter un serviteur : spécialité, gorgée, accès du joueur du domitor', (tester) async {
-    final repo = await pump(tester);
+    final (repo, _) = await pump(tester);
     await tester.tap(find.text('Mila'));
     await tester.pumpAndSettle();
     expect(find.text('Réserve 2 · santé 1 · pas de Volonté'), findsOneWidget);
@@ -74,7 +79,7 @@ void main() {
   });
 
   testWidgets('goule animale : qualités et avertissement de points', (tester) async {
-    final repo = await pump(tester);
+    final (repo, _) = await pump(tester);
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
     await choose(tester, 'sv-add-quality', 'Monture (3)');
@@ -88,7 +93,7 @@ void main() {
     final files = StreamController<List<ServantFile>>();
     addTearDown(files.close);
     files.add([rexFile()]);
-    final repo = await pump(tester, stream: files.stream);
+    final (repo, _) = await pump(tester, stream: files.stream);
     await tester.tap(find.text('Rex'));
     await tester.pumpAndSettle();
     files.add([ServantFile.fromMap('x-s1', {...rexFile().toMap(), 'version': 2})]);
@@ -101,7 +106,7 @@ void main() {
   });
 
   testWidgets('nouveau mortel, puis suppression', (tester) async {
-    final repo = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
+    final (repo, _) = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
     await tester.tap(find.byKey(const Key('sv-new-mortal')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('sv-name')), 'Paul');
@@ -120,12 +125,60 @@ void main() {
   });
 
   testWidgets('fiche libérée sans date (libération échouée) : la date est posée à l’enregistrement (revue)', (tester) async {
-    final repo = await pump(tester, files: [rexFile(), ServantFile(id: 'x-old', kind: 'human', name: 'Bruno', domitorId: 'x', version: 1)]);
+    final (repo, _) = await pump(tester, files: [rexFile(), ServantFile(id: 'x-old', kind: 'human', name: 'Bruno', domitorId: 'x', version: 1)]);
     await tester.tap(find.text('Bruno'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('sv-save')));
     await tester.pumpAndSettle();
     expect(repo.lastSaved!.releasedAt, isNotNull);
+  });
+
+  testWidgets('mortel devient serviteur : domitor, rang, coût, motif', (tester) async {
+    final (servants, chars) = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
+    await tester.tap(find.text('Jeanne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-to-servant')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'so-domitor', 'Isaure de Valcourt');
+    await choose(tester, 'so-rank', '2');
+    expect(find.text('Coût : 6 XP'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('so-reason')), 'Recrutée');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('so-confirm')));
+    await tester.pumpAndSettle();
+    expect(chars.calls, ['saveEdit:Recrutée']);
+    expect((servants.lastSaved!.kind, servants.lastSaved!.domitorId), ('human', 'x'));
+  });
+
+  testWidgets('mortel étreint en PNJ : sire, génération proposée, fiche créée', (tester) async {
+    final (servants, chars) = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
+    await tester.tap(find.text('Jeanne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-embrace')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'em-sire', 'Isaure de Valcourt');
+    expect(find.text('Neonate'), findsOneWidget, reason: 'génération 11e proposée');
+    await tester.enterText(find.byKey(const Key('em-reason')), 'Étreinte');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('em-confirm')));
+    await tester.pumpAndSettle();
+    expect(chars.calls, ['createSheet:Jeanne']);
+    expect((chars.lastCreated!.clan, chars.lastCreated!.genNumber), ('Toreador', 11));
+    expect(servants.calls.last, 'delete:m1');
+  });
+
+  testWidgets('mortel devient goule jouée', (tester) async {
+    final (servants, chars) = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)]);
+    await tester.tap(find.text('Jeanne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-to-ghoul')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'gh-player', 'Inès T.');
+    await choose(tester, 'gh-domitor', 'Isaure de Valcourt');
+    await tester.tap(find.byKey(const Key('gh-confirm')));
+    await tester.pumpAndSettle();
+    expect(chars.calls, ['create:pj:Jeanne']);
+    expect(servants.calls.last, 'delete:m1');
   });
 
   testWidgets('narrateur : lecture seule', (tester) async {

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,12 +14,14 @@ import '../rulebook/rulebook_provider.dart';
 import '../rules/met_lists.dart' show focuses;
 import '../servants/servants_repository.dart';
 import '../servants/servants_section.dart';
+import '../servants/transform_dialogs.dart';
 import 'character.dart';
 import 'character_repository.dart';
 import 'character_screen.dart';
 import 'describe_changes.dart';
 import 'edit_widgets.dart';
 import 'sheet_widgets.dart';
+import 'transformations.dart';
 
 /// Motif obligatoire, visible par le joueur. Renvoie null si annulé.
 Future<String?> askReason(BuildContext context, List<String> summary) =>
@@ -105,6 +108,33 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         _incoming = null;
         _generation++;
       });
+
+  /// Étreinte d'une goule jouée : une seule écriture tracée « embrace », clé `ghoul` supprimée.
+  Future<void> _embraceGhoul(Character latest) async {
+    final rb = ref.read(rulebookProvider) ?? const Rulebook();
+    final choice = await showDialog<EmbraceChoice>(
+      context: context,
+      builder: (_) => EmbraceDialog(
+        name: latest.name,
+        initialSireId: latest.ghoul!.domitorId,
+        debt: (c) => debtOf(embraceGhoul(latest, sire: c.sire, genNumber: c.genNumber, first: c.first, rb: rb).after ?? latest),
+      ),
+    );
+    final by = actorOf(ref.read(currentUserProvider).value);
+    if (choice == null || by == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final r = embraceGhoul(latest, sire: choice.sire, genNumber: choice.genNumber, first: choice.first, rb: rb);
+    if (r.after == null) {
+      messenger.showSnackBar(SnackBar(content: Text(r.error!)));
+      return;
+    }
+    try {
+      await ref.read(characterRepositoryProvider).saveEdit(latest, r.after!, choice.reason, by, kind: 'embrace', extra: {'ghoul': FieldValue.delete()});
+      messenger.showSnackBar(const SnackBar(content: Text('Étreinte enregistrée.')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Modifié entre-temps : rechargez la page.')));
+    }
+  }
 
   Future<void> _save() async {
     final by = actorOf(ref.read(currentUserProvider).value);
@@ -236,6 +266,17 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
               const SizedBox(height: 20),
               ServantsSection(character: latest, linkOf: (_) => '/conteur/goules'),
+              if (latest.ghoul != null) ...[
+                const SizedBox(height: 20),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton(
+                    key: const Key('c3-embrace'),
+                    onPressed: () => _embraceGhoul(latest),
+                    child: const Text('Étreindre…'),
+                  ),
+                ),
+              ],
             ]),
         ),
         if (changes.isNotEmpty)

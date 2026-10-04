@@ -133,6 +133,20 @@ void main() {
     expect(repo.calls, ['saveEdit:Gorgée']);
   });
 
+  testWidgets('C3 : étreindre une goule, clé ghoul supprimée (Review Focus 1)', (tester) async {
+    final repo = await pump(tester, ghoulSheet());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('c3-embrace')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('em-gen')), '11');
+    await tester.enterText(find.byKey(const Key('em-reason')), 'Étreinte');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('em-confirm')));
+    await tester.pumpAndSettle();
+    expect((repo.lastKind, repo.lastAfter!.ghoul, repo.lastAfter!.clan), ('embrace', null, 'Toreador'));
+    expect(repo.lastExtra!.containsKey('ghoul'), isTrue);
+  });
+
   testWidgets('Annuler restaure exactement la fiche lue (Review Focus 5)', (tester) async {
     await pump(tester, withHumanity());
     await tester.tap(find.byTooltip('Ajouter un point : Humanité'));
