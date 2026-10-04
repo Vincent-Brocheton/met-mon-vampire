@@ -59,7 +59,7 @@ class PlacesRepository {
         'updatedAt': now,
         'updatedByName': by.name,
         if (p.id.isEmpty) 'createdAt': now,
-      })
+      }, SetOptions(merge: p.id.isNotEmpty)) // fusion : garde createdAt ; toutes les autres clés sont réécrites
       ..set(h, {
         'at': now,
         'byUid': by.uid,

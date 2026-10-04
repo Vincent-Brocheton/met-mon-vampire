@@ -216,6 +216,7 @@ final baseRulebook = rulebookProvider.overrideWith((ref) => const Rulebook());
 class FakePlacesRepository implements PlacesRepository {
   final calls = <String>[];
   Place? lastSaved;
+  Place? lastBefore;
   String? lastNote;
   String? lastReason;
   Object? error;
@@ -229,6 +230,7 @@ class FakePlacesRepository implements PlacesRepository {
   @override
   Future<String> save(Place before, Place p, Actor by, {String? note, String noteBefore = '', String reason = ''}) async {
     calls.add('save:${p.name}');
+    lastBefore = before;
     if (error != null) throw error!;
     lastSaved = p;
     lastNote = note;

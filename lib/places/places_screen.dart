@@ -163,7 +163,7 @@ class _PlacesScreenState extends ConsumerState<PlacesScreen> {
           chars: chars,
           rb: rb,
           readOnly: readOnly,
-          onSaved: (id) => setState(() => _selectedId = id),
+          onSaved: _open,
           onDeleted: () => setState(() => _selectedId = null),
         ),
       );
@@ -212,6 +212,8 @@ class _PlaceEditor extends ConsumerStatefulWidget {
 }
 
 class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
+  /// Version ouverte : base de l'enregistrement (le flux peut apporter une version plus récente entre-temps).
+  late final Place _base;
   late final Place _d = widget.place.copy();
   late final _name = TextEditingController(text: _d.name);
   late final _known = TextEditingController(text: _d.known);
@@ -223,6 +225,12 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _base = widget.place;
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _known.dispose();
@@ -231,7 +239,11 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
     super.dispose();
   }
 
-  List<RuleEntry> _family(String f) => [for (final e in widget.rb.offered('placeQualities')) if (e.data['family'] == f) e];
+  /// Qualités proposées de la famille, plus celles du lieu qui ne le sont plus (pour les voir et les retirer).
+  List<RuleEntry> _family(String f) => [
+        for (final e in widget.rb.all('placeQualities'))
+          if (e.data['family'] == f && (e.state.offered || _d.qualities.any((q) => q.name == e.name))) e,
+      ];
 
   bool _main(PlaceQuality q) {
     final f = qualityFamily(widget.rb, q.name);
@@ -271,11 +283,13 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
     try {
       final id = await ref
           .read(placesRepositoryProvider)
-          .save(widget.place, _d, by, note: _note.text, noteBefore: _noteBefore, reason: reason ?? _reason.text);
+          .save(_base, _d, by, note: _note.text, noteBefore: _noteBefore, reason: reason ?? _reason.text);
       messenger.showSnackBar(const SnackBar(content: Text('Lieu enregistré.')));
       widget.onSaved(id);
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Modifié entre-temps : rechargez la page.')));
+      final latest = widget.places.where((p) => p.id == _base.id).firstOrNull;
+      final moved = _base.id.isNotEmpty && latest != null && latest.version != _base.version;
+      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -311,7 +325,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SectionTitle(_d.id.isEmpty ? 'Nouveau lieu' : 'Fiche du lieu'),
       const SizedBox(height: 12),
-      gap(TextField(key: const Key('pl-name'), controller: _name, enabled: !ro, decoration: const InputDecoration(labelText: 'Nom'))),
+      gap(TextField(key: const Key('pl-name'), controller: _name, enabled: !ro, maxLength: 80, decoration: const InputDecoration(labelText: 'Nom'))),
       gap(Row(children: [
         Expanded(
           child: DropdownButtonFormField<PlaceType>(

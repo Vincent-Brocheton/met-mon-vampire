@@ -17,6 +17,7 @@ final rb = Rulebook({
     RuleEntry(name: 'Compromis', data: {'family': 'negative', 'repeatable': 3}),
     RuleEntry(name: 'Élysée', data: {'family': 'elysium'}),
     RuleEntry(name: 'Abandonné', state: RuleState.forbidden, data: {'family': 'standard'}),
+    RuleEntry(name: 'Maudit', state: RuleState.forbidden, data: {'family': 'negative'}),
   ],
 });
 
