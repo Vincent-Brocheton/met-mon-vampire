@@ -11,6 +11,7 @@ import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
+import 'package:portail_met/servants/servants_repository.dart';
 
 import '../fakes.dart';
 import 'character_test.dart' show sample;
@@ -18,7 +19,7 @@ import 'character_test.dart' show sample;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook()}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -32,6 +33,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         noPlaces,
         noServantFiles,
+        servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),
@@ -60,6 +62,20 @@ void main() {
     await tester.tap(find.text('Confirmer'));
     await tester.pumpAndSettle();
     expect(repo.calls, ['saveEdit:Correction']);
+  });
+
+  testWidgets('C3 : serviteur retiré, libération refusée : message (revue)', (tester) async {
+    final servants = FakeServantsRepository()..releaseError = Exception('refus');
+    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants);
+    await tester.tap(find.byTooltip('Retirer Rex'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reason')), 'Libéré');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(servants.calls, ['release:x-s1']);
+    expect(find.text('Rex : libération non notée sur sa fiche. Ouvrez-la dans « Goules et mortels » et enregistrez.'), findsOneWidget);
   });
 
   testWidgets('Annuler restaure exactement la fiche lue (Review Focus 5)', (tester) async {

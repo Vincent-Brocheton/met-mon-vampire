@@ -337,7 +337,8 @@ class ServantListEditor extends StatelessWidget {
                 child: TextFormField(
                   key: ValueKey('servant-name-${s.id}'),
                   initialValue: s.name,
-                  decoration: const InputDecoration(labelText: 'Nom', isDense: true),
+                  maxLength: 80,
+                  decoration: const InputDecoration(labelText: 'Nom', isDense: true, counterText: ''),
                   onChanged: (v) {
                     s.name = v.trim();
                     onChanged();

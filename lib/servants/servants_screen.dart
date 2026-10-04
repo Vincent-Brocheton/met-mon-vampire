@@ -268,6 +268,8 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
         ..name = _name.text.trim()
         ..attachment = _attachment.text.trim();
     }
+    // Libération manquée (échec dans C3, annulation d'achat) : la date est posée ici.
+    if (r.released) _d.releasedAt ??= DateTime.now();
     _d.description = _description.text.trim();
     if (_d.name.isEmpty) {
       setState(() => _error = 'Le nom est obligatoire.');

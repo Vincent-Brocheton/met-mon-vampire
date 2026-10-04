@@ -1,4 +1,5 @@
 import '../characters/character.dart';
+import '../rulebook/rule_entry.dart' show nameKey;
 import '../rulebook/rulebook.dart';
 import '../rules/powers_rules.dart';
 import 'xp_request.dart';
@@ -71,10 +72,12 @@ void _revert(Character n, XpItem i) {
     case XpKind.elderPower:
       n.elderPowers.removeWhere((e) => e.name == i.name);
     case XpKind.servant:
+      // Casse ignorée, comme à l'achat ; un seul serviteur touché.
+      final s = n.servants.firstWhere((s) => nameKey(s.name) == nameKey(i.name));
       if (i.fromLevel == 0) {
-        n.servants.removeWhere((s) => s.name == i.name);
+        n.servants.remove(s);
       } else {
-        n.servants.firstWhere((s) => s.name == i.name).rank = i.fromLevel;
+        s.rank = i.fromLevel;
       }
     case XpKind.humanity:
       n.humanity = i.fromLevel;

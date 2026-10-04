@@ -278,8 +278,13 @@ class FakeServantsRepository implements ServantsRepository {
     return f.id.isEmpty ? 'new-servant' : f.id;
   }
 
+  Object? releaseError;
+
   @override
-  Future<void> release(String id, Actor by) async => calls.add('release:$id');
+  Future<void> release(String id, Actor by) async {
+    calls.add('release:$id');
+    if (releaseError != null) throw releaseError!;
+  }
 
   @override
   Future<void> delete(String id) async {

@@ -77,6 +77,11 @@ void main() {
     await tester.enterText(find.byKey(ValueKey('servant-name-${items.last.id}')), 'Mila');
     await tester.pump();
     expect(items.last.name, 'Mila');
+    await tester.enterText(find.byKey(ValueKey('servant-name-${items.last.id}')), 'B' * 90);
+    await tester.pump();
+    expect(items.last.name.length, 80, reason: 'revue : 80 caractères au plus');
+    await tester.enterText(find.byKey(ValueKey('servant-name-${items.last.id}')), 'Mila');
+    await tester.pump();
     await tester.tap(find.byTooltip('Retirer Rex'));
     await tester.pump();
     expect(items.map((s) => s.name), ['Mila']);

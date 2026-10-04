@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -117,17 +115,27 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     setState(() => _saving = true);
     try {
       await ref.read(characterRepositoryProvider).saveEdit(_base!, _draft!, reason, by);
-      // Serviteurs retirés : leur fiche détaillée est marquée libérée (lot séparé, sans bloquer l'enregistrement).
+      // Serviteurs retirés : leur fiche détaillée est marquée libérée (lot séparé ; un échec n'annule pas la fiche).
       final kept = {for (final s in _draft!.servants) s.id};
+      final failed = <String>[];
       for (final s in _base!.servants) {
-        if (!kept.contains(s.id)) unawaited(ref.read(servantsRepositoryProvider).release(s.id, by).catchError((_) {}));
+        if (kept.contains(s.id)) continue;
+        try {
+          await ref.read(servantsRepositoryProvider).release(s.id, by);
+        } catch (_) {
+          failed.add(s.name);
+        }
       }
       if (mounted) {
         setState(() {
           _base = _draft!.clone()..version = _base!.version + 1;
           _incoming = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(failed.isEmpty
+              ? 'Fiche enregistrée.'
+              : '${failed.join(', ')} : libération non notée sur sa fiche. Ouvrez-la dans « Goules et mortels » et enregistrez.'),
+        ));
       }
     } catch (_) {
       if (mounted) {

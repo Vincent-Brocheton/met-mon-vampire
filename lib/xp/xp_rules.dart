@@ -26,7 +26,9 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
 
 /// Niveau après les achats déjà dans la demande.
 int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
-  final last = items.where((i) => i.kind == k && i.name == name).lastOrNull;
+  // Un serviteur se reconnaît sans tenir compte de la casse : « Rex » et « rex » sont le même.
+  bool same(XpItem i) => i.kind == k && (k == XpKind.servant ? nameKey(i.name) == nameKey(name) : i.name == name);
+  final last = items.where(same).lastOrNull;
   return last?.toLevel ?? levelNow(c, k, name);
 }
 
@@ -255,6 +257,7 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
       }
     case XpKind.servant:
       if (item.name.trim().isEmpty) return 'Précisez le nom du serviteur.';
+      if (item.name.length > 80) return 'Nom du serviteur : 80 caractères au plus.';
       if (servantKindOfNote(item.note) != null && item.fromLevel > 0) return 'Un serviteur porte déjà ce nom.';
       if (item.toLevel > 5) return 'Plafond atteint (5).';
     default:

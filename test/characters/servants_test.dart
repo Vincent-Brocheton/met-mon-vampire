@@ -42,6 +42,13 @@ void main() {
       ],
     });
     expect(unnamed.servants.single.name, 'Serviteur');
+    final long = Character.fromMap('x', {
+      ...m,
+      'backgrounds': [
+        {'name': 'Serviteurs', 'level': 2, 'note': 'A' * 120},
+      ],
+    });
+    expect(long.servants.single.name.length, 80, reason: 'revue : la fiche détaillée refuse plus de 80 caractères');
   });
 
   test('résumé des changements', () {

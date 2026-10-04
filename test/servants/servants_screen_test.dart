@@ -119,6 +119,15 @@ void main() {
     expect(repo.calls.last, 'delete:m1');
   });
 
+  testWidgets('fiche libérée sans date (libération échouée) : la date est posée à l’enregistrement (revue)', (tester) async {
+    final repo = await pump(tester, files: [rexFile(), ServantFile(id: 'x-old', kind: 'human', name: 'Bruno', domitorId: 'x', version: 1)]);
+    await tester.tap(find.text('Bruno'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-save')));
+    await tester.pumpAndSettle();
+    expect(repo.lastSaved!.releasedAt, isNotNull);
+  });
+
   testWidgets('narrateur : lecture seule', (tester) async {
     await pump(tester, user: julien);
     expect(find.byKey(const Key('sv-new-mortal')), findsNothing);

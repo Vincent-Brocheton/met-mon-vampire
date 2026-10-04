@@ -35,6 +35,21 @@ void main() {
     expect(gone.servants.map((s) => s.name), ['Mila']);
   });
 
+  test('noms : 80 caractères au plus, casse ignorée dans la demande et à l’annulation (revue)', () {
+    final c = sample();
+    expect(err(c, XpKind.servant, newHumanServant, note: 'A' * 81), 'Nom du serviteur : 80 caractères au plus.');
+    final items = [draftItem(c, const [], XpKind.servant, newAnimalServant, note: 'Rex')];
+    expect(itemError(c, items, draftItem(c, items, XpKind.servant, newHumanServant, note: 'rex'), usable: 100), 'Un serviteur porte déjà ce nom.');
+    final after = applyRequest(c, items);
+    after.servants.single.name = 'REX';
+    final gone = applyCorrection(after, CorrectionKind.cancelPurchase, item: items.single).after!;
+    expect(gone.servants, isEmpty);
+    final up = const XpItem(XpKind.servant, 'Rex', 1, 2, 4);
+    final raised = applyRequest(after, [up]);
+    raised.servants.single.name = 'rex';
+    expect(applyCorrection(raised, CorrectionKind.cancelPurchase, item: up).after!.servants.single.rank, 1);
+  });
+
   test('plafond 5, historique Serviteurs écarté, libellés, contrôle à la validation', () {
     final c = sample()..servants = [Servant('x-s1', 'Mila', ServantKind.human, 5)];
     expect(err(c, XpKind.servant, 'Mila'), 'Plafond atteint (5).');

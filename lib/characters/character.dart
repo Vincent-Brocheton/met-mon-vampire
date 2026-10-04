@@ -376,7 +376,7 @@ class Character {
     final first = '$id-s1';
     servants.add(Servant(
       servants.any((s) => s.id == first) ? '$id-s${servants.length + 1}' : first,
-      note.isEmpty ? 'Serviteur' : note,
+      note.isEmpty ? 'Serviteur' : (note.length > 80 ? note.substring(0, 80) : note), // nom de la fiche détaillée : 80 au plus
       ServantKind.human,
       b.level.clamp(1, 5),
     ));
