@@ -20,7 +20,7 @@ void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   const julien = AppUser(uid: 'julien', displayName: 'Julien', email: 'j@ex.fr', role: Role.narrateur);
 
-  Future<FakePlacesRepository> pump(WidgetTester tester, {AppUser user = lea, List<Place>? places, Stream<List<Place>>? stream}) async {
+  Future<FakePlacesRepository> pump(WidgetTester tester, {AppUser user = lea, List<Place>? places, Stream<List<Place>>? stream, Stream<String>? note}) async {
     tester.view.physicalSize = const Size(1440, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -32,6 +32,7 @@ void main() {
         placesRepositoryProvider.overrideWith((ref) => repo),
         allPlacesProvider.overrideWith((ref) => stream ?? Stream.value(places ?? [opera()])),
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
+        if (note != null) placeNoteProvider('p1').overrideWith((ref) => note),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: PlacesScreen())),
     ));
@@ -144,6 +145,27 @@ void main() {
     await tester.tap(find.text('Supprimer').last);
     await tester.pumpAndSettle();
     expect(repo.calls.last, 'delete:p1');
+  });
+
+  testWidgets('suppression refusée : message, le lieu reste ouvert (revue)', (tester) async {
+    final repo = await pump(tester);
+    repo.error = Exception('refus');
+    await tester.tap(find.text('Opéra municipal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pl-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Supprimer').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Suppression refusée : réessayez.'), findsOneWidget);
+    expect(find.byKey(const Key('pl-save')), findsOneWidget);
+  });
+
+  testWidgets('note secrète illisible : message et nouvel essai, pas de chargement sans fin (revue)', (tester) async {
+    await pump(tester, note: Stream.error(Exception('refus')));
+    await tester.tap(find.text('Opéra municipal'));
+    await tester.pumpAndSettle();
+    expect(find.text('Note secrète illisible.'), findsOneWidget);
+    expect(find.byKey(const Key('pl-save')), findsNothing, reason: 'enregistrer effacerait la note');
   });
 
   testWidgets('recherche par nom de personnage', (tester) async {

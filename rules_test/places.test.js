@@ -77,5 +77,7 @@ test('lieu invalide refusé, création valide acceptée, suppression par le cont
   await assertFails(saved('lea', 'p9', place({ version: 2 })));
   await assertSucceeds(saved('lea', 'p9', place({})));
   await assertFails(deleteDoc(doc(as('julien'), 'places/p9')));
+  await assertFails(deleteDoc(doc(as('julien'), 'places/p1/history/h1')));
+  await assertSucceeds(deleteDoc(doc(as('lea'), 'places/p1/history/h1')));
   await assertSucceeds(deleteDoc(doc(as('lea'), 'places/p9')));
 });

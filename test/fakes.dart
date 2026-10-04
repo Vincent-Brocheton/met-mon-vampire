@@ -239,7 +239,10 @@ class FakePlacesRepository implements PlacesRepository {
   }
 
   @override
-  Future<void> delete(String id) async => calls.add('delete:$id');
+  Future<void> delete(String id) async {
+    calls.add('delete:$id');
+    if (error != null) throw error!;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

@@ -85,6 +85,10 @@ void main() {
     expect(playersOf(opera().holders, [isaure]), ['u1']);
     isaure.playerUid = 'u2';
     expect(staleAccess(opera(), [isaure]), ['Le joueur de Isaure de Valcourt a changé : enregistrez pour mettre à jour l’accès']);
+    isaure.playerUid = null;
+    expect(staleAccess(opera(), [isaure]), ['Un ancien joueur a encore accès : enregistrez pour le retirer'], reason: 'revue : fiche sans joueur');
+    isaure.playerUid = 'u1';
+    expect(staleAccess(opera(), [isaure]), isEmpty);
   });
 
   test('résumé des changements', () {

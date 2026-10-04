@@ -302,6 +302,13 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
     final ro = widget.readOnly;
     if (_d.id.isNotEmpty && !_noteLoaded) {
       final note = ref.watch(placeNoteProvider(_d.id));
+      // Sans la note, enregistrer l'effacerait : pas de formulaire tant qu'elle n'est pas lue.
+      if (note.hasError) {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Note secrète illisible.'),
+          TextButton(onPressed: () => ref.invalidate(placeNoteProvider(_d.id)), child: const Text('Réessayer')),
+        ]);
+      }
       if (!note.hasValue) return const Center(child: CircularProgressIndicator());
       _noteBefore = note.value!;
       _note.text = _noteBefore;
@@ -523,9 +530,17 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
               onPressed: _busy
                   ? null
                   : () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       if (!await _confirm('Supprimer « ${_d.name} » ?', 'Cette suppression est définitive.', 'Supprimer')) return;
-                      await ref.read(placesRepositoryProvider).delete(_d.id);
-                      widget.onDeleted();
+                      setState(() => _busy = true);
+                      try {
+                        await ref.read(placesRepositoryProvider).delete(_d.id);
+                        widget.onDeleted();
+                      } catch (_) {
+                        messenger.showSnackBar(const SnackBar(content: Text('Suppression refusée : réessayez.')));
+                      } finally {
+                        if (mounted) setState(() => _busy = false);
+                      }
                     },
               child: const Text('Supprimer'),
             ),

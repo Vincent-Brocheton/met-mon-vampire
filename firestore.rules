@@ -305,6 +305,7 @@ service cloud.firestore {
           && request.resource.data.byUid == request.auth.uid
           && request.resource.data.at == request.time
           && getAfter(/databases/$(database)/documents/places/$(id)).data.lastHistoryId == h;
+        allow delete: if managesAccounts();
       }
     }
 

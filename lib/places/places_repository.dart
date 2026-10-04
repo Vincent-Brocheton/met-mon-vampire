@@ -77,12 +77,19 @@ class PlacesRepository {
     return ref.id;
   }
 
-  /// Supprime le lieu, son résumé public et sa note (l'historique reste, orphelin et invisible).
-  Future<void> delete(String id) => (_db.batch()
-        ..delete(_public.doc(id))
-        ..delete(_col.doc(id).collection('private').doc('note'))
-        ..delete(_col.doc(id)))
-      .commit();
+  /// Supprime le lieu, son résumé public, sa note et son historique.
+  Future<void> delete(String id) async {
+    // ponytail: un seul lot, limité à 500 écritures (≈ 497 entrées d'historique) ; découper si un lieu en a davantage.
+    final history = await _col.doc(id).collection('history').get();
+    final batch = _db.batch()
+      ..delete(_public.doc(id))
+      ..delete(_col.doc(id).collection('private').doc('note'))
+      ..delete(_col.doc(id));
+    for (final d in history.docs) {
+      batch.delete(d.reference);
+    }
+    await batch.commit();
+  }
 }
 
 @Riverpod(keepAlive: true)

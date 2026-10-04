@@ -75,13 +75,20 @@ List<String> placeWarnings(Place p, Rulebook rb, {List<Place> places = const [],
   return out;
 }
 
-/// Lieu enregistré dont un personnage a changé de joueur : l'accès suit au prochain enregistrement.
-List<String> staleAccess(Place stored, List<Character> characters) => [
-      for (final h in stored.holders)
-        if (characters.where((c) => c.id == h.id).firstOrNull case final c?
-            when c.playerUid != null && !stored.holderPlayers.contains(c.playerUid))
-          'Le joueur de ${c.name} a changé : enregistrez pour mettre à jour l’accès',
-    ];
+/// Lieu enregistré dont l'accès ne suit plus les joueurs des personnages : corrigé au prochain enregistrement.
+List<String> staleAccess(Place stored, List<Character> characters) {
+  final players = playersOf(stored.holders, characters);
+  final changed = [
+    for (final h in stored.holders)
+      if (characters.where((c) => c.id == h.id).firstOrNull case final c?
+          when c.playerUid != null && !stored.holderPlayers.contains(c.playerUid))
+        'Le joueur de ${c.name} a changé : enregistrez pour mettre à jour l’accès',
+  ];
+  if (changed.isEmpty && stored.holderPlayers.any((u) => !players.contains(u))) {
+    return ['Un ancien joueur a encore accès : enregistrez pour le retirer'];
+  }
+  return changed;
+}
 
 /// Une ligne par changement, pour l'historique du lieu.
 List<String> placeChanges(Place a, Place b) {
