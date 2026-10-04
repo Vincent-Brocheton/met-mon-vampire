@@ -49,14 +49,18 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
     final by = actorOf(ref.read(currentUserProvider).value);
     if (by == null) return false;
     final messenger = ScaffoldMessenger.of(context);
+    const conflict = SnackBar(content: Text('Modifié entre-temps : rechargez la page.'));
+    if (_stale(before)) {
+      messenger.showSnackBar(conflict);
+      return false;
+    }
     setState(() => _busy = true);
     try {
       await ref.read(npcLoansRepositoryProvider).save(before, l, by, sheet: sheet);
       messenger.showSnackBar(SnackBar(content: Text(done)));
       return true;
     } on FirebaseException catch (e) {
-      messenger.showSnackBar(SnackBar(
-          content: Text(e.code == 'permission-denied' && before.version > 0 ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      messenger.showSnackBar(e.code == 'permission-denied' && _stale(before) ? conflict : const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
       return false;
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
@@ -64,6 +68,22 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Le prêt a changé depuis [before] (version plus récente reçue du serveur).
+  bool _stale(NpcLoan before) {
+    if (before.version == 0) return false;
+    final latest = ref.read(allNpcLoansProvider).value?.where((x) => x.id == before.id).firstOrNull;
+    return latest != null && latest.version != before.version;
+  }
+
+  /// Prêt en cours de saisie, pour les avertissements ; null tant que le PNJ ou les dates manquent.
+  NpcLoan? _draft(List<Character> npcs) {
+    final from = parseDay(_from.text);
+    final until = parseDay(_until.text);
+    final npc = npcs.where((c) => c.id == _npcId).firstOrNull;
+    if (npc == null || from == null || until == null) return null;
+    return NpcLoan(characterId: npc.id, from: startOfDay(from), until: endOfDay(until));
   }
 
   Future<void> _create(List<Character> npcs, List<AppUser> players) async {
@@ -170,6 +190,10 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
     final players = [for (final u in users) if (u.role != Role.pending && u.role != Role.disabled) u];
     final active = loans.where((l) => loanState(l, now) == LoanState.active).length;
     final playerName = players.where((u) => u.uid == _playerUid).firstOrNull?.displayName;
+    final draft = _draft(npcs);
+    final draftWarnings = draft == null
+        ? const <String>[]
+        : [for (final w in loanWarnings(draft, loans: loans, npc: npcs.firstWhere((c) => c.id == draft.characterId), now: now)) if (w != 'La fin précède le début') w];
     Widget gap(Widget w) => Padding(padding: const EdgeInsets.only(bottom: 12), child: w);
 
     final form = Panel(
@@ -191,9 +215,9 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
           onChanged: (uid) => setState(() => _playerUid = uid),
         )),
         gap(Row(children: [
-          Expanded(child: TextField(key: const Key('loan-from'), controller: _from, decoration: const InputDecoration(labelText: 'Accès à partir du'))),
+          Expanded(child: TextField(key: const Key('loan-from'), controller: _from, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Accès à partir du'))),
           const SizedBox(width: 12),
-          Expanded(child: TextField(key: const Key('loan-until'), controller: _until, decoration: const InputDecoration(labelText: 'Jusqu’au (inclus)'))),
+          Expanded(child: TextField(key: const Key('loan-until'), controller: _until, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Jusqu’au (inclus)'))),
         ])),
         gap(SegmentedButton<LoanMode>(
           key: const Key('loan-mode'),
@@ -215,6 +239,14 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
           ('loan-limits', 'Limites', _limits),
         ])
           gap(TextField(key: Key(key), controller: c, maxLines: 2, decoration: InputDecoration(labelText: label))),
+        if (draftWarnings.isNotEmpty)
+          Padding(
+            key: const Key('loan-form-warnings'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final w in draftWarnings) Text(w, style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
+            ]),
+          ),
         if (_error != null) Text(_error!, style: const TextStyle(color: AppColors.linkHover)),
         Align(
           alignment: Alignment.centerRight,
@@ -270,7 +302,7 @@ class _NpcLoansScreenState extends ConsumerState<NpcLoansScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(l.characterName, style: t.titleSmall?.copyWith(color: open ? null : AppColors.textMuted)),
         Text(
-          '${l.playerName} · ${state == LoanState.upcoming ? 'à partir du ${formatDay(l.from)}' : 'jusqu’au ${formatDay(l.until)}'} · ${l.mode.label}',
+          '${l.playerName} · ${state == LoanState.upcoming ? 'à partir du ${formatLoanDay(l.from)}' : 'jusqu’au ${formatLoanDay(l.until)}'} · ${l.mode.label}',
           style: t.bodySmall,
         ),
         if (!open) Text('Terminé${state == LoanState.revoked ? ' (révoqué)' : ''}', style: t.bodySmall),

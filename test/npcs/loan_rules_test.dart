@@ -27,8 +27,14 @@ void main() {
     expect(parseDay(' 1/2/2026 '), DateTime(2026, 2, 1));
     expect(parseDay('31/02/2026'), isNull);
     expect(parseDay('demain'), isNull);
-    expect(endOfDay(DateTime(2026, 10, 17, 8)), DateTime(2026, 10, 17, 23, 59, 59));
+    expect(endOfDay(DateTime(2026, 10, 17, 8)), DateTime(2026, 10, 17, 23, 59, 59, 999));
     expect(startOfDay(DateTime(2026, 10, 17, 8)), DateTime(2026, 10, 17));
+  });
+
+  test('dates affichées : année seulement si elle diffère', () {
+    final now = DateTime(2026, 12, 1);
+    expect(formatLoanDay(DateTime(2026, 12, 24), now: now), '24 déc.');
+    expect(formatLoanDay(DateTime(2027, 1, 3), now: now), '3 janv. 2027');
   });
 
   test('état du prêt et jours restants', () {
@@ -64,14 +70,15 @@ void main() {
   test('aller-retour et avertissements (Review Focus 5)', () {
     final l = octave();
     expect(NpcLoan.fromMap('l1', l.toMap()).toMap(), l.toMap());
+    expect(l.toMap().keys, isNot(anyOf(contains('playerNotes'), contains('notesAt'))), reason: 'Review Focus 3');
     final now = DateTime(2026, 10, 1);
     final npc = sample()..updatedAt = DateTime(2026, 9, 30);
     final other = octave(id: 'l2')
       ..playerUid = 'u2'
       ..playerName = 'Julien P.';
     expect(loanWarnings(l, loans: [l, other], npc: npc, now: now), [
-      'Déjà confié à Julien P. jusqu’au ${formatDayForTest(other.until)}',
-      'Copie du ${formatDayForTest(l.sheetAt!)} : mettre à jour',
+      'Déjà confié à Julien P. jusqu’au 17 oct.',
+      'Copie du 28 sept. : mettre à jour',
     ]);
     npc.status = CharacterStatus.dead;
     expect(loanWarnings(l.copy()..sheetAt = null, loans: const [], npc: npc, now: now), ['Le PNJ est une fiche retirée ou morte']);
@@ -79,5 +86,3 @@ void main() {
     expect(loanWarnings(backwards, loans: const [], npc: null, now: now), ['La fin précède le début']);
   });
 }
-
-String formatDayForTest(DateTime d) => formatLoanDay(d);

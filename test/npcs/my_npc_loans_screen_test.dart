@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/npcs/loan_rules.dart';
 import 'package:portail_met/npcs/my_npc_loans_screen.dart';
@@ -67,6 +70,39 @@ void main() {
     expect(find.text('Jonas Ferrand'), findsOneWidget);
     expect(find.text('Isaure de Valcourt'), findsOneWidget);
     expect(find.textContaining('lecture seule'), findsNothing);
+  });
+
+  testWidgets('prêt qui se termine pendant que la page est ouverte : fermé', (tester) async {
+    await pump(tester, loans: [current()..until = DateTime.now().add(const Duration(seconds: 1))], sheet: sheetCopy(sample(), LoanMode.full));
+    expect(find.text('Prêt terminé'), findsNothing);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1500)));
+    await tester.pump(const Duration(minutes: 1));
+    expect(find.text('Prêt terminé'), findsOneWidget);
+  });
+
+  Future<void> section(WidgetTester tester, Stream<List<NpcLoan>> stream) => tester.pumpWidget(ProviderScope(
+        key: UniqueKey(),
+        overrides: [characterNpcLoansProvider('x').overrideWith((ref) => stream)],
+        child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: NpcLoansSection(characterId: 'x'))),
+      ));
+
+  testWidgets('section « Prêts » : chargement et erreur ne disent pas « Jamais confié. »', (tester) async {
+    final pending = StreamController<List<NpcLoan>>();
+    addTearDown(pending.close);
+    await section(tester, pending.stream);
+    await tester.pump();
+    expect(find.text('Jamais confié.'), findsNothing);
+    await section(tester, Stream.error(Exception('refus')));
+    await tester.pump();
+    expect(find.text('Jamais confié.'), findsNothing);
+    expect(find.text('Prêts indisponibles.'), findsOneWidget);
+  });
+
+  test('sans compte connecté : liste vide, pas de chargement sans fin', () async {
+    final c = ProviderContainer(overrides: [currentUserProvider.overrideWith((ref) => Stream.value(null))]);
+    addTearDown(c.dispose);
+    c.listen(myNpcLoansProvider, (_, _) {});
+    expect(await c.read(myNpcLoansProvider.future).timeout(const Duration(seconds: 1)), isEmpty);
   });
 
   testWidgets('aucun prêt en cours : état vide', (tester) async {

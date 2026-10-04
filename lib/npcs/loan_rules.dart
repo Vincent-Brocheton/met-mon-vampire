@@ -6,11 +6,12 @@ enum LoanState { upcoming, active, ended, revoked }
 
 DateTime startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
-/// Dernière seconde du jour : la fin d'un prêt est incluse.
-DateTime endOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59, 59);
+/// Dernier instant du jour : la fin d'un prêt est incluse.
+DateTime endOfDay(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59, 59, 999);
 
-/// Date d'un prêt affichée (« 17 oct. 2026 » selon `formatDay`).
-String formatLoanDay(DateTime d) => formatDay(d);
+/// « 17 oct. », avec l'année si elle diffère de celle de [now] (« 3 janv. 2027 »).
+String formatLoanDay(DateTime? d, {DateTime? now}) =>
+    d == null || d.year == (now ?? DateTime.now()).year ? formatDay(d) : '${formatDay(d)} ${d.year}';
 
 /// « 17/10/2026 » ; null si la date n'existe pas.
 DateTime? parseDay(String text) {
@@ -55,11 +56,11 @@ List<String> loanWarnings(NpcLoan l, {List<NpcLoan> loans = const [], Character?
     if (o.id == l.id || o.characterId != l.characterId) continue;
     final s = loanState(o, now);
     final open = s == LoanState.active || s == LoanState.upcoming;
-    if (open && o.from.isBefore(l.until) && l.from.isBefore(o.until)) out.add('Déjà confié à ${o.playerName} jusqu’au ${formatDay(o.until)}');
+    if (open && o.from.isBefore(l.until) && l.from.isBefore(o.until)) out.add('Déjà confié à ${o.playerName} jusqu’au ${formatLoanDay(o.until, now: now)}');
   }
   if (npc != null) {
     final at = l.sheetAt;
-    if (at != null && npc.updatedAt != null && npc.updatedAt!.isAfter(at)) out.add('Copie du ${formatDay(at)} : mettre à jour');
+    if (at != null && npc.updatedAt != null && npc.updatedAt!.isAfter(at)) out.add('Copie du ${formatLoanDay(at, now: now)} : mettre à jour');
     if (npc.status == CharacterStatus.retired || npc.status == CharacterStatus.dead) out.add('Le PNJ est une fiche retirée ou morte');
   }
   return out;

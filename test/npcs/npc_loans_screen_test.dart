@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseException;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,7 +27,7 @@ void main() {
     ..status = CharacterStatus.active
     ..playerUid = null;
 
-  Future<FakeNpcLoansRepository> pump(WidgetTester tester, {List<NpcLoan> loans = const []}) async {
+  Future<FakeNpcLoansRepository> pump(WidgetTester tester, {List<NpcLoan> loans = const [], Stream<List<NpcLoan>>? stream}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -34,7 +37,7 @@ void main() {
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea, camille])),
         allCharactersProvider.overrideWith((ref) => Stream.value([npc()])),
-        allNpcLoansProvider.overrideWith((ref) => Stream.value(loans)),
+        allNpcLoansProvider.overrideWith((ref) => stream ?? Stream.value(loans)),
         npcLoansRepositoryProvider.overrideWith((ref) => repo),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: NpcLoansScreen())),
@@ -65,9 +68,51 @@ void main() {
     final l = repo.lastSaved!;
     expect((l.characterId, l.playerUid, l.mode, l.personality), ('x', 'u1', LoanMode.summary, 'Courtois.'));
     expect(l.from, DateTime(2026, 9, 28));
-    expect(l.until, DateTime(2026, 10, 17, 23, 59, 59));
+    expect(l.until, DateTime(2026, 10, 17, 23, 59, 59, 999));
     expect(repo.lastBefore!.version, 0);
     expect(repo.lastSheet!.containsKey('story'), isFalse);
+  });
+
+  NpcLoan running({int version = 1}) => NpcLoan.fromMap('l1', {
+        ...(octave()
+              ..from = startOfDay(DateTime.now())
+              ..until = endOfDay(DateTime.now().add(const Duration(days: 3))))
+            .toMap(),
+        'version': version,
+      });
+
+  testWidgets('avertissements visibles avant de confier', (tester) async {
+    await pump(tester, loans: [running()]);
+    await choose(tester, 'loan-npc', 'Isaure de Valcourt');
+    await choose(tester, 'loan-player', 'Camille R.');
+    await tester.enterText(find.byKey(const Key('loan-until')), '${DateTime.now().add(const Duration(days: 2)).day.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 2)).month.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 2)).year}');
+    await tester.pump();
+    expect(find.byKey(const Key('loan-form-warnings')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('loan-form-warnings')), matching: find.textContaining('Déjà confié à Camille R.')), findsOneWidget);
+  });
+
+  testWidgets('prêt modifié pendant la fenêtre « Prolonger » : conflit, rien n’est écrit', (tester) async {
+    final loans = StreamController<List<NpcLoan>>();
+    addTearDown(loans.close);
+    loans.add([running()]);
+    final repo = await pump(tester, stream: loans.stream);
+    await tester.tap(find.byKey(const Key('loan-extend-l1')));
+    await tester.pumpAndSettle();
+    loans.add([running(version: 2)]);
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('extend-until')), '31/12/2030');
+    await tester.tap(find.byKey(const Key('extend-ok')));
+    await tester.pumpAndSettle();
+    expect(find.text('Modifié entre-temps : rechargez la page.'), findsOneWidget);
+    expect(repo.calls, isEmpty);
+  });
+
+  testWidgets('refus sans changement de version : message générique', (tester) async {
+    final repo = await pump(tester, loans: [running()]);
+    repo.error = FirebaseException(plugin: 'cloud_firestore', code: 'permission-denied');
+    await tester.tap(find.byKey(const Key('loan-refresh-l1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
   });
 
   testWidgets('fin avant le début : refusé (Review Focus 5)', (tester) async {
@@ -101,7 +146,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('extend-until')), '31/12/2030');
     await tester.tap(find.byKey(const Key('extend-ok')));
     await tester.pumpAndSettle();
-    expect(repo.lastSaved!.until, DateTime(2030, 12, 31, 23, 59, 59));
+    expect(repo.lastSaved!.until, DateTime(2030, 12, 31, 23, 59, 59, 999));
     expect(repo.lastSheet, isNull);
     await tester.tap(find.byKey(const Key('loan-refresh-l1')));
     await tester.pumpAndSettle();

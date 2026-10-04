@@ -65,6 +65,8 @@ test('notes du joueur : seulement elles, pendant la période, si autorisées (Re
 test('le conte écrit avec la version ; fin avant début refusée (Review Focus 5)', async () => {
   const lea = as('lea');
   await assertSucceeds(updateDoc(doc(lea, 'npcLoans/now'), { limits: 'aucune', version: 2 }));
+  await assertFails(updateDoc(doc(lea, 'npcLoans/now'), { revokedAt: Timestamp.fromMillis(Date.now() - day), version: 3 }));
+  await assertSucceeds(updateDoc(doc(lea, 'npcLoans/now'), { revokedAt: serverTimestamp(), version: 3 }));
   await assertFails(updateDoc(doc(lea, 'npcLoans/now'), { limits: 'x', version: 2 }));
   await assertFails(setDoc(doc(as('julien'), 'npcLoans/n2'), loan({})));
   await assertFails(setDoc(doc(lea, 'npcLoans/n2'), loan({ until: Timestamp.fromMillis(Date.now() - 2 * day) })));

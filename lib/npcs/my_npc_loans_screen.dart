@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,7 +35,7 @@ class MyNpcLoansScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               title: Text(l.characterName, style: t.titleMedium),
-              subtitle: Text('Jusqu’au ${formatDay(l.until)} · ${l.mode.label}'),
+              subtitle: Text('Jusqu’au ${formatLoanDay(l.until)} · ${l.mode.label}'),
               onTap: () => context.go('/joueur/pnj/${l.id}'),
             ),
           ),
@@ -55,9 +57,18 @@ class _NpcLoanScreenState extends ConsumerState<NpcLoanScreen> {
   final _notes = TextEditingController();
   bool _loaded = false;
   bool _busy = false;
+  // La fin du prêt est vérifiée à chaque minute : la page se ferme d'elle-même une fois le prêt terminé.
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
+  }
 
   @override
   void dispose() {
+    _tick.cancel();
     _notes.dispose();
     super.dispose();
   }
@@ -96,7 +107,7 @@ class _NpcLoanScreenState extends ConsumerState<NpcLoanScreen> {
           child: Row(children: [
             Expanded(
               child: Text(
-                'PNJ confié par ${l.updatedByName ?? 'le conte'} — lecture seule, accès jusqu’au ${formatDay(l.until)} 23h59. '
+                'PNJ confié par ${l.updatedByName ?? 'le conte'} — lecture seule, accès jusqu’au ${formatLoanDay(l.until)} 23h59. '
                 'Les notes privées du conte ne sont pas visibles.',
                 style: t.bodyMedium?.copyWith(color: AppColors.goldLight),
               ),
@@ -133,7 +144,7 @@ class _NpcLoanScreenState extends ConsumerState<NpcLoanScreen> {
           Panel(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SectionTitle('Mes notes d’interprétation'),
-              if (l.notesAt != null) Text('Partagées avec le conte · enregistré le ${formatDay(l.notesAt)}', style: t.bodySmall),
+              if (l.notesAt != null) Text('Partagées avec le conte · enregistré le ${formatLoanDay(l.notesAt)}', style: t.bodySmall),
               const SizedBox(height: 10),
               TextField(
                 key: const Key('loan-player-notes'),
@@ -190,16 +201,22 @@ class NpcLoansSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
-    final loans = ref.watch(characterNpcLoansProvider(characterId)).value ?? const <NpcLoan>[];
+    final async = ref.watch(characterNpcLoansProvider(characterId));
+    final loans = async.value ?? const <NpcLoan>[];
     final now = DateTime.now();
     return Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SectionTitle('Prêts'),
         const SizedBox(height: 8),
-        if (loans.isEmpty) Text('Jamais confié.', style: t.bodySmall),
+        if (async.hasError)
+          Text('Prêts indisponibles.', style: t.bodySmall)
+        else if (!async.hasValue)
+          const LinearProgressIndicator()
+        else if (loans.isEmpty)
+          Text('Jamais confié.', style: t.bodySmall),
         for (final l in loans) ...[
           Text(
-            '${l.playerName} · du ${formatDay(l.from)} au ${formatDay(l.until)} · ${switch (loanState(l, now)) {
+            '${l.playerName} · du ${formatLoanDay(l.from)} au ${formatLoanDay(l.until)} · ${switch (loanState(l, now)) {
               LoanState.active => 'en cours',
               LoanState.upcoming => 'à venir',
               LoanState.ended => 'terminé',

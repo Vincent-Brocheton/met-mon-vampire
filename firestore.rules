@@ -361,7 +361,8 @@ service cloud.firestore {
       allow create: if managesAccounts() && request.resource.data.version == 1
         && request.resource.data.until > request.resource.data.from;
       allow update: if (managesAccounts() && request.resource.data.version == resource.data.version + 1
-          && request.resource.data.until > request.resource.data.from)
+          && request.resource.data.until > request.resource.data.from
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['revokedAt']) || request.resource.data.revokedAt == request.time))
         || (signedIn() && resource.data.playerUid == request.auth.uid && resource.data.allowNotes == true && loanOpen(resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerNotes', 'notesAt'])
           && request.resource.data.notesAt == request.time

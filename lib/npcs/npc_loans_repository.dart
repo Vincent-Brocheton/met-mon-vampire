@@ -42,12 +42,15 @@ class NpcLoansRepository {
     final now = FieldValue.serverTimestamp();
     final data = {
       ...l.toMap(),
+      // Révocation à l'heure du serveur (exigé par les règles) ; ensuite la valeur stockée n'est plus réécrite.
+      if (l.revokedAt != null && before.revokedAt == null) 'revokedAt': now,
       if (sheet != null) 'sheetAt': now,
       'version': creating ? 1 : before.version + 1,
       'updatedAt': now,
       'updatedByName': by.name,
     };
     final batch = _db.batch();
+    if (!creating && l.revokedAt != null && before.revokedAt != null) data.remove('revokedAt');
     if (creating) {
       batch.set(ref, {...data, 'playerNotes': '', 'notesAt': null, 'createdAt': now});
     } else {
@@ -72,7 +75,7 @@ Stream<List<NpcLoan>> allNpcLoans(Ref ref) => ref.watch(npcLoansRepositoryProvid
 @riverpod
 Stream<List<NpcLoan>> myNpcLoans(Ref ref) {
   final uid = ref.watch(currentUserProvider).value?.uid;
-  if (uid == null) return const Stream.empty();
+  if (uid == null) return Stream.value(const []);
   return ref.watch(npcLoansRepositoryProvider).watchForPlayer(uid);
 }
 
