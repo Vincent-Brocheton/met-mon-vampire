@@ -45,6 +45,16 @@ void main() {
     expect(stepIntroOf(7, const CreationValues(), ghoul: true), contains('5 points'));
   });
 
+  test('brouillon écrit hors de l’application : achats et techniques interdits signalés à la soumission (revue)', () {
+    final c = mila()
+      ..purchases.add(Purchase(Buy.discipline, 'Auspex', 1, 3))
+      ..techniques.add('Regard ardent');
+    expect(at(c, 9), containsAll([
+      (CheckLevel.error, 'Les disciplines d’une goule ne s’achètent pas avec l’XP.'),
+      (CheckLevel.error, 'Une goule n’apprend ni technique ni pouvoir d’ancien.'),
+    ]));
+  });
+
   testWidgets('étapes : clan en lecture, disciplines du domitor, achats sans discipline', (tester) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;

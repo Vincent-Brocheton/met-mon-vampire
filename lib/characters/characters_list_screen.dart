@@ -232,7 +232,8 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
   CharacterKind _kind = CharacterKind.pj;
   AppUser? _player;
   bool _ghoul = false;
-  Character? _domitor;
+  /// Identifiant : la liste des fiches se renouvelle à chaque écriture, ses instances changent.
+  String? _domitorId;
   bool _busy = false;
   String? _error;
 
@@ -240,6 +241,17 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  List<Character> _domitors() => [
+        for (final c in ref.read(allCharactersProvider).value ?? const <Character>[])
+          if (c.ghoul == null && c.status == CharacterStatus.active) c,
+      ];
+
+  /// Copie du domitor choisi, lue dans la liste à jour.
+  GhoulState? _domitor() {
+    final c = _domitors().where((c) => c.id == _domitorId).firstOrNull;
+    return c == null ? null : GhoulState.of(c);
   }
 
   Future<void> _create() async {
@@ -256,7 +268,7 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
             kind: _kind,
             playerUid: _player?.uid,
             playerName: _player?.displayName,
-            ghoul: _ghoul && _domitor != null ? GhoulState.of(_domitor!) : null,
+            ghoul: _ghoul ? _domitor() : null,
             by: by,
           );
       if (mounted) Navigator.pop(context, (id, _kind, _name.text.trim()));
@@ -270,6 +282,7 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
   @override
   Widget build(BuildContext context) {
     final me = ref.watch(currentUserProvider).value;
+    ref.watch(allCharactersProvider); // liste des domitors à jour
     final users = ref.watch(allUsersProvider).value ?? const <AppUser>[];
     final players = users
         .where((u) => u.uid != me?.uid && u.role != Role.pending && u.role != Role.disabled)
@@ -325,16 +338,13 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
               ),
               if (_ghoul) ...[
                 const SizedBox(height: 16),
-                DropdownButtonFormField<Character>(
+                DropdownButtonFormField<String>(
                   key: const Key('new-domitor'),
-                  initialValue: _domitor,
+                  initialValue: _domitorId,
                   decoration: const InputDecoration(labelText: 'Domitor'),
-                  items: [
-                    for (final c in ref.watch(allCharactersProvider).value ?? const <Character>[])
-                      if (c.ghoul == null && c.status == CharacterStatus.active) DropdownMenuItem(value: c, child: Text(c.name)),
-                  ],
-                  onChanged: (c) => setState(() => _domitor = c),
-                  validator: (c) => c == null ? 'Choisissez le domitor.' : null,
+                  items: [for (final c in _domitors()) DropdownMenuItem(value: c.id, child: Text(c.name))],
+                  onChanged: (id) => setState(() => _domitorId = id),
+                  validator: (id) => _domitor() == null ? 'Choisissez le domitor.' : null,
                 ),
               ],
             ],

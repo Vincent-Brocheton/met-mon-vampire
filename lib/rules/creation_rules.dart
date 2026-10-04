@@ -507,6 +507,14 @@ List<Check> creationChecks(Character c, {Rulebook rb = const Rulebook()}) {
     if (b.lost > 0) add(9, CheckLevel.warn, '${b.lost} XP perdus (${v.maxSetAside} au plus mis de côté)');
   }
 
+  // Brouillon écrit hors de l'application : ce que l'écran refuse à une goule est bloqué ici aussi.
+  if (c.ghoul != null) {
+    final forbidden = {for (final p in c.purchases) ?ghoulPurchaseError(c, p.kind, p.name)};
+    if (c.techniques.isNotEmpty || c.elderPowers.isNotEmpty) forbidden.add(ghoulPurchaseError(c, Buy.technique, '')!);
+    for (final e in forbidden) {
+      add(9, CheckLevel.error, e);
+    }
+  }
   for (final r in c.rituals) {
     state(9, 'rituals', 'Rituel', r.name);
   }
