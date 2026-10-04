@@ -351,6 +351,32 @@ service cloud.firestore {
       }
     }
 
+    // PNJ confiés (sous-projet 6e) : en-tête lisible par son joueur ; copie de la fiche pendant la période seulement.
+    function loanOpen(l) {
+      return l.get('revokedAt', null) == null && l.from <= request.time && request.time <= l.until;
+    }
+
+    match /npcLoans/{id} {
+      allow read: if isStaff() || (signedIn() && resource.data.playerUid == request.auth.uid);
+      allow create: if managesAccounts() && request.resource.data.version == 1
+        && request.resource.data.until > request.resource.data.from;
+      allow update: if (managesAccounts() && request.resource.data.version == resource.data.version + 1
+          && request.resource.data.until > request.resource.data.from
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['revokedAt']) || request.resource.data.revokedAt == request.time))
+        || (signedIn() && resource.data.playerUid == request.auth.uid && resource.data.allowNotes == true && loanOpen(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['playerNotes', 'notesAt'])
+          && request.resource.data.notesAt == request.time
+          && request.resource.data.playerNotes is string && request.resource.data.playerNotes.size() <= 5000);
+      allow delete: if managesAccounts();
+
+      match /sheet/{doc} {
+        allow read: if isStaff() || (signedIn()
+          && get(/databases/$(database)/documents/npcLoans/$(id)).data.playerUid == request.auth.uid
+          && loanOpen(get(/databases/$(database)/documents/npcLoans/$(id)).data));
+        allow write: if managesAccounts();
+      }
+    }
+
     match /invitations/{email} {
       allow read: if isPrincipal() || (signedIn() && tokenEmail() == email);
       allow create, update: if isPrincipal()

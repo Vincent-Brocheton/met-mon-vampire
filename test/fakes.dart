@@ -4,6 +4,8 @@ import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/trace.dart';
+import 'package:portail_met/npcs/npc_loan.dart';
+import 'package:portail_met/npcs/npc_loans_repository.dart';
 import 'package:portail_met/places/place.dart';
 import 'package:portail_met/places/places_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
@@ -323,3 +325,35 @@ class FakeServantsRepository implements ServantsRepository {
 
 /// Aucune fiche détaillée de serviteur pour la fiche 'x'.
 final noServantFiles = characterServantFilesProvider('x').overrideWith((ref) => Stream.value(const <ServantFile>[]));
+
+class FakeNpcLoansRepository implements NpcLoansRepository {
+  final calls = <String>[];
+  NpcLoan? lastSaved;
+  NpcLoan? lastBefore;
+  Map<String, dynamic>? lastSheet;
+  String? lastNotes;
+  Object? error;
+
+  @override
+  Future<String> save(NpcLoan before, NpcLoan l, Actor by, {Map<String, dynamic>? sheet}) async {
+    calls.add('save:${l.characterName}:${l.playerName}');
+    lastBefore = before;
+    if (error != null) throw error!;
+    lastSaved = l;
+    lastSheet = sheet;
+    return l.id.isEmpty ? 'new-loan' : l.id;
+  }
+
+  @override
+  Future<void> saveNotes(String id, String text) async {
+    calls.add('notes:$id');
+    if (error != null) throw error!;
+    lastNotes = text;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Aucun prêt pour la fiche 'x'.
+final noNpcLoans = characterNpcLoansProvider('x').overrideWith((ref) => Stream.value(const <NpcLoan>[]));
