@@ -35,6 +35,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => stream.stream),
         noPlaces,
         noServantFiles,
+        noNpcLoans,
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),

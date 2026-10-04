@@ -34,6 +34,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         noPlaces,
         noServantFiles,
+        noNpcLoans,
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
@@ -64,6 +65,19 @@ void main() {
     await tester.tap(find.text('Confirmer'));
     await tester.pumpAndSettle();
     expect(repo.calls, ['saveEdit:Correction']);
+  });
+
+  testWidgets('fiche de PNJ : section « Prêts »', (tester) async {
+    await pump(tester, sample()..kind = CharacterKind.pnj);
+    await tester.pumpAndSettle();
+    expect(find.text('PRÊTS'), findsOneWidget);
+    expect(find.text('Jamais confié.'), findsOneWidget);
+  });
+
+  testWidgets('fiche de PJ : pas de section « Prêts »', (tester) async {
+    await pump(tester, sample());
+    await tester.pumpAndSettle();
+    expect(find.text('PRÊTS'), findsNothing);
   });
 
   testWidgets('C3 : serviteur retiré, libération refusée : message (revue)', (tester) async {

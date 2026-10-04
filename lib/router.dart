@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
@@ -123,7 +124,8 @@ GoRouter router(Ref ref) {
             path: '/joueur/personnages/:id/serviteurs/:sid',
             builder: (_, s) => ServantScreen(characterId: s.pathParameters['id']!, servantId: s.pathParameters['sid']!),
           ),
-          page('/joueur/pnj', soon('PNJ confiés')),
+          page('/joueur/pnj', const MyNpcLoansScreen()),
+          GoRoute(path: '/joueur/pnj/:id', builder: (_, s) => NpcLoanScreen(loanId: s.pathParameters['id']!)),
           GoRoute(
             path: '/joueur/demandes',
             builder: (_, s) => MyRequestsScreen(selectedId: s.uri.queryParameters['d']),

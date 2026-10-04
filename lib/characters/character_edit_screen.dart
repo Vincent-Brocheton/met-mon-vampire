@@ -8,6 +8,7 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../npcs/my_npc_loans_screen.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -266,6 +267,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               PlacesSection(characterId: latest.id, link: '/conteur/lieux'),
               const SizedBox(height: 20),
               ServantsSection(character: latest, linkOf: (_) => '/conteur/goules'),
+              if (latest.kind == CharacterKind.pnj) ...[
+                const SizedBox(height: 20),
+                NpcLoansSection(characterId: latest.id),
+              ],
               if (latest.ghoul != null && latest.status == CharacterStatus.active) ...[
                 const SizedBox(height: 20),
                 Align(
