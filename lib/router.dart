@@ -20,6 +20,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'npcs/npc_loans_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'redirect.dart';
@@ -149,7 +150,7 @@ GoRouter router(Ref ref) {
             ),
           ),
           page('/conteur/demandes', const ValidationScreen()),
-          page('/conteur/pnj', soon('PNJ confiés')),
+          page('/conteur/pnj', const NpcLoansScreen()),
           page('/conteur/xp', const XpAdminScreen()),
           page('/conteur/xp/corrections', const CorrectionsScreen()),
           page('/conteur/wiki', soon('Wiki')),
