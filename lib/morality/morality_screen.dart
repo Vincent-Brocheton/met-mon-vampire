@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../auth/session_providers.dart';
+import '../bonds/bonds_staff.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
 import '../characters/character_screen.dart' show CharacterHeader, CharacterTab;
@@ -56,6 +57,8 @@ class CharacterMoralityScreen extends ConsumerWidget {
             StaffMorality(character: c, sins: sins, rb: rb, canEdit: canEdit),
             const SizedBox(height: 20),
             StaffDerangements(character: c, rb: rb, canEdit: canEdit),
+            const SizedBox(height: 20),
+            StaffBonds(character: c, canEdit: canEdit),
           ] else ...[
             playerMorality(context, c, sins, rb, basePath),
             const SizedBox(height: 20),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
+import 'package:portail_met/bonds/bond.dart';
+import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
@@ -41,6 +43,9 @@ void main() {
         characterSinsProvider('x').overrideWith((ref) => Stream.value(sins)),
         sinsRepositoryProvider.overrideWith((ref) => sinsRepo),
         characterRepositoryProvider.overrideWith((ref) => chars),
+        allBondsProvider.overrideWith((ref) => Stream.value(const <Bond>[])),
+        bondsRepositoryProvider.overrideWith((ref) => FakeBondsRepository()),
+        allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
