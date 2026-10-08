@@ -66,7 +66,7 @@ class _PlayerDerangementsState extends ConsumerState<PlayerDerangements> {
       for (final r in requests)
         if (r.characterId == c.id && r.status.open)
           for (final i in r.items)
-            if (i.kind == XpKind.derangement) i.name,
+            if (i.kind == XpKind.derangement) (name: i.name, status: r.status),
     ];
     final traits = clampTraits(c, c.derangementTraits);
     final canAsk = widget.basePath.startsWith('/joueur') && c.status == CharacterStatus.active;
@@ -79,9 +79,9 @@ class _PlayerDerangementsState extends ConsumerState<PlayerDerangements> {
         if (c.derangements.isEmpty && pending.isEmpty) Text('Aucun dérangement.', style: t.bodyMedium),
         for (final d in c.derangements) DerangementTile(d),
         for (final p in pending)
-          Row(key: Key('de-pending-$p'), children: [
-            Expanded(child: Text(p, style: t.titleSmall)),
-            Text('En attente du conte', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
+          Row(key: Key('de-pending-${p.name}'), children: [
+            Expanded(child: Text(p.name, style: t.titleSmall)),
+            Text(p.status == RequestStatus.changes ? 'À compléter' : 'En attente du conte', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
           ]),
         const SizedBox(height: 12),
         Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
@@ -99,7 +99,7 @@ class _PlayerDerangementsState extends ConsumerState<PlayerDerangements> {
             key: ValueKey('de-ask-form-$_form'),
             rb: widget.rb,
             initial: Derangement('', ''),
-            existing: [...c.derangements, for (final p in pending) Derangement('pending', p)],
+            existing: [...c.derangements, for (final p in pending) Derangement('pending', p.name)],
             showClan: false,
             askWhy: true,
             busy: _busy,

@@ -33,6 +33,12 @@ int derangementPoints(Derangement d) => d.severe ? 3 : 2;
 /// « Principal · clan », « Sévère · 3 pts » ou « 2 pts ».
 String derangementLine(Derangement d) => d.clan ? 'Principal · clan' : (d.severe ? 'Sévère · 3 pts' : '2 pts');
 
+/// Type, points et déclencheur sur une ligne (revue d'une demande).
+String derangementSummary(Derangement d) => [
+      '${derangementTypes[d.type] ?? d.type} · ${derangementLine(d)}',
+      if (d.trigger.isNotEmpty) 'Déclencheur : ${d.trigger}',
+    ].join(' · ');
+
 /// Plancher des traits de dérangement : 1 pour un Malkavien.
 int traitsFloor(Character c) => nameKey(c.clan ?? '') == nameKey('Malkavien') ? 1 : 0;
 

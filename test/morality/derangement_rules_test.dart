@@ -77,4 +77,13 @@ void main() {
     expect(describeChanges(c, edited), contains('Dérangement Peur du feu modifié'));
     expect(describeChanges(c, sample()), contains('− Dérangement Peur du feu'));
   });
+
+  test("résumé d'un dérangement et renommage tracé", () {
+    expect(derangementSummary(Derangement('x', 'Peur du feu', type: 'phobia', trigger: 'Flammes', severe: true)),
+        'Phobie · Sévère · 3 pts · Déclencheur : Flammes');
+    expect(derangementSummary(Derangement('x', 'A', type: 'belief')), 'Croyance · 2 pts');
+    final c = sample()..derangements = [Derangement('d1', 'A')];
+    final renamed = c.clone()..derangements = [Derangement('d1', 'B')];
+    expect(describeChanges(c, renamed), contains('Dérangement A → B'));
+  });
 }

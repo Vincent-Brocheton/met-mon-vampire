@@ -156,7 +156,7 @@ void _derangements(List<String> out, List<Derangement> a, List<Derangement> b) {
     if (old == null) {
       out.add('+ Dérangement ${x.name}');
     } else if (old.toMap().toString() != x.toMap().toString()) {
-      out.add('Dérangement ${x.name} modifié');
+      out.add(old.name == x.name ? 'Dérangement ${x.name} modifié' : 'Dérangement ${old.name} → ${x.name}');
     }
   }
   for (final x in a) {

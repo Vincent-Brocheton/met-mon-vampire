@@ -94,6 +94,22 @@ void main() {
     expect(tester.widget<FilledButton>(find.byKey(const Key('de-save'))).onPressed, isNull);
   });
 
+  testWidgets('demande renvoyée au joueur : « À compléter »', (tester) async {
+    await pump(tester, sample(), requests: [
+      XpRequest(
+        id: 'r1',
+        characterId: 'x',
+        characterName: 'Isaure de Valcourt',
+        playerUid: 'u1',
+        playerName: 'Camille R.',
+        status: RequestStatus.changes,
+        items: [const XpItem(XpKind.derangement, 'Mégalomanie', 0, 1, 0, derangement: {'type': 'belief', 'trigger': '', 'severe': false, 'clan': false})],
+      ),
+    ]);
+    expect(find.text('À compléter'), findsOneWidget);
+    expect(find.text('En attente du conte'), findsNothing);
+  });
+
   testWidgets('fiche inactive : pas de demande', (tester) async {
     await pump(tester, sample()..status = CharacterStatus.retired);
     expect(find.byKey(const Key('de-ask')), findsNothing);
