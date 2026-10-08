@@ -201,7 +201,8 @@ service cloud.firestore {
         function notOwnSheet(cid) {
           return getAfter(charPath(cid)).data.get('playerUid', null) != request.auth.uid;
         }
-        allow read: if isStaff()
+        // Un membre de l'équipe sur sa propre fiche est traité en joueur.
+        allow read: if (isStaff() && get(charPath(id)).data.get('playerUid', null) != request.auth.uid)
           || (signedIn() && get(charPath(id)).data.get('playerUid', null) == request.auth.uid
               && resource.data.visibility in ['public', 'player']);
         allow create, update: if managesAccounts() && notOwnSheet(id) && eventValid();

@@ -52,6 +52,8 @@ void main() {
     expect((v.type, v.title, v.description, v.year, v.month, v.day, v.visibility, v.auto),
         (EventType.sheet, 'Fiche validée', 'Entrée en jeu de Isaure de Valcourt.', 2026, 10, 12, EventVisibility.player, true));
     expect(embraceEvent(sample()..sire = 'Octave Marchetti', now).title, 'Étreinte par Octave Marchetti');
+    final long = embraceEvent(sample()..sire = 'S' * 100, now).title;
+    expect((long.length, long.endsWith('…')), (80, true));
     final bare = embraceEvent(sample()..sire = null, now);
     expect((bare.type, bare.title, bare.auto, bare.visibility), (EventType.embrace, 'Étreinte', true, EventVisibility.player));
   });

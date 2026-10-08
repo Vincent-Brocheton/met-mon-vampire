@@ -62,5 +62,7 @@ StoryEvent validatedEvent(Character c, DateTime now) => _auto(EventType.sheet, '
 /// « Étreinte par `sire` », écrit sur la fiche étreinte.
 StoryEvent embraceEvent(Character c, DateTime now) {
   final sire = (c.sire ?? '').trim();
-  return _auto(EventType.embrace, sire.isEmpty ? 'Étreinte' : 'Étreinte par $sire', '', now);
+  final title = sire.isEmpty ? 'Étreinte' : 'Étreinte par $sire';
+  // Les règles refusent plus de 80 caractères : on tronque plutôt que de bloquer l'étreinte.
+  return _auto(EventType.embrace, title.length > 80 ? '${title.substring(0, 79)}…' : title, '', now);
 }

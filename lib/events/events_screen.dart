@@ -58,6 +58,9 @@ class _CharacterEventsScreenState extends ConsumerState<CharacterEventsScreen> {
 
   Widget _body(BuildContext context, Character c, List<StoryEvent> events, bool canEdit) {
     final wide = isWide(context);
+    // Sur sa propre fiche, le conte ne voit pas « conte seul » (comme le joueur).
+    final uid = ref.read(currentUserProvider).value?.uid;
+    final own = uid != null && uid == c.playerUid;
     final shown = [
       for (final e in events)
         if ((_vis == null || e.visibility == _vis) && (_type == null || e.type == _type)) e,
@@ -70,7 +73,8 @@ class _CharacterEventsScreenState extends ConsumerState<CharacterEventsScreen> {
         );
     final filters = Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
       chip(null, 'Tous'),
-      for (final v in EventVisibility.values) chip(v, visibilityLabel(v, staff: true)),
+      for (final v in EventVisibility.values)
+        if (!own || v != EventVisibility.staff) chip(v, visibilityLabel(v, staff: !own)),
       SizedBox(
         width: 220,
         child: DropdownButtonFormField<EventType?>(
@@ -89,7 +93,7 @@ class _CharacterEventsScreenState extends ConsumerState<CharacterEventsScreen> {
     ]);
     final timeline = Panel(
       padding: EdgeInsets.zero,
-      child: EventTimeline(events: shown, staff: true, selectedId: _open?.id, onTap: canEdit ? _edit : null),
+      child: EventTimeline(events: shown, staff: !own, selectedId: _open?.id, onTap: canEdit ? _edit : null),
     );
     // En Web, le formulaire d'ajout reste ouvert à droite ; en mobile, il s'ouvre en pleine page.
     final editing = _open ?? (canEdit && wide ? StoryEvent.blank(DateTime.now()) : null);

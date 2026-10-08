@@ -52,5 +52,8 @@ Stream<List<StoryEvent>> characterEvents(Ref ref, String characterId) {
   final me = ref.watch(currentUserProvider).value;
   if (me == null) return Stream.value(const []);
   final repo = ref.watch(eventsRepositoryProvider);
-  return me.role.isStaff ? repo.watchAll(characterId) : repo.watchVisible(characterId);
+  // « Conte seul » jamais pour le joueur de la fiche, même membre de l'équipe ; propriétaire inconnu = filtré.
+  final c = ref.watch(characterProvider(characterId)).value;
+  final all = me.role.isStaff && c != null && c.playerUid != me.uid;
+  return all ? repo.watchAll(characterId) : repo.watchVisible(characterId);
 }

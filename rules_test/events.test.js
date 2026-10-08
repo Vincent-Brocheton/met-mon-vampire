@@ -43,6 +43,18 @@ test('lecture : l’équipe voit tout, le joueur hors « conte seul », un autre
   await assertFails(getDoc(doc(as('max'), 'characters/c1/events/pl')));
 });
 
+test('équipe sur sa propre fiche : jamais « conte seul »', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/c2/events/st'), ev({ visibility: 'staff' }));
+    await setDoc(doc(ctx.firestore(), 'characters/c2/events/pl'), ev({ visibility: 'player' }));
+  });
+  const lea = as('lea');
+  await assertFails(getDoc(doc(lea, 'characters/c2/events/st')));
+  await assertSucceeds(getDoc(doc(lea, 'characters/c2/events/pl')));
+  await assertFails(getDocs(collection(lea, 'characters/c2/events')));
+  await assertSucceeds(getDocs(query(collection(lea, 'characters/c2/events'), where('visibility', 'in', ['public', 'player']))));
+});
+
 test('écriture : le conte seulement, champs contrôlés (Review Focus 2 et 5)', async () => {
   const lea = as('lea');
   await assertSucceeds(setDoc(doc(lea, 'characters/c1/events/n1'), ev({})));

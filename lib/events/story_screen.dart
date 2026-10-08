@@ -24,7 +24,7 @@ class CharacterStoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
-    final staff = ref.watch(currentUserProvider).value?.role.isStaff ?? false;
+    final me = ref.watch(currentUserProvider).value;
     final value = ref.watch(characterProvider(characterId));
     if (value.error case final Object error when isDenied(error)) {
       return EmptyState(
@@ -37,6 +37,7 @@ class CharacterStoryScreen extends ConsumerWidget {
     }
     return asyncView(value, (c) {
       if (c == null) return const EmptyState(kind: EmptyKind.notFound, title: 'Cette fiche n’existe pas', message: 'Elle a pu être retirée.');
+      final staff = (me?.role.isStaff ?? false) && c.playerUid != me?.uid;
       final concept = (c.concept ?? '').trim();
       final text = (c.story ?? '').trim();
       final story = Panel(

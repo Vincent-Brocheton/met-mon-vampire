@@ -64,6 +64,12 @@ void main() {
     expect(find.text('Joueur et conte'), findsOneWidget);
   });
 
+  testWidgets('équipe sur sa propre fiche : pas de « conte seul »', (tester) async {
+    await pump(tester, lea, isaure()..playerUid = 'lea');
+    expect(find.text('Son sire arrive'), findsNothing);
+    expect(find.text('Vous et le conte'), findsOneWidget);
+  });
+
   testWidgets('sans récit ; mobile en une colonne', (tester) async {
     await pump(tester, camille, sample()..story = null, size: const Size(390, 1600));
     expect(find.text('Aucun récit.'), findsOneWidget);
