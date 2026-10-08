@@ -115,7 +115,7 @@ final class CharacterEventsProvider
   }
 }
 
-String _$characterEventsHash() => r'6fb667b1414cb90e25d93ed28206c8cb0e2c2a11';
+String _$characterEventsHash() => r'54cc30887e841fe0a774dad1271488d6848f5040';
 
 /// Événements d'une fiche : tous pour l'équipe, ceux ouverts au joueur sinon.
 
