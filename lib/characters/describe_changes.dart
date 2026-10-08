@@ -48,6 +48,7 @@ List<String> describeChanges(Character a, Character b) {
   _names(out, 'Technique', a.techniques, b.techniques);
   _names(out, 'Pouvoir d’ancien', [for (final e in a.elderPowers) e.name], [for (final e in b.elderPowers) e.name]);
   _servants(out, a.servants, b.servants);
+  _allies(out, a.allies, b.allies);
   _ghoul(out, a.ghoul, b.ghoul);
   for (final cat in AttrCategory.values) {
     number('Points bonus ${cat.label}', a.attributeBonus[cat] ?? 0, b.attributeBonus[cat] ?? 0);
@@ -140,6 +141,26 @@ void _servants(List<String> out, List<Servant> a, List<Servant> b) {
   }
   for (final s in a) {
     if (!after.containsKey(s.id)) out.add('− Serviteur ${s.name} ${dots(s.rank)}');
+  }
+}
+
+void _allies(List<String> out, List<Ally> a, List<Ally> b) {
+  final before = {for (final x in a) x.id: x};
+  final after = {for (final x in b) x.id: x};
+  for (final x in b) {
+    final old = before[x.id];
+    if (old == null) {
+      out.add('+ Allié ${x.name} ${dots(x.level)}');
+      continue;
+    }
+    if (old.name != x.name) out.add('Allié : ${old.name} → ${x.name}');
+    if (old.level != x.level) out.add('Allié ${x.name} ${dots(old.level)} → ${dots(x.level)}');
+    if (old.type != x.type || old.domain != x.domain || old.influence != x.influence || old.specialties.join('|') != x.specialties.join('|')) {
+      out.add('Allié ${x.name} modifié');
+    }
+  }
+  for (final x in a) {
+    if (!after.containsKey(x.id)) out.add('− Allié ${x.name} ${dots(x.level)}');
   }
 }
 
