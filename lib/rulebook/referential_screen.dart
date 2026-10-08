@@ -15,8 +15,11 @@ import 'csv.dart';
 import 'rule_entry.dart';
 import 'rule_form.dart';
 import 'rules_repository.dart';
+import 'rulebook.dart';
 import 'schema.dart';
 import 'usage.dart';
+import '../titles/title_holders.dart';
+import '../titles/title_rules.dart';
 
 String _plural(int n, String one, String many) => n == 1 ? '1 $one' : '$n $many';
 
@@ -47,6 +50,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
 
   /// Modifications non enregistrées dans le formulaire ouvert.
   bool _dirty = false;
+  bool _vacantOnly = false;
   bool _loadingBase = false;
 
   /// Flux de la note de l'élément ouvert, gardé d'une reconstruction à l'autre.
@@ -233,6 +237,9 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
       Map<String, Map<String, dynamic>> settings, List<Character> chars) {
     final t = Theme.of(context).textTheme;
     final readOnly = !me.role.managesAccounts;
+    final titles = cat.id == titlesCat;
+    final rb = Rulebook(all, const CreationValues(), settings);
+    final clanCount = (all['clans'] ?? baseEntries('clans')).length;
     final entries = all[cat.id] ?? const <RuleEntry>[];
     final sectEntries = all['sects'] ?? const <RuleEntry>[];
     final keyOptions = {'sects': [for (final e in sectEntries.isEmpty ? baseEntries('sects') : sectEntries) e.name]};
@@ -247,6 +254,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
       for (final e in entries)
         if ((_stateFilter == null || e.state == _stateFilter) &&
             chipMatch(e) &&
+            (!titles || !_vacantOnly || titleHolders(e.name, chars).isEmpty) &&
             (query.isEmpty || nameKey(e.name).contains(query) || nameKey(e.vo ?? '').contains(query)))
           e,
     ];
@@ -348,6 +356,11 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             onChanged: (_) => setState(() {}),
           ),
         ),
+        if (titles)
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            Checkbox(key: const Key('ref-vacant'), value: _vacantOnly, onChanged: (v) => setState(() => _vacantOnly = v == true)),
+            const Text('Seulement les titres vacants'),
+          ]),
       ]),
       const SizedBox(height: 16),
       Panel(
@@ -408,7 +421,14 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
                       child: Text(displayValue(cat.fields.firstWhere((f) => f.key == key), e.data[key]),
                           style: t.bodySmall, overflow: TextOverflow.ellipsis),
                     ),
-                  SizedBox(width: 60, child: Text('${usageCount(cat.id, e.name, chars) ?? '—'}', style: t.bodySmall)),
+                  if (titles)
+                    SizedBox(
+                      width: 220,
+                      child: Text(holdersLabel(e.name, chars, perClan: titleInfo(rb, e.name)?.perClan ?? false, clans: clanCount),
+                          style: t.bodySmall, overflow: TextOverflow.ellipsis),
+                    )
+                  else
+                    SizedBox(width: 60, child: Text('${usageCount(cat.id, e.name, chars) ?? '—'}', style: t.bodySmall)),
                   _StatePill(e.state),
                 ]),
               ),
@@ -450,6 +470,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
             const SizedBox(height: 12),
           ],
           body,
+          if (titles && selected.id.isNotEmpty) TitleHoldersSection(key: ValueKey('holders-${selected.id}'), title: selected.name, chars: chars, rb: rb, readOnly: readOnly),
         ]),
       );
     }
