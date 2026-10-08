@@ -94,6 +94,20 @@ test('écriture refusée : narrateur, joueur, fiche du conte, suppression', asyn
   await assertFails(deleteDoc(doc(as('lea'), 'bonds/oct_luc')));
 });
 
+test('joueur de la fiche changé : le conte met à jour la copie, pas une autre (revue finale)', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/luc'), { name: 'Lucie', kind: 'pj', playerUid: 'max', status: 'active', version: 2 });
+  });
+  const lea = as('lea');
+  const meta = { byUid: 'lea', byName: 'lea', updatedAt: new Date() };
+  const ref = doc(lea, 'bonds/oct_luc');
+  await assertFails(setDoc(ref, { thrallPlayerUid: 'zoe', ...meta }, { merge: true })); // copie périmée
+  await assertFails(setDoc(ref, { thrallPlayerUid: 'julien', ...meta }, { merge: true })); // pas le joueur de la fiche
+  await assertSucceeds(setDoc(ref, { thrallPlayerUid: 'max', ...meta }, { merge: true }));
+  await assertSucceeds(setDoc(doc(lea, 'bonds/luc_aga'), { regnantPlayerUid: 'max', ...meta }, { merge: true }));
+  await assertFails(setDoc(doc(lea, 'bonds/luc_oct'), { regnantPlayerUid: 'julien', ...meta }, { merge: true }));
+});
+
 test('gorgée en un lot : lien, lien moindre effacé, événement « Lien de sang »', async () => {
   const lea = as('lea');
   const batch = writeBatch(lea);

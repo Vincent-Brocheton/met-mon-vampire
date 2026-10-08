@@ -75,6 +75,59 @@ void main() {
     expect(find.byKey(const Key('dr-save')), findsNothing);
   });
 
+  testWidgets('gorgée datée du futur : Date invalide, bouton inactif (revue finale)', (tester) async {
+    await pump(tester, lucie(), bonds: [octLuc()]);
+    await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('dr-date')), '28/09/2026');
+    await tester.pumpAndSettle();
+    expect(find.text('Date invalide'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('dr-save'))).onPressed, isNull);
+  });
+
+  testWidgets('liens en chargement : ni « Aucun lien. » ni action (revue finale)', (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allBondsProvider.overrideWith((ref) => const Stream<List<Bond>>.empty()),
+        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+        bondsRepositoryProvider.overrideWith((ref) => FakeBondsRepository()),
+      ],
+      child: MaterialApp(
+        theme: buildTheme(withFonts: false),
+        home: Scaffold(body: SingleChildScrollView(child: StaffBonds(character: lucie(), canEdit: true, today: today))),
+      ),
+    ));
+    await tester.pump();
+    expect(find.byKey(const Key('bo-new')), findsNothing);
+    expect(find.text('Aucun lien.'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('erreur de lecture des liens : aucune action (revue finale)', (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allBondsProvider.overrideWith((ref) => Stream<List<Bond>>.error('boom')),
+        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+        bondsRepositoryProvider.overrideWith((ref) => FakeBondsRepository()),
+      ],
+      child: MaterialApp(
+        theme: buildTheme(withFonts: false),
+        home: Scaffold(body: SingleChildScrollView(child: StaffBonds(character: lucie(), canEdit: true, today: today))),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('bo-new')), findsNothing);
+    expect(find.text('Aucun lien.'), findsNothing);
+  });
+
   testWidgets('lien complet ailleurs : refus, bouton inactif (Review Focus 2)', (tester) async {
     final agaFull = link(agathe(), lucie(), 3, DateTime(2026, 9, 25));
     final repo = await pump(tester, lucie(), bonds: [octLuc(), agaFull]);

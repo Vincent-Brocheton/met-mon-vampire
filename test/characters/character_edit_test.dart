@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portail_met/allies/allies_repository.dart';
+import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
@@ -23,7 +24,7 @@ import 'ghoul_test.dart' show ghoulState;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, FakeAlliesRepository? allies, List<AppUser> users = const [lea]}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, FakeAlliesRepository? allies, FakeBondsRepository? bonds, List<AppUser> users = const [lea]}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -44,6 +45,7 @@ void main() {
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         itemsRepositoryProvider.overrideWith((ref) => items ?? FakeItemsRepository()),
         alliesRepositoryProvider.overrideWith((ref) => allies ?? FakeAlliesRepository()),
+        bondsRepositoryProvider.overrideWith((ref) => bonds ?? FakeBondsRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),
@@ -131,7 +133,8 @@ void main() {
     final servants = FakeServantsRepository();
     final items = FakeItemsRepository();
     final allies = FakeAlliesRepository();
-    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, items: items, allies: allies, users: const [lea, zoe]);
+    final bonds = FakeBondsRepository();
+    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, items: items, allies: allies, bonds: bonds, users: const [lea, zoe]);
     await tester.pumpAndSettle(); // liste des joueurs reçue
     await tester.tap(find.byKey(const Key('c3-player')));
     await tester.pumpAndSettle();
@@ -145,6 +148,7 @@ void main() {
     expect(servants.calls, ['players:x-s1:zoe']);
     expect(items.calls, ['player:x:zoe']);
     expect(allies.calls, ['players:x:zoe']);
+    expect(bonds.calls, ['player:x:zoe']);
   });
 
   testWidgets('C3 : ajouter un allié, enregistré avec le motif', (tester) async {

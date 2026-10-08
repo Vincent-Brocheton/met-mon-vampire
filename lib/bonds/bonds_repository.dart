@@ -48,6 +48,21 @@ class BondsRepository {
     return batch.commit();
   }
 
+  /// Joueur d'une fiche changé (C3) : le joueur recopié suit dans ses liens, côté régnant et côté lié.
+  /// Fusion des seuls champs concernés ; les règles comparent la copie au joueur de la fiche (déjà écrite).
+  Future<void> setPlayer(String characterId, String playerUid, Actor by) async {
+    final meta = {'byUid': by.uid, 'byName': by.name, 'updatedAt': FieldValue.serverTimestamp()};
+    final uid = playerUid.isEmpty ? null : playerUid;
+    final batch = _db.batch();
+    for (final (field, key) in [('regnantId', 'regnantPlayerUid'), ('thrallId', 'thrallPlayerUid')]) {
+      final q = await _col.where(field, isEqualTo: characterId).get();
+      for (final d in q.docs) {
+        batch.set(d.reference, {key: uid, ...meta}, SetOptions(merge: true));
+      }
+    }
+    await batch.commit();
+  }
+
   /// Contact, ou lien de goule daté : une seule écriture.
   Future<void> save(Bond b, Actor by) => _col.doc(b.id).set(bondData(b, by), SetOptions(merge: true));
 }

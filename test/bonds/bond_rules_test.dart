@@ -132,6 +132,19 @@ void main() {
     expect(bondChecks(regnantId: null, thrallId: null, day: null), ['Choisissez qui donne son sang', 'Choisissez qui boit', 'Date invalide']);
     expect(bondChecks(regnantId: 'a', thrallId: 'a', day: today), ['Une fiche ne peut pas se lier elle-même']);
     expect(bondChecks(regnantId: 'a', thrallId: 'b', day: today), isEmpty);
+    // Revue finale : une gorgée datée du futur gèlerait le lien (les dates ne reculent jamais).
+    expect(bondChecks(regnantId: 'a', thrallId: 'b', day: DateTime(2026, 9, 28), today: today), ['Date invalide']);
+    expect(bondChecks(regnantId: 'a', thrallId: 'b', day: today, today: today), isEmpty);
+  });
+
+  test('gorgée : les liens effacés portent les joueurs actuels des fiches (revue finale)', () {
+    final agaLuc = link(agathe(), lucie(), 2, DateTime(2026, 9, 1))..thrallPlayerUid = 'ancien';
+    final w = drinkWrite(octLuc(), [octLuc(), agaLuc], today, 1, true)!;
+    expect(w.erased.single.thrallPlayerUid, 'ancien');
+    final cur = withCurrentPlayers(w, (id) => cast().where((c) => c.id == id).firstOrNull);
+    expect(cur.erased.single.thrallPlayerUid, 'zoe');
+    expect(cur.erased.single.level, 0);
+    expect(withCurrentPlayers(w, (_) => null).erased.single.thrallPlayerUid, 'ancien');
   });
 
   test('fiches : étiquette, lien recopié, goule', () {

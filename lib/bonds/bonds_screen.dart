@@ -119,7 +119,7 @@ class _BondsScreenState extends ConsumerState<BondsScreen> {
                 all: all,
                 today: today,
                 busy: _busy,
-                onDrink: (w) => _run((by) => repo.drink(w, by)),
+                onDrink: (w) => _run((by) => repo.drink(withCurrentPlayers(w, byId), by)),
                 onContact: base.stored ? (b) => _run((by) => repo.save(b, by)) : null,
               ),
             const SizedBox(height: 16),

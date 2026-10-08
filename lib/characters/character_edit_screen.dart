@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../allies/allies_repository.dart';
+import '../bonds/bonds_repository.dart';
 import '../allies/ally_list_editor.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
@@ -182,6 +183,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
         } catch (_) {
           failed.add('Équipement : accès aux objets non mis à jour. Rouvrez chaque objet dans « Objets en jeu » et enregistrez.');
+        }
+        try {
+          await ref.read(bondsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
+        } catch (_) {
+          failed.add('Liens de sang : joueur non mis à jour dans les liens. Réenregistrez chaque lien dans « Liens de sang » (bouton Contact).');
         }
         try {
           await ref.read(alliesRepositoryProvider).setPlayers(_draft!.id, [?_draft!.playerUid], by);

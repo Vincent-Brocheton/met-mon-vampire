@@ -54,11 +54,12 @@ class _DrinkFormState extends State<DrinkForm> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final day = parseDay(_date.text);
-    final errors = [...widget.errors, if (day == null) 'Date invalide'];
+    final validDay = validDrinkDay(day, widget.today);
+    final errors = [...widget.errors, if (!validDay) 'Date invalide'];
     final base = widget.base.copy()..known = _known;
-    final preview = day == null || widget.errors.isNotEmpty ? const <String>[] : drinkPreview(base, widget.all, day, _count);
-    final write = day == null || widget.errors.isNotEmpty ? null : drinkWrite(base, widget.all, day, _count, _known);
-    final canContact = widget.onContact != null && day != null && effectiveLevel(widget.base, day) > 0;
+    final preview = day == null || !validDay || widget.errors.isNotEmpty ? const <String>[] : drinkPreview(base, widget.all, day, _count);
+    final write = day == null || !validDay || widget.errors.isNotEmpty ? null : drinkWrite(base, widget.all, day, _count, _known);
+    final canContact = widget.onContact != null && day != null && validDay && effectiveLevel(widget.base, day) > 0;
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

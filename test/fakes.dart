@@ -528,6 +528,12 @@ class FakeBondsRepository implements BondsRepository {
   }
 
   @override
+  Future<void> setPlayer(String characterId, String playerUid, Actor by) async {
+    calls.add('player:$characterId:$playerUid');
+    if (error != null) throw error!;
+  }
+
+  @override
   Future<void> save(Bond b, Actor by) async {
     calls.add('save:${b.id}:${b.level}');
     if (error != null) throw error!;

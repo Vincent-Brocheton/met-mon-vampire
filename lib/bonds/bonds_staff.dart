@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../auth/session_providers.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
+import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import 'bond.dart';
@@ -60,7 +61,17 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
     final t = Theme.of(context).textTheme;
     final me = ref.watch(currentUserProvider).value; // l'auteur est relu à l'enregistrement
     final today = widget.today ?? DateTime.now();
-    final all = ref.watch(allBondsProvider).value ?? const <Bond>[];
+    final bondsAsync = ref.watch(allBondsProvider);
+    // Tant que les liens ne sont pas lus : aucune action (une gorgée écraserait un lien existant).
+    if (!bondsAsync.hasValue) {
+      return Panel(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SectionTitle('Liens de sang'),
+          asyncView<List<Bond>>(bondsAsync, (_) => const SizedBox.shrink(), onRetry: () => ref.invalidate(allBondsProvider)),
+        ]),
+      );
+    }
+    final all = bondsAsync.requireValue;
     final chars = ref.watch(allCharactersProvider).value ?? const <Character>[];
     final repo = ref.read(bondsRepositoryProvider);
     Character? byId(String id) => chars.where((x) => x.id == id).firstOrNull;
@@ -83,7 +94,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
           all: all,
           today: today,
           busy: _busy,
-          onDrink: (w) => _run((by) => repo.drink(w, by)),
+          onDrink: (w) => _run((by) => repo.drink(withCurrentPlayers(w, byId), by)),
           onContact: base.stored ? (b) => _run((by) => repo.save(b, by)) : null,
         );
 

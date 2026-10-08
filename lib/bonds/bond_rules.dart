@@ -126,6 +126,12 @@ class DrinkWrite {
   final StoryEvent event;
 }
 
+/// [w] dont les liens effacés portent les joueurs actuels de leurs fiches (copies périmées sinon refusées par les règles).
+DrinkWrite withCurrentPlayers(DrinkWrite w, Character? Function(String id) byId) => DrinkWrite(w.after, [
+      for (final e in w.erased)
+        if (byId(e.regnantId) case final r? when byId(e.thrallId) != null) refreshed(e, r, byId(e.thrallId)!) else e,
+    ], w.event);
+
 /// Écriture d'une gorgée, ou null si elle est refusée.
 DrinkWrite? drinkWrite(Bond base, List<Bond> all, DateTime day, int count, bool known) {
   final out = drinkOutcome(base, all, day, count);
@@ -168,11 +174,15 @@ List<String> drinkPreview(Bond base, List<Bond> all, DateTime day, int count) {
 }
 
 /// Contrôles du choix des fiches et de la date.
-List<String> bondChecks({required String? regnantId, required String? thrallId, required DateTime? day}) => [
+/// Date de gorgée valide : lue, et pas dans le futur si [today] est connu.
+bool validDrinkDay(DateTime? day, DateTime? today) => day != null && (today == null || !dayOf(day).isAfter(dayOf(today)));
+
+/// Avec [today], une date postérieure est invalide aussi : les dates ne reculent jamais, une gorgée future gèlerait le lien.
+List<String> bondChecks({required String? regnantId, required String? thrallId, required DateTime? day, DateTime? today}) => [
       if (regnantId == null) 'Choisissez qui donne son sang',
       if (thrallId == null) 'Choisissez qui boit',
       if (regnantId != null && regnantId == thrallId) 'Une fiche ne peut pas se lier elle-même',
-      if (day == null) 'Date invalide',
+      if (!validDrinkDay(day, today)) 'Date invalide',
     ];
 
 /// « PNJ · Ventrue », « Goule · PNJ », « PJ · Malkavien ».
