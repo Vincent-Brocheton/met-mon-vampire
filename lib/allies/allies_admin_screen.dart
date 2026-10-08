@@ -230,11 +230,18 @@ class _TrackPanel extends ConsumerStatefulWidget {
 }
 
 class _TrackPanelState extends ConsumerState<_TrackPanel> {
-  late final AllyFile _base = widget.file ?? AllyFile(id: widget.ally.id);
+  late AllyFile _base = widget.file ?? AllyFile(id: widget.ally.id);
   late final _used = TextEditingController(text: _day(_base.usedAt));
   late final _what = TextEditingController(text: _base.lastUse);
   late final _return = TextEditingController(text: _day(_base.returnAt));
   bool _busy = false;
+
+  /// Le fichier reçu du flux (après un enregistrement) devient la nouvelle base des versions.
+  @override
+  void didUpdateWidget(_TrackPanel old) {
+    super.didUpdateWidget(old);
+    _base = widget.file ?? _base;
+  }
 
   @override
   void dispose() {
@@ -375,7 +382,9 @@ class _ConvertPanelState extends ConsumerState<_ConvertPanel> {
       messenger.showSnackBar(const SnackBar(content: Text('Allié créé.')));
       widget.onDone();
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Modifié entre-temps : rechargez la page.')));
+      final latest = ref.read(allCharactersProvider).value?.where((x) => x.id == c.id).firstOrNull;
+      final moved = (latest?.version ?? c.version) != c.version;
+      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

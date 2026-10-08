@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +25,7 @@ void main() {
   Character victor() => Character(id: 'y', name: 'Victor Laine', kind: CharacterKind.pj, playerUid: 'u2', playerName: 'Max', status: CharacterStatus.active)
     ..backgrounds = [Trait('Contacts', 3)];
 
-  Future<(FakeAlliesRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<AllyFile> files = const []}) async {
+  Future<(FakeAlliesRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<AllyFile> files = const [], Stream<List<AllyFile>>? filesStream}) async {
     tester.view.physicalSize = const Size(1440, 2800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -35,7 +37,7 @@ void main() {
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         rulebookProvider.overrideWith((ref) => rb),
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()..allies = [castan()], victor()])),
-        allAllyFilesProvider.overrideWith((ref) => Stream.value(files)),
+        allAllyFilesProvider.overrideWith((ref) => filesStream ?? Stream.value(files)),
         pendingRequestsProvider.overrideWith((ref) => Stream.value(const [])),
         alliesRepositoryProvider.overrideWith((ref) => allies),
         characterRepositoryProvider.overrideWith((ref) => characters),
@@ -109,5 +111,42 @@ void main() {
     await tester.tap(find.byKey(const Key('al-row-x-a1')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('al-save')), findsNothing);
+  });
+
+  testWidgets('après un enregistrement, le fichier reçu sert de base : rendre disponible passe', (tester) async {
+    final ctl = StreamController<List<AllyFile>>();
+    addTearDown(ctl.close);
+    ctl.add(const []);
+    final (allies, _) = await pump(tester, filesStream: ctl.stream);
+    await tester.tap(find.byKey(const Key('al-row-x-a1')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('al-used')), '20/09/2026');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('al-save')));
+    await tester.pumpAndSettle();
+    ctl.add([AllyFile(id: 'x-a1', name: 'Me Hervé Castan, notaire', characterId: 'x', usedAt: DateTime(2026, 9, 20), returnAt: DateTime(2027, 1, 20), version: 1)]);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('al-free')));
+    await tester.pumpAndSettle();
+    expect(allies.lastBefore!.version, 1);
+  });
+
+  testWidgets('conversion refusée sans conflit : message de refus, pas de conflit', (tester) async {
+    final (_, characters) = await pump(tester);
+    characters.error = Exception('refusé');
+    await tester.tap(find.byKey(const Key('al-filter-convert')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('al-convert-y-Contacts')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('cv-name')), 'Dédé « la Fouine »');
+    await choose(tester, 'cv-type', 'Pègre');
+    await choose(tester, 'cv-domain', 'Crime');
+    await choose(tester, 'cv-level', '2');
+    await choose(tester, 'cv-spec0', 'Contact');
+    await choose(tester, 'cv-spec1', 'Nocturne');
+    await tester.tap(find.byKey(const Key('cv-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
+    expect(find.text('Modifié entre-temps : rechargez la page.'), findsNothing);
   });
 }
