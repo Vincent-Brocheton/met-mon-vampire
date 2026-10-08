@@ -11,6 +11,7 @@ enum EventType {
   sectChange('Changement de secte', EventTone.plot),
   pathAdopted('Voie adoptée', EventTone.moral),
   morality('Moralité', EventTone.moral),
+  bond('Lien de sang', EventTone.blood),
   bloodHunt('Chasse de sang', EventTone.plot),
   torpor('Torpeur', EventTone.life),
   awakening('Réveil', EventTone.life),

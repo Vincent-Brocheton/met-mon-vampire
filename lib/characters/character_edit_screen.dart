@@ -6,6 +6,7 @@ import '../allies/allies_repository.dart';
 import '../allies/ally_list_editor.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../bonds/bonds_repository.dart';
 import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
@@ -182,6 +183,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
         } catch (_) {
           failed.add('Équipement : accès aux objets non mis à jour. Rouvrez chaque objet dans « Objets en jeu » et enregistrez.');
+        }
+        try {
+          await ref.read(bondsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
+        } catch (_) {
+          failed.add('Liens de sang : joueur non mis à jour dans les liens. Réenregistrez chaque lien dans « Liens de sang » (bouton Contact).');
         }
         try {
           await ref.read(alliesRepositoryProvider).setPlayers(_draft!.id, [?_draft!.playerUid], by);
@@ -484,12 +490,9 @@ class _Editor extends ConsumerWidget {
                 onChanged: (v) => set(() => g.vitae = v ?? g.vitae),
               ),
             ),
-            DropdownButtonFormField<int>(
-              key: const Key('ghoul-bond'),
-              initialValue: g.bond.clamp(0, 3),
-              decoration: const InputDecoration(labelText: 'Lien de sang'),
-              items: [for (var v = 0; v <= 3; v++) DropdownMenuItem(value: v, child: Text(v == 0 ? 'Aucun' : dots(v)))],
-              onChanged: (v) => set(() => g.bond = v ?? g.bond),
+            Text(
+              'Lien de sang : il se règle dans l’onglet Moralité & liens.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
             ),
             Row(children: [
               Expanded(child: Text(g.lastDrink == null ? 'Aucune gorgée notée' : 'Dernière gorgée : ${formatDay(g.lastDrink)}')),
