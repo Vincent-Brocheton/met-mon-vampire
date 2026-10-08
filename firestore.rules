@@ -252,7 +252,8 @@ service cloud.firestore {
           && d.level is int && d.level >= 0 && d.level <= 3
           && d.lastDrink is timestamp && d.lastContact is timestamp
           && d.known is bool && d.regnantKnows is bool
-          && d.byUid == request.auth.uid;
+          && d.byUid == request.auth.uid && d.byName is string
+          && d.createdAt is timestamp && d.updatedAt is timestamp;
       }
       allow read: if isStaff()
         || (signedIn() && resource.data.get('thrallPlayerUid', null) == request.auth.uid && resource.data.known == true)

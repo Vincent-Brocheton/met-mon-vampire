@@ -190,9 +190,11 @@ String partyTag(Character c) => c.ghoul != null
     ? 'Goule · ${c.kind.label}'
     : [c.kind.label, if ((c.clan ?? '').isNotEmpty) c.clan!].join(' · ');
 
-/// Liens actifs (niveau du jour ≥ 1), échéance la plus proche d'abord.
-List<Bond> activeBonds(Iterable<Bond> all, DateTime day) =>
-    [for (final b in all) if (effectiveLevel(b, day) > 0) b]..sort((a, b) => nextChange(a, day)!.at.compareTo(nextChange(b, day)!.at));
+/// Liens actifs (niveau du jour ≥ 1), échéance la plus proche d'abord ; à échéance égale, par identifiant.
+List<Bond> activeBonds(Iterable<Bond> all, DateTime day) => [for (final b in all) if (effectiveLevel(b, day) > 0) b]..sort((a, b) {
+      final c = nextChange(a, day)!.at.compareTo(nextChange(b, day)!.at);
+      return c != 0 ? c : a.id.compareTo(b.id);
+    });
 
 /// Filtres de la page de la chronique.
 enum BondFilter {

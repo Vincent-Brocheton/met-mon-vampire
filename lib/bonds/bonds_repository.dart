@@ -86,7 +86,8 @@ Stream<List<Bond>> exertedBonds(Ref ref, String characterId, String uid) =>
 Future<List<Bond>> characterBonds(Ref ref, String characterId) async {
   final me = ref.watch(currentUserProvider).value;
   if (me == null) return const [];
-  final c = ref.watch(characterProvider(characterId)).value;
+  // On attend la fiche : pendant son chargement, le conte ne doit pas passer par la branche joueur.
+  final c = await ref.watch(characterProvider(characterId).future);
   if (me.role.isStaff && c != null && c.playerUid != me.uid) {
     final all = await ref.watch(allBondsProvider.future);
     return [for (final b in all) if (b.thrallId == characterId || b.regnantId == characterId) b];

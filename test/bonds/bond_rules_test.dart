@@ -97,6 +97,19 @@ void main() {
     expect(c.level, 2);
     expect(c.lastContact, DateTime(2026, 12, 5));
     expect(contacted(lucLem(), DateTime(2026, 9, 10)).lastContact, DateTime(2026, 9, 26));
+    // Lien enregistré dont le contact (26 sept.) suit la gorgée (1er sept.) : une gorgée entre les deux n'antidate pas le contact.
+    final between = drunk(lucLem(), DateTime(2026, 9, 15), 3, true);
+    expect(between.lastDrink, DateTime(2026, 9, 15));
+    expect(between.lastContact, DateTime(2026, 9, 26));
+  });
+
+  test('lien de niveau 3 dont les deux paliers sont passés : effacé, sans échéance', () {
+    final b = lucLem();
+    expect(effectiveLevel(b, DateTime(2027, 3, 26)), 0);
+    expect(nextChange(b, DateTime(2027, 3, 26)), isNull);
+    expect(dueText(b, DateTime(2027, 3, 26)), '');
+    expect(dueSoon(b, DateTime(2027, 3, 26)), isFalse);
+    expect(activeBonds([b], DateTime(2027, 3, 26)), isEmpty);
   });
 
   test('écriture d’une gorgée : lien, événement du lié', () {
@@ -176,6 +189,14 @@ void main() {
     expect([for (final b in active) if (bondMatches(b, BondFilter.pjThrall, '', today)) b.id], ['aga_bas', 'oct_luc']);
     expect([for (final b in active) if (bondMatches(b, BondFilter.all, ' JONAS ', today)) b.id], ['oct_jon']);
     expect(bondStats(active, today), (active: 4, full: 1, soon: 1, unknown: 1));
+  });
+
+  test('liste de la chronique : à échéance égale, départage par identifiant du lien', () {
+    final d = DateTime(2026, 9, 20);
+    final oct = link(octave(), lucie(), 1, d);
+    final aga = link(agathe(), lucie(), 1, d);
+    expect([for (final b in activeBonds([oct, aga], today)) b.id], ['aga_luc', 'oct_luc']);
+    expect([for (final b in activeBonds([aga, oct], today)) b.id], ['aga_luc', 'oct_luc']);
   });
 
   test('lignes du conte et du joueur', () {

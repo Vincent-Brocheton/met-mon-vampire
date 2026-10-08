@@ -82,6 +82,9 @@ test('écriture : le conte, champs contrôlés, identifiant imposé', async () =
   await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ thrallPlayerUid: 'max' })));
   await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ known: 'oui' })));
   await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ ghoul: 1 })));
+  await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ byName: 5 })));
+  await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ createdAt: 'hier' })));
+  await assertFails(setDoc(doc(lea, 'bonds/oct_luc'), bond({ updatedAt: 1 })));
 });
 
 test('écriture refusée : narrateur, joueur, fiche du conte, suppression', async () => {

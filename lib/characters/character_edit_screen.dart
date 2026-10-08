@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../allies/allies_repository.dart';
-import '../bonds/bonds_repository.dart';
 import '../allies/ally_list_editor.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../bonds/bonds_repository.dart';
 import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
