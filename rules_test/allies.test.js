@@ -63,3 +63,9 @@ test('brouillon du joueur : la clé allies est protégée (Review Focus 3)', asy
   await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', version: 2 }));
   await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { allies: [{ id: 'd1-a1', name: 'X', level: 5 }], version: 3 }));
 });
+
+test('brouillon du joueur : la forme réelle de draftData (clés tardives vides, sans allies) est acceptée', async () => {
+  const late = { rituals: [], techniques: [], elderPowers: [], attributeBonus: { physical: 0, social: 0, mental: 0 }, servants: [] };
+  await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { ...late, concept: 'Avocate', version: 2 }));
+  await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { ...late, allies: [], concept: 'Juge', version: 3 }));
+});

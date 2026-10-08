@@ -449,7 +449,7 @@ class Character {
 
   int get xpAvailable => xpInitial + xpEarned - xpSpent;
 
-  /// Les quatre clés tardives, vides comprises. Pour les écritures qui peuvent tout changer (brouillon du joueur,
+  /// Les clés tardives, vides comprises. Pour les écritures qui peuvent tout changer (brouillon du joueur,
   /// édition du conte) : leur copie de travail survit à l'écriture et ignore qu'une clé a été écrite entre-temps.
   Map<String, dynamic> laterKeys() => {
         'rituals': [for (final r in rituals) r.toMap()],
