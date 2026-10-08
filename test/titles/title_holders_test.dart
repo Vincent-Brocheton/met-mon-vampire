@@ -122,4 +122,15 @@ void main() {
     expect(find.text('Sénéchal'), findsNothing);
     expect(find.text('Harpie'), findsOneWidget);
   });
+
+  testWidgets('copie publique d’une fiche morte : mise à jour proposée, puis suppression (I3)', (tester) async {
+    final dead = octave()..status = CharacterStatus.dead;
+    final repo = await pumpSection(tester, 'Sénéchal',
+        sheets: [dead, lucie(), agathe()],
+        court: [CourtEntry(characterId: 'oct', name: 'Octave Marchetti', title: 'Sénéchal', sect: 'Camarilla', under: 'Prince', since: DateTime(2019, 3, 1))]);
+    expect(find.text('Copie publique à mettre à jour'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('th-refresh-oct')));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['court:oct']);
+  });
 }

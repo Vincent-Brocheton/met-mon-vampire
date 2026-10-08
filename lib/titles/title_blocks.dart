@@ -40,6 +40,7 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
   late String? _title = _trimmed(widget.character.title);
   late final _since = TextEditingController(text: _day(widget.character.titleSince ?? DateTime.now()));
   bool _busy = false;
+  bool _sinceEdited = false;
 
   static String? _trimmed(String? s) => s == null || s.trim().isEmpty ? null : s.trim();
 
@@ -54,7 +55,7 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
   bool get _changed {
     final now = _trimmed(_title);
     if (nameKey(now ?? '') != nameKey(_trimmed(c.title) ?? '')) return true;
-    return now != null && parseDay(_since.text) != c.titleSince;
+    return now != null && _sinceEdited && parseDay(_since.text) != c.titleSince;
   }
 
   Future<void> _save() async {
@@ -83,6 +84,7 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
       await ref.read(titlesRepositoryProvider).assign(c, _title, since, reason, by, widget.rb);
       messenger.showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
     } catch (_) {
+      if (!mounted) return;
       final latest = ref.read(characterProvider(c.id)).value;
       final moved = latest != null && latest.version != c.version;
       messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
@@ -133,7 +135,11 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
             initialValue: items.contains(_title) ? _title : null,
             decoration: const InputDecoration(labelText: 'Titre'),
             items: [for (final o in items) DropdownMenuItem<String?>(value: o, child: Text(o ?? 'Aucun'))],
-            onChanged: _busy ? null : (v) => setState(() => _title = v),
+            onChanged: _busy ? null : (v) => setState(() {
+              _title = v;
+              _sinceEdited = false;
+              _since.text = _day(nameKey(v ?? '') == nameKey(_trimmed(c.title) ?? '') ? c.titleSince ?? DateTime.now() : DateTime.now());
+            }),
           ),
         ),
         SizedBox(
@@ -143,7 +149,7 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
             controller: _since,
             enabled: !_busy,
             decoration: const InputDecoration(labelText: 'Depuis (JJ/MM/AAAA)'),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) => setState(() => _sinceEdited = true),
           ),
         ),
       ]),
@@ -165,10 +171,11 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
 
 /// Bloc « Titre » du joueur (J-Moralite) : son titre s'il est affiché sur la fiche, et le lien vers la Cour.
 class PlayerTitle extends StatelessWidget {
-  const PlayerTitle({super.key, required this.character, required this.rb});
+  const PlayerTitle({super.key, required this.character, required this.rb, required this.basePath});
 
   final Character character;
   final Rulebook rb;
+  final String basePath;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +189,7 @@ class PlayerTitle extends StatelessWidget {
         Text(hidden ? 'Aucun titre.' : _current(character), style: t.bodyMedium),
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton(key: const Key('ti-court'), onPressed: () => context.go('/joueur/cour'), child: const Text('La Cour')),
+          child: TextButton(key: const Key('ti-court'), onPressed: () => context.go(basePath.startsWith('/conteur') ? '/conteur/cour' : '/joueur/cour'), child: const Text('La Cour')),
         ),
       ]),
     );

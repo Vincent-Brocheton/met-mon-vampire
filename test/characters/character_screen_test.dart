@@ -6,18 +6,22 @@ import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/characters/character_screen.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 
 import '../fakes.dart';
+import '../titles/title_rules_test.dart' show rbTitles;
 import 'character_test.dart' show sample;
 
 void main() {
-  Future<void> pump(WidgetTester tester, Stream<Character?> stream, {bool history = false}) async {
+  Future<void> pump(WidgetTester tester, Stream<Character?> stream, {bool history = false, String basePath = '/joueur/personnages/x'}) async {
     tester.view.physicalSize = const Size(1440, 2000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(ProviderScope(
+      key: UniqueKey(),
       overrides: [
         characterProvider('x').overrideWith((ref) => stream),
+        rulebookProvider.overrideWith((ref) => rbTitles),
         noPlaces,
         noServantFiles,
         noItems,
@@ -28,7 +32,7 @@ void main() {
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
-        home: Scaffold(body: CharacterScreen(id: 'x', basePath: '/joueur/personnages/x', history: history)),
+        home: Scaffold(body: CharacterScreen(id: 'x', basePath: basePath, history: history)),
       ),
     ));
     await tester.pump();
@@ -57,5 +61,14 @@ void main() {
   testWidgets('fiche absente : page introuvable', (tester) async {
     await pump(tester, Stream.value(null));
     expect(find.text('Cette fiche n’existe pas'), findsOneWidget);
+  });
+
+  testWidgets('titre caché : absent de la fiche du joueur, visible pour l’équipe (I1)', (tester) async {
+    await pump(tester, Stream.value(sample()..title = 'Main du Prince'));
+    expect(find.textContaining('Main du Prince'), findsNothing);
+    await pump(tester, Stream.value(sample()..title = 'Harpie'));
+    expect(find.text('Harpie'), findsOneWidget);
+    await pump(tester, Stream.value(sample()..title = 'Main du Prince'), basePath: '/conteur/fiches/x');
+    expect(find.text('Main du Prince'), findsOneWidget);
   });
 }

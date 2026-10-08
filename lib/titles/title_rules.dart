@@ -1,4 +1,5 @@
 import '../characters/character.dart';
+import '../characters/describe_changes.dart';
 import '../events/story_event.dart';
 import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
@@ -91,6 +92,28 @@ EventVisibility titleVisibility(TitleInfo? info) {
   return info.public ? EventVisibility.public : EventVisibility.player;
 }
 
+/// Le titre tel que le joueur le voit : null si le référentiel le cache.
+String? visibleTitle(Character c, Rulebook rb) {
+  final info = titleInfo(rb, c.title);
+  return info != null && !info.onSheet ? null : c.title;
+}
+
+/// La fiche telle que le joueur la voit : sans titre caché ni date (tout titre si le référentiel manque).
+Character playerView(Character c, Rulebook? rb) {
+  if (rb != null && visibleTitle(c, rb) == c.title) return c;
+  return c.clone()
+    ..title = null
+    ..titleSince = null;
+}
+
+/// Résumé d'historique de l'attribution : neutre si l'ancien ou le nouveau titre est caché.
+List<String> titleSummary(Character before, Character after, Rulebook rb) {
+  final out = describeChanges(before, after);
+  if (visibleTitle(before, rb) == before.title && visibleTitle(after, rb) == after.title) return out;
+  bool isTitle(String l) => l.startsWith('Titre : ') || l.startsWith('Titre depuis le ');
+  return [...out.where((l) => !isTitle(l)), if (out.any(isTitle)) 'Titre modifié (réservé à l’équipe)'];
+}
+
 /// La fiche avec [title] (null ou vide : sans titre) depuis [since].
 Character withTitle(Character c, String? title, DateTime? since) {
   final none = title == null || title.trim().isEmpty;
@@ -112,21 +135,22 @@ StoryEvent _event(EventType type, String title, DateTime day, EventVisibility v)
       auto: true,
     );
 
-/// « Titre perdu » puis « Titre obtenu », datés de [day] ; aucun si le titre ne change pas.
-List<StoryEvent> titleEvents(Character before, Character after, DateTime day, Rulebook rb) {
+/// « Titre perdu » (daté du jour de l'opération, [now]) puis « Titre obtenu » (daté de [since]) ; aucun si le titre ne change pas.
+List<StoryEvent> titleEvents(Character before, Character after, DateTime since, Rulebook rb, {DateTime? now}) {
   final a = before.title?.trim() ?? '';
   final b = after.title?.trim() ?? '';
   if (nameKey(a) == nameKey(b)) return const [];
   return [
-    if (a.isNotEmpty) _event(EventType.titleLost, 'Perd le titre de $a', day, titleVisibility(titleInfo(rb, a))),
-    if (b.isNotEmpty) _event(EventType.titleGained, 'Obtient le titre de $b', day, titleVisibility(titleInfo(rb, b))),
+    if (a.isNotEmpty) _event(EventType.titleLost, 'Perd le titre de $a', now ?? DateTime.now(), titleVisibility(titleInfo(rb, a))),
+    if (b.isNotEmpty) _event(EventType.titleGained, 'Obtient le titre de $b', since, titleVisibility(titleInfo(rb, b))),
   ];
 }
 
 /// Copie publique attendue pour la fiche ; null si le titre n'est pas public ou pas affiché.
 CourtEntry? courtEntry(Character c, Rulebook rb) {
   final info = titleInfo(rb, c.title);
-  if (info == null || !info.public || !info.onSheet) return null;
+  if (c.status != CharacterStatus.active || info == null || !info.public || !info.onSheet) return null;
+  if (!(rb.find(titlesCat, c.title)?.state.offered ?? false)) return null;
   return CourtEntry(characterId: c.id, name: _clamp80(c.name), title: info.name, sect: info.sect, under: info.under, since: c.titleSince);
 }
 

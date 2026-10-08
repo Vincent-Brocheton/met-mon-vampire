@@ -83,9 +83,9 @@ void main() {
     final before = lucie()..title = 'Main du Prince';
     final after = withTitle(before, 'Harpie', DateTime(2026, 3, 1));
     expect((after.title, after.titleSince), ('Harpie', DateTime(2026, 3, 1)));
-    final ev = titleEvents(before, after, DateTime(2026, 3, 1), rbTitles);
+    final ev = titleEvents(before, after, DateTime(2026, 3, 1), rbTitles, now: DateTime(2026, 5, 2));
     expect([for (final e in ev) (e.type, e.title, e.visibility, e.year, e.month, e.day, e.auto)], [
-      (EventType.titleLost, 'Perd le titre de Main du Prince', EventVisibility.staff, 2026, 3, 1, true),
+      (EventType.titleLost, 'Perd le titre de Main du Prince', EventVisibility.staff, 2026, 5, 2, true),
       (EventType.titleGained, 'Obtient le titre de Harpie', EventVisibility.public, 2026, 3, 1, true),
     ]);
     expect(titleEvents(after, after, DateTime(2026, 3, 1), rbTitles), isEmpty);
@@ -133,5 +133,24 @@ void main() {
     ], rbTitles);
     expect([for (final g in groups) g.sect], ['Camarilla', 'Anarchs']);
     expect([for (final t in groups.first.titles) (t.title, t.depth, t.holders.length)], [('Prince', 0, 1), ('Sénéchal', 1, 1), ('Harpie', 2, 2)]);
+  });
+
+  test('titre caché : visibleTitle, résumé neutre, fiche vue du joueur (I1)', () {
+    final hidden = lucie()..title = 'Main du Prince';
+    expect(visibleTitle(hidden, rbTitles), isNull);
+    expect(visibleTitle(lucie()..title = 'Harpie', rbTitles), 'Harpie');
+    expect(playerView(hidden, rbTitles).title, isNull);
+    expect(playerView(hidden, null).title, isNull);
+    expect(hidden.title, 'Main du Prince');
+    final after = withTitle(hidden, 'Harpie', DateTime(2026, 3, 1));
+    expect(titleSummary(hidden, after, rbTitles), ['Titre modifié (réservé à l’équipe)']);
+    expect(titleSummary(after, withTitle(after, null, null), rbTitles), ['Titre : Harpie → (vide)']);
+    expect(titleSummary(lucie(), after, rbTitles), containsAll(['Titre : (vide) → Harpie', 'Titre depuis le 1 mars']));
+  });
+
+  test('Cour : ni fiche morte ni titre retiré du référentiel (I3)', () {
+    expect(courtEntry(octave()..title = 'Harpie', rbTitles), isNotNull);
+    expect(courtEntry(octave()..title = 'Harpie'..status = CharacterStatus.dead, rbTitles), isNull);
+    expect(courtEntry(octave()..title = 'Ancien titre', rbTitles), isNull);
   });
 }

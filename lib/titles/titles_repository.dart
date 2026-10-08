@@ -4,7 +4,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/session_providers.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
-import '../characters/describe_changes.dart';
 import '../rulebook/rulebook.dart';
 import 'court_entry.dart';
 import 'title_rules.dart';
@@ -32,7 +31,7 @@ class TitlesRepository {
       fromVersion: before.version,
       by: by,
       kind: 'edit',
-      summary: describeChanges(before, after),
+      summary: titleSummary(before, after, rb),
       reason: reason,
       extra: after.laterKeys(),
       events: titleEvents(before, after, since ?? DateTime.now(), rb),

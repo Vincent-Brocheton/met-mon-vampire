@@ -10,6 +10,8 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../rulebook/rulebook_provider.dart';
+import '../titles/title_rules.dart' show playerView;
 import 'loan_rules.dart';
 import 'npc_loan.dart';
 import 'npc_loans_repository.dart';
@@ -137,7 +139,8 @@ class _NpcLoanScreenState extends ConsumerState<NpcLoanScreen> {
         asyncView(ref.watch(npcLoanSheetProvider(l.id)), (sheet) {
           if (sheet == null) return Text('La fiche n’est pas encore disponible.', style: t.bodySmall);
           final c = Character.fromMap(l.characterId, sheet);
-          return l.mode == LoanMode.full ? CharacterSheetView(c) : _Summary(c);
+          final seen = playerView(c, ref.watch(rulebookProvider));
+          return l.mode == LoanMode.full ? CharacterSheetView(seen) : _Summary(seen);
         }, onRetry: () => ref.invalidate(npcLoanSheetProvider(l.id))),
         if (l.allowNotes) ...[
           const SizedBox(height: 20),

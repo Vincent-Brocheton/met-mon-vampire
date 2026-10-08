@@ -8,6 +8,7 @@ import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart';
 import '../core/theme.dart';
 import '../npcs/loan_rules.dart' show parseDay;
+import '../rulebook/rule_entry.dart' show nameKey;
 import '../rulebook/rulebook.dart';
 import 'court_entry.dart';
 import 'title_rules.dart';
@@ -62,7 +63,10 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
       messenger.showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
       if (mounted && title != null) setState(() => _sheetId = null);
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+      if (!mounted) return;
+      final latest = ref.read(characterProvider(c.id)).value;
+      final moved = latest != null && latest.version != c.version;
+      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -91,6 +95,13 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
     final candidates = [
       for (final c in widget.chars)
         if ((c.kind == CharacterKind.pnj || c.status.settled) && c.status == CharacterStatus.active && !holders.contains(c) && (me == null || c.playerUid != me.uid)) c,
+    ];
+    // Copies de ce titre dont la fiche n'est plus un détenteur actif (morte, retirée, titre changé).
+    final stale = [
+      for (final e in court.values)
+        if (nameKey(e.title) == nameKey(widget.title))
+          for (final c in widget.chars)
+            if (c.id == e.characterId && !holders.contains(c)) c,
     ];
     final picked = candidates.where((c) => c.id == _sheetId).firstOrNull;
     final since = parseDay(_since.text);
@@ -124,6 +135,21 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
                   child: const Text('Retirer', style: TextStyle(color: AppColors.linkHover)),
                 ),
               ]),
+          ]),
+        ),
+      for (final c in stale)
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(6)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(c.name, style: t.titleSmall),
+            Text('Copie publique à mettre à jour', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
+            if (!widget.readOnly && me != null && c.playerUid != me.uid)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(key: Key('th-refresh-${c.id}'), onPressed: _busy ? null : () => _refresh(c), child: const Text('Mettre à jour')),
+              ),
           ]),
         ),
       if (!widget.readOnly) ...[

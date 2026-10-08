@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
@@ -121,10 +122,10 @@ void main() {
   testWidgets('joueur : son titre, ou rien s’il est caché (Review Focus 2)', (tester) async {
     await pump(tester, PlayerTitle(character: lucie()
       ..title = 'Harpie'
-      ..titleSince = DateTime(2026, 3, 1), rb: rbTitles));
+      ..titleSince = DateTime(2026, 3, 1), rb: rbTitles, basePath: '/joueur/personnages/luc'));
     expect(find.text('Harpie · depuis mars 2026'), findsOneWidget);
     expect(find.byKey(const Key('ti-court')), findsOneWidget);
-    await pump(tester, PlayerTitle(character: lucie()..title = 'Main du Prince', rb: rbTitles));
+    await pump(tester, PlayerTitle(character: lucie()..title = 'Main du Prince', rb: rbTitles, basePath: '/joueur/personnages/luc'));
     expect(find.text('Aucun titre.'), findsOneWidget);
     expect(find.textContaining('Main du Prince'), findsNothing);
   });
@@ -133,5 +134,41 @@ void main() {
     await pump(tester, StaffTitle(character: lucie(), rb: rbTitles, canEdit: true), width: 390);
     await choose(tester, 'ti-title', 'Baron');
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('conte : « Depuis » reprend la date de la fiche, puis le jour si le titre change (I2)', (tester) async {
+    final today = DateTime.now();
+    final day = '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+    await pump(tester, StaffTitle(character: octave(), rb: rbTitles, canEdit: true));
+    expect(find.widgetWithText(TextField, '01/03/2019'), findsOneWidget);
+    await choose(tester, 'ti-title', 'Harpie');
+    expect(find.widgetWithText(TextField, day), findsOneWidget);
+  });
+
+  testWidgets('conte : titre tenu sans date, Enregistrer reste inactif sans changement (I2)', (tester) async {
+    await pump(tester, StaffTitle(character: agathe(), rb: rbTitles, canEdit: true));
+    expect(tester.widget<FilledButton>(find.byKey(const Key('ti-save'))).onPressed, isNull);
+  });
+
+  testWidgets('joueur : le lien de la Cour suit l’espace (I4)', (tester) async {
+    String? went;
+    Future<void> go(String base) async {
+      await tester.pumpWidget(MaterialApp.router(
+        theme: buildTheme(withFonts: false),
+        routerConfig: GoRouter(
+          routes: [
+            GoRoute(path: '/', builder: (_, _) => Scaffold(body: PlayerTitle(character: lucie(), rb: rbTitles, basePath: base))),
+            GoRoute(path: '/:a/cour', builder: (_, s) { went = s.uri.path; return const Scaffold(); }),
+          ],
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('ti-court')));
+      await tester.pumpAndSettle();
+    }
+    await go('/conteur/fiches/luc');
+    expect(went, '/conteur/cour');
+    await go('/joueur/personnages/luc');
+    expect(went, '/joueur/cour');
   });
 }

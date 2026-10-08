@@ -57,3 +57,14 @@ test('brouillon du joueur : la forme réelle de draftData est acceptée (C1)', a
   await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', ...late, version: 2 }));
   await assertFails(updateDoc(doc(as('zoe'), 'characters/d2'), { concept: 'Avocate', ...late, titleSince: null, version: 2 }));
 });
+
+test('Cour : le conte ne touche pas à la copie de sa propre fiche (mineur)', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/mine'), { name: 'Mon PJ', playerUid: 'lea', kind: 'pj', status: 'active', version: 1 });
+    await setDoc(doc(ctx.firestore(), 'court/mine'), entry({}));
+  });
+  await assertFails(setDoc(doc(as('lea'), 'court/mine'), entry({})));
+  await assertFails(deleteDoc(doc(as('lea'), 'court/mine')));
+  await assertSucceeds(setDoc(doc(as('lea'), 'court/d1'), entry({})));
+  await assertSucceeds(deleteDoc(doc(as('lea'), 'court/orpheline')));
+});

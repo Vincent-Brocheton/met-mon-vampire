@@ -70,7 +70,7 @@ class CharacterMoralityScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             PlayerBonds(character: c),
             const SizedBox(height: 20),
-            PlayerTitle(character: c, rb: rb),
+            PlayerTitle(character: c, rb: rb, basePath: basePath),
           ],
         ]),
         onRetry: () => ref.invalidate(characterSinsProvider(c.id)),

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/npcs/loan_rules.dart';
 import 'package:portail_met/npcs/my_npc_loans_screen.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
@@ -29,6 +30,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       key: UniqueKey(),
       overrides: [
+        rulebookProvider.overrideWith((ref) => null),
         myNpcLoansProvider.overrideWith((ref) => Stream.value(loans)),
         for (final l in loans) npcLoanSheetProvider(l.id).overrideWith((ref) => Stream.value(sheet)),
         npcLoansRepositoryProvider.overrideWith((ref) => repo),

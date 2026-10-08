@@ -42,6 +42,7 @@ List<Destination> destinationsFor(Role role) => role == Role.joueur
         Destination('PNJ confiés', '/conteur/pnj', Icons.theater_comedy_outlined,
             shortLabel: 'PNJ', mobileTab: !role.managesAccounts),
         const Destination('XP', '/conteur/xp', Icons.auto_awesome_outlined),
+        const Destination('La Cour', '/conteur/cour', Icons.account_balance_outlined),
         if (role.managesAccounts) const Destination('Comptes', '/conteur/comptes', Icons.group_outlined, mobileTab: true),
         const Destination('Wiki', '/conteur/wiki', Icons.menu_book_outlined),
         const Destination('Référentiel des règles', '/conteur/referentiel', Icons.library_books_outlined, iconOnly: true),
