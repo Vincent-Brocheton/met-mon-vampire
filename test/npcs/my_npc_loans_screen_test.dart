@@ -16,10 +16,16 @@ import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
 import 'loan_rules_test.dart' show octave;
 
+/// Jour du calendrier dans [n] jours (le changement d'heure ne décale pas le jour).
+DateTime _in(int n) {
+  final d = DateTime.now();
+  return DateTime(d.year, d.month, d.day + n);
+}
+
 void main() {
   NpcLoan current({LoanMode mode = LoanMode.full, String id = 'l1'}) => octave(id: id)
-    ..from = startOfDay(DateTime.now().subtract(const Duration(days: 1)))
-    ..until = endOfDay(DateTime.now().add(const Duration(days: 19)))
+    ..from = startOfDay(_in(-1))
+    ..until = endOfDay(_in(19))
     ..mode = mode;
 
   Future<FakeNpcLoansRepository> pump(WidgetTester tester, {required List<NpcLoan> loans, Map<String, dynamic>? sheet}) async {
