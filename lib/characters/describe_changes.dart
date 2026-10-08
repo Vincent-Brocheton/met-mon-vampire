@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../core/dates.dart';
+import '../morality/morality_rules.dart' show moralityName;
 import 'character.dart';
 
 /// Points en pastilles ; 0 s'écrit « — ».
@@ -56,7 +57,8 @@ List<String> describeChanges(Character a, Character b) {
   number('Sang', a.blood, b.blood);
   number('Sang par tour', a.bloodPerTurn, b.bloodPerTurn);
   number('Volonté', a.willpower, b.willpower);
-  number('Humanité', a.humanity, b.humanity);
+  number(moralityName(b), a.humanity, b.humanity);
+  if ((a.path ?? '') != (b.path ?? '')) out.add('Voie : ${a.path ?? 'Humanité'} → ${b.path ?? 'Humanité'}');
   text('Santé', a.health, b.health);
   number('XP initiale', a.xpInitial, b.xpInitial);
   number('Bonus du conte', a.xpBonus, b.xpBonus);

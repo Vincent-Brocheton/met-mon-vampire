@@ -9,6 +9,7 @@ import '../player/welcome_screen.dart';
 import '../xp/xp_repository.dart';
 import '../xp/xp_request.dart';
 import '../xp/xp_rules.dart';
+import '../morality/morality_rules.dart' show moralityName;
 import 'character.dart';
 import 'character_repository.dart';
 import 'describe_changes.dart';
@@ -113,7 +114,7 @@ class _CharacterCard extends ConsumerWidget {
               stat('XP utilisable', reserved == 0 ? '${c.xpAvailable}' : '${c.xpAvailable - reserved} (${c.xpAvailable} − $reserved réservés)'),
               stat('Sang', '${c.blood} · ${c.bloodPerTurn}/tour'),
               stat('Volonté', '${c.willpower}'),
-              stat('Humanité', dots(c.humanity)),
+              stat(moralityName(c), dots(c.humanity)),
             ]),
           ],
           if (c.status == CharacterStatus.draft && (c.comment ?? '').isNotEmpty) ...[

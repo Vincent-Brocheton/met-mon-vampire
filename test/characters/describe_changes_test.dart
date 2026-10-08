@@ -18,6 +18,11 @@ Character base() => Character(
 void main() {
   test('aucun changement', () => expect(describeChanges(base(), base()), isEmpty));
 
+  test('fiche sur une voie : la voie nomme la valeur', () {
+    final on = base()..path = 'Voie de la Nuit';
+    expect(describeChanges(on, on.clone()..humanity = 4), ['Voie de la Nuit 5 → 4']);
+  });
+
   test('points', () {
     final after = base()..disciplines.first.level = 3;
     expect(describeChanges(base(), after), ['Présence ●● → ●●●']);

@@ -72,7 +72,7 @@ class CharacterScreen extends ConsumerWidget {
 }
 
 /// Onglet ouvert dans l'en-tête de la fiche.
-enum CharacterTab { sheet, events, history, story }
+enum CharacterTab { sheet, morality, events, history, story }
 
 class CharacterHeader extends StatelessWidget {
   const CharacterHeader(this.c, {super.key, required this.basePath, this.tab = CharacterTab.sheet});
@@ -120,7 +120,7 @@ class CharacterHeader extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Row(children: [
             item('Fiche', basePath, tab == CharacterTab.sheet),
-            Tooltip(message: 'À venir', child: item('Moralité & liens', null, false)),
+            item('Moralité & liens', '$basePath/moralite', tab == CharacterTab.morality),
             if (basePath.startsWith('/conteur')) item('Événements', '$basePath/evenements', tab == CharacterTab.events),
             item('Historique', '$basePath/historique', tab == CharacterTab.history),
             item('Récit', '$basePath/recit', tab == CharacterTab.story),

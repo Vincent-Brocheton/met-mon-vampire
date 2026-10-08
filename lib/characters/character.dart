@@ -301,7 +301,7 @@ String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == n
 
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace', 'path'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -369,6 +369,7 @@ class Character {
       ..bloodPerTurn = _int(m['bloodPerTurn'])
       ..willpower = _int(m['willpower'])
       ..humanity = _int(m['humanity'])
+      ..path = m['path'] as String?
       ..health = m['health'] as String? ?? '3 · 3 · 3'
       ..xpInitial = _int(m['xpInitial'])
       ..xpBonus = _int(m['xpBonus'])
@@ -393,6 +394,9 @@ class Character {
   String? playerName;
   CharacterStatus status;
   String? concept, archetype, clan, lineage, sect, sire, title, story;
+
+  /// Voie d'illumination (référentiel `paths`) ; null : Humanité. La valeur reste dans [humanity] (sous-projet 7b).
+  String? path;
   String? inspirationBefore, inspirationEmbrace, inspirationBecame;
   GenRank? genRank;
   int? genNumber;
@@ -458,6 +462,7 @@ class Character {
         'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         'servants': [for (final s in servants) s.toMap()],
         'allies': [for (final a in allies) a.toMap()],
+        'path': path,
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
       };
@@ -498,6 +503,7 @@ class Character {
           'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
         if (allies.isNotEmpty || storedKeys.contains('allies')) 'allies': [for (final a in allies) a.toMap()],
+        if (path != null || storedKeys.contains('path')) 'path': path,
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
         'blood': blood,

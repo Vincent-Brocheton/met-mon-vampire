@@ -1,9 +1,10 @@
 import '../allies/ally_rules.dart';
 import '../characters/character.dart';
+import '../morality/morality_rules.dart' show moralityMax, moralityName;
 import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
 import '../rules/powers_rules.dart';
-import '../rules/creation_rules.dart' show Check, CheckLevel, generationName, humanityName, lineageCost, maxMeritPoints, stateCheck;
+import '../rules/creation_rules.dart' show Check, CheckLevel, generationName, lineageCost, maxMeritPoints, stateCheck;
 import 'xp_request.dart';
 
 Trait? _trait(List<Trait> list, String name) => list.where((t) => t.name == name).firstOrNull;
@@ -29,7 +30,8 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
 /// Niveau après les achats déjà dans la demande.
 int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
   // Un serviteur se reconnaît sans tenir compte de la casse : « Rex » et « rex » sont le même.
-  bool same(XpItem i) => i.kind == k && (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name);
+  // L'Humanité n'a qu'un niveau par fiche : le nom (Humanité ou voie) a pu changer entre deux achats.
+  bool same(XpItem i) => i.kind == k && (k == XpKind.humanity || (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name));
   final last = items.where(same).lastOrNull;
   return last?.toLevel ?? levelNow(c, k, name);
 }
@@ -125,7 +127,7 @@ String ruleText(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => swit
       XpKind.discipline =>
         inClan(c, i.name, rb: rb) ? 'En clan · nouveau niveau × 3' : 'Hors clan · nouveau niveau × ${_row(c, rb).outOfClanFactor}',
       XpKind.merit => 'Sa valeur en XP',
-      XpKind.humanity => '10 XP le point, 6 au plus',
+      XpKind.humanity => '10 XP le point, ${moralityMax(c, rb)} au plus',
       XpKind.flawBuyback => '2 × sa valeur',
       XpKind.ritual => 'Niveau du rituel × ${rb.ritualCostPerLevel}',
       XpKind.technique => 'Selon le rang',
@@ -143,7 +145,7 @@ List<(String, String)> costTable(Character c, {Rulebook rb = const Rulebook()}) 
     ('Discipline en clan', never ? 'Jamais en XP' : 'Nouveau niveau × 3'),
     ('Discipline hors clan', never ? 'Jamais en XP' : 'Nouveau niveau × ${row.outOfClanFactor}'),
     ('Atout', 'Sa valeur en XP'),
-    ('Humanité', '10 XP le point, 6 au plus'),
+    (moralityName(c), '10 XP le point, ${moralityMax(c, rb)} au plus'),
     ('Rituel', 'Niveau × ${rb.ritualCostPerLevel}'),
     ('Technique', never ? 'Jamais en XP' : (row.techniqueCost == 0 ? 'Interdite à ce rang' : '${row.techniqueCost} XP')),
     ('Pouvoir d’ancien', never ? 'Jamais en XP' : (row.eldersAllowed ? 'Selon le pouvoir' : 'Interdit à ce rang')),
@@ -154,7 +156,7 @@ List<(String, String)> costTable(Character c, {Rulebook rb = const Rulebook()}) 
 
 int capOf(Character c, XpKind k, String name, {Rulebook rb = const Rulebook()}) => switch (k) {
       XpKind.attribute => 10,
-      XpKind.humanity => 6,
+      XpKind.humanity => moralityMax(c, rb),
       XpKind.skill => rb.skillCap(name, c.genRank, row: rb.rowFor(c)),
       XpKind.background => rb.backgroundCap(name),
       _ => 5,
@@ -206,7 +208,7 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
         for (final e in rb.offered('elderPowers'))
           if (!_knows(c.elderPowers.map((x) => x.name), e.name)) e.name: label('elderPowers', e.name),
       },
-    XpKind.humanity => {humanityName: humanityName},
+    XpKind.humanity => {moralityName(c): moralityName(c)},
     XpKind.ally => const {},
     XpKind.servant => {
         newHumanServant: 'Nouvelle goule humaine',
@@ -306,7 +308,7 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
 /// Retire l'achat [index] ; seulement le plus haut niveau d'un trait.
 String? removeItem(List<XpItem> items, int index) {
   final i = items[index];
-  if (items.skip(index + 1).any((x) => x.kind == i.kind && x.name == i.name)) {
+  if (items.skip(index + 1).any((x) => x.kind == i.kind && (i.kind == XpKind.humanity || x.name == i.name))) {
     return 'Retirez d’abord le niveau supérieur.';
   }
   items.removeAt(index);
