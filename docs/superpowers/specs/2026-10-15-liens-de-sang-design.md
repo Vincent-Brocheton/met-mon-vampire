@@ -42,6 +42,7 @@ Un document par couple de fiches. Le régnant donne son sang ; le lié boit.
 |---|---|
 | `regnantId`, `regnantName`, `regnantPlayerUid` | fiche du régnant ; joueur absent pour un PNJ |
 | `thrallId`, `thrallName`, `thrallPlayerUid` | fiche du lié ; joueur absent pour un PNJ |
+| `ghoul` | le lié est la goule du régnant (recopié : « votre goule » pour le joueur) |
 | `level` | niveau enregistré, entier de 0 à 3 |
 | `lastDrink` | date de la dernière gorgée (jour, minuit heure locale) |
 | `lastContact` | date du dernier contact (jour, minuit heure locale) |
@@ -123,7 +124,8 @@ Un lien à 0 effectif n'apparaît dans aucune liste.
   - aucune des deux fiches n'a pour joueur l'auteur (`getAfter` sur les deux fiches) ;
   - `b == regnantId + '_' + thrallId`, et `regnantId != thrallId` ;
   - clés limitées à la liste ci-dessus ;
-  - `level` entier de 0 à 3 ;
+  - les joueurs recopiés sont ceux des deux fiches ;
+  - `level` entier de 0 à 3, `ghoul` booléen ;
   - `lastDrink` et `lastContact` horodatages ;
   - `known` et `regnantKnows` booléens ;
   - `byUid == auth.uid`.
