@@ -178,6 +178,36 @@ service cloud.firestore {
         allow read, write: if managesAccounts()
           && get(charPath(id)).data.get('playerUid', null) != request.auth.uid;
       }
+
+      // Événements de la fiche (sous-projet 7a) : l'équipe voit tout, le joueur hors « conte seul ».
+      match /events/{e} {
+        function eventValid() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto',
+              'byUid', 'byName', 'createdAt', 'updatedAt'])
+            && d.type in ['diablerie', 'titleGained', 'titleLost', 'sectChange', 'pathAdopted', 'bloodHunt', 'torpor',
+                'awakening', 'finalDeath', 'embrace', 'sheet', 'intrigue', 'renown', 'other']
+            && d.title is string && d.title.size() > 0 && d.title.size() <= 80
+            && d.description is string && d.description.size() <= 2000
+            && d.year is int && d.year >= 1 && d.year <= 9999
+            && (d.get('month', null) == null || (d.month is int && d.month >= 1 && d.month <= 12))
+            && (d.get('day', null) == null
+                || (d.day is int && d.day >= 1 && d.day <= 31 && d.get('month', null) != null))
+            && d.visibility in ['public', 'player', 'staff']
+            && d.auto is bool
+            && d.byUid == request.auth.uid;
+        }
+        // getAfter : la fiche peut être créée dans le même lot (étreinte). Jamais sur sa propre fiche.
+        function notOwnSheet(cid) {
+          return getAfter(charPath(cid)).data.get('playerUid', null) != request.auth.uid;
+        }
+        // Un membre de l'équipe sur sa propre fiche est traité en joueur.
+        allow read: if (isStaff() && get(charPath(id)).data.get('playerUid', null) != request.auth.uid)
+          || (signedIn() && get(charPath(id)).data.get('playerUid', null) == request.auth.uid
+              && resource.data.visibility in ['public', 'player']);
+        allow create, update: if managesAccounts() && notOwnSheet(id) && eventValid();
+        allow delete: if managesAccounts() && notOwnSheet(id);
+      }
     }
 
     // Demandes d'XP (sous-projet 4). Le joueur écrit tant que la demande est ouverte ; le conte tranche.

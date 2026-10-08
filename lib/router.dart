@@ -22,6 +22,8 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'events/events_screen.dart';
+import 'events/story_screen.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
@@ -121,6 +123,13 @@ GoRouter router(Ref ref) {
             ),
           ),
           GoRoute(
+            path: '/joueur/personnages/:id/recit',
+            builder: (_, s) => CharacterStoryScreen(
+              characterId: s.pathParameters['id']!,
+              basePath: '/joueur/personnages/${s.pathParameters['id']}',
+            ),
+          ),
+          GoRoute(
             path: '/joueur/personnages/:id/lieux',
             builder: (_, s) => CharacterPlacesScreen(characterId: s.pathParameters['id']!),
           ),
@@ -163,6 +172,17 @@ GoRouter router(Ref ref) {
               id: s.pathParameters['id']!,
               basePath: '/conteur/fiches/${s.pathParameters['id']}',
               history: true,
+            ),
+          ),
+          GoRoute(
+            path: '/conteur/fiches/:id/evenements',
+            builder: (_, s) => CharacterEventsScreen(characterId: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/conteur/fiches/:id/recit',
+            builder: (_, s) => CharacterStoryScreen(
+              characterId: s.pathParameters['id']!,
+              basePath: '/conteur/fiches/${s.pathParameters['id']}',
             ),
           ),
           page('/conteur/demandes', const ValidationScreen()),

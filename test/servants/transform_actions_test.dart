@@ -3,6 +3,7 @@ import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/characters/transformations.dart';
+import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/servants/servant_file.dart';
 import 'package:portail_met/servants/servant_rules.dart';
 import 'package:portail_met/servants/transform_actions.dart';
@@ -41,6 +42,8 @@ void main() {
     expect(await embraceFollower(chars, servants, row: ServantRow(file: jeanne()), sheet: sheet, reason: 'Étreinte', by: by), isNull);
     expect(chars.calls, ['createSheet:Jeanne']);
     expect(servants.calls, ['delete:m1']);
+    final e = chars.lastCreatedEvents.single;
+    expect((e.type, e.title, e.auto), (EventType.embrace, 'Étreinte par Isaure de Valcourt', true));
   });
 
   test('serviteur étreint : retiré du domitor, fiche détaillée libérée (Review Focus 5)', () async {

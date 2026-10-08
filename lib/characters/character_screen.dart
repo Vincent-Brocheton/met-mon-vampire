@@ -43,7 +43,7 @@ class CharacterScreen extends ConsumerWidget {
         );
       }
       return PageBody(children: [
-        CharacterHeader(c, basePath: basePath, history: history),
+        CharacterHeader(c, basePath: basePath, tab: history ? CharacterTab.history : CharacterTab.sheet),
         const SizedBox(height: 22),
         if (!history && basePath.startsWith('/joueur') && c.kind == CharacterKind.pj && c.status == CharacterStatus.active) ...[
           Align(
@@ -71,17 +71,20 @@ class CharacterScreen extends ConsumerWidget {
   }
 }
 
+/// Onglet ouvert dans l'en-tête de la fiche.
+enum CharacterTab { sheet, events, history, story }
+
 class CharacterHeader extends StatelessWidget {
-  const CharacterHeader(this.c, {super.key, required this.basePath, required this.history});
+  const CharacterHeader(this.c, {super.key, required this.basePath, this.tab = CharacterTab.sheet});
 
   final Character c;
   final String basePath;
-  final bool history;
+  final CharacterTab tab;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    Widget tab(String label, String? path, bool selected) => InkWell(
+    Widget item(String label, String? path, bool selected) => InkWell(
           onTap: path == null ? null : () => context.go(path),
           child: Container(
             height: 44,
@@ -116,10 +119,11 @@ class CharacterHeader extends StatelessWidget {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(children: [
-            tab('Fiche', basePath, !history),
-            tab('Historique', '$basePath/historique', history),
-            Tooltip(message: 'À venir', child: tab('Moralité & liens', null, false)),
-            Tooltip(message: 'À venir', child: tab('Récit', null, false)),
+            item('Fiche', basePath, tab == CharacterTab.sheet),
+            Tooltip(message: 'À venir', child: item('Moralité & liens', null, false)),
+            if (basePath.startsWith('/conteur')) item('Événements', '$basePath/evenements', tab == CharacterTab.events),
+            item('Historique', '$basePath/historique', tab == CharacterTab.history),
+            item('Récit', '$basePath/recit', tab == CharacterTab.story),
           ]),
         ),
       ),
