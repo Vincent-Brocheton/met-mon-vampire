@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../allies/allies_repository.dart';
 import '../allies/ally_list_editor.dart';
@@ -434,7 +435,10 @@ class _Editor extends ConsumerWidget {
       ChoiceField(label: 'Archétype', value: c.archetype, options: names('archetypes'), onChanged: (v) => set(() => c.archetype = v)),
       TextFieldRow(label: 'Concept', value: c.concept, onChanged: (v) => set(() => c.concept = v)),
       TextFieldRow(label: 'Sire', value: c.sire, onChanged: (v) => set(() => c.sire = v)),
-      TextFieldRow(label: 'Titre', value: c.title, onChanged: (v) => set(() => c.title = v)),
+      Row(children: [
+        Expanded(child: Text('Titre : ${(c.title ?? '').trim().isEmpty ? 'aucun' : c.title}')),
+        TextButton(onPressed: () => context.go('/conteur/fiches/${c.id}/moralite'), child: const Text('Changer le titre')),
+      ]),
     ]);
 
     final attributes = section('Attributs', [
