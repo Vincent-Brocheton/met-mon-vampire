@@ -72,7 +72,7 @@ class XpItem {
   String get displayName => kind == XpKind.attribute ? AttrCategory.values.asNameMap()[name]?.label ?? name : name;
 
   String get label => switch (kind) {
-        XpKind.humanity => 'Humanité',
+        XpKind.humanity => name,
         XpKind.flawBuyback => 'Rachat · $name',
         _ => '${kind.label} · $displayName',
       };
@@ -175,7 +175,7 @@ class XpRequest {
         switch (i.kind) {
           XpKind.merit => 'Atout ${i.name}',
           XpKind.flawBuyback => 'Rachat ${i.name}',
-          XpKind.humanity => 'Humanité ${i.toLevel}',
+          XpKind.humanity => '${i.name} ${i.toLevel}',
           XpKind.attribute => '${i.displayName} ${i.toLevel}',
           _ => '${i.name} ${dots(i.toLevel)}',
         },

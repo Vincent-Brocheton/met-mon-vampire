@@ -11,7 +11,7 @@ import '../core/widgets.dart';
 import '../rulebook/rule_hint.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
-import '../rules/creation_rules.dart' show humanityName;
+import '../morality/morality_rules.dart' show moralityName;
 import 'xp_repository.dart';
 import 'xp_request.dart';
 import 'xp_rules.dart';
@@ -140,7 +140,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
     final r = _r!;
     final others = [for (final x in requests) if (x.characterId == c.id && x.status.open && x.id != r.id) x];
     final usable = c.xpAvailable - others.fold<int>(0, (s, x) => s + x.total);
-    final name = _kind == XpKind.humanity ? humanityName : _name;
+    final name = _kind == XpKind.humanity ? moralityName(c) : _name;
     final item = name == null ? null : draftItem(c, r.items, _kind, name, note: _note.text, rb: rb);
     final error = item == null ? null : itemError(c, r.items, item, usable: usable, rb: rb);
     // Un serviteur ajouté à la demande peut y monter de rang.
