@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../allies/allies_repository.dart';
+import '../allies/ally_list_editor.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
 import '../chronicle/chronicle_repository.dart';
@@ -176,6 +178,11 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
         } catch (_) {
           failed.add('Équipement');
+        }
+        try {
+          await ref.read(alliesRepositoryProvider).setPlayers(_draft!.id, [?_draft!.playerUid], by);
+        } catch (_) {
+          failed.add('Alliés');
         }
       }
       if (mounted) {
@@ -515,6 +522,7 @@ class _Editor extends ConsumerWidget {
       section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
       section('Historiques', [TraitListEditor(items: c.backgrounds, options: [for (final n in names('backgrounds')) if (n != servantsBackground) n], noteLabel: 'Précisions', onChanged: onChanged)]),
       section('Serviteurs', [ServantListEditor(characterId: c.id, items: c.servants, onChanged: onChanged)]),
+      section('Alliés', [AllyListEditor(characterId: c.id, items: c.allies, rb: rb, onChanged: onChanged)]),
       section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
       section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
       section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),
