@@ -185,7 +185,7 @@ service cloud.firestore {
           let d = request.resource.data;
           return d.keys().hasOnly(['type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto',
               'byUid', 'byName', 'createdAt', 'updatedAt'])
-            && d.type in ['diablerie', 'titleGained', 'titleLost', 'sectChange', 'pathAdopted', 'morality', 'bloodHunt', 'torpor',
+            && d.type in ['diablerie', 'titleGained', 'titleLost', 'sectChange', 'pathAdopted', 'morality', 'bond', 'bloodHunt', 'torpor',
                 'awakening', 'finalDeath', 'embrace', 'sheet', 'intrigue', 'renown', 'other']
             && d.title is string && d.title.size() > 0 && d.title.size() <= 80
             && d.description is string && d.description.size() <= 2000
@@ -230,6 +230,35 @@ service cloud.firestore {
         allow update: if managesAccounts() && sinNotOwnSheet(id) && sinValid() && resource.data.lossApplied == false;
         allow delete: if managesAccounts() && sinNotOwnSheet(id) && resource.data.lossApplied == false;
       }
+    }
+
+    // Liens de sang entre fiches (sous-projet 7c). Lus par l'équipe, par le joueur du lié s'il le connaît
+    // et par le joueur du régnant s'il le connaît ; écrits par le conte, jamais sur un lien qui touche sa propre fiche.
+    match /bonds/{b} {
+      function bondValid() {
+        let d = request.resource.data;
+        let r = getAfter(charPath(d.regnantId)).data;
+        let t = getAfter(charPath(d.thrallId)).data;
+        return d.keys().hasOnly(['regnantId', 'regnantName', 'regnantPlayerUid', 'thrallId', 'thrallName', 'thrallPlayerUid',
+              'ghoul', 'level', 'lastDrink', 'lastContact', 'known', 'regnantKnows', 'byUid', 'byName', 'createdAt', 'updatedAt'])
+          && d.regnantId is string && d.thrallId is string && d.regnantId != d.thrallId
+          && b == d.regnantId + '_' + d.thrallId
+          && d.regnantName is string && d.thrallName is string
+          && d.get('regnantPlayerUid', null) == r.get('playerUid', null)
+          && d.get('thrallPlayerUid', null) == t.get('playerUid', null)
+          && r.get('playerUid', null) != request.auth.uid
+          && t.get('playerUid', null) != request.auth.uid
+          && d.ghoul is bool
+          && d.level is int && d.level >= 0 && d.level <= 3
+          && d.lastDrink is timestamp && d.lastContact is timestamp
+          && d.known is bool && d.regnantKnows is bool
+          && d.byUid == request.auth.uid;
+      }
+      allow read: if isStaff()
+        || (signedIn() && resource.data.get('thrallPlayerUid', null) == request.auth.uid && resource.data.known == true)
+        || (signedIn() && resource.data.get('regnantPlayerUid', null) == request.auth.uid && resource.data.regnantKnows == true);
+      allow create, update: if managesAccounts() && bondValid();
+      allow delete: if false;
     }
 
     // Demandes d'XP (sous-projet 4). Le joueur écrit tant que la demande est ouverte ; le conte tranche.

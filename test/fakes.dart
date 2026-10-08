@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:portail_met/allies/ally_file.dart';
 import 'package:portail_met/allies/allies_repository.dart';
 import 'package:portail_met/auth/auth_repository.dart';
+import 'package:portail_met/bonds/bond.dart';
+import 'package:portail_met/bonds/bond_rules.dart' show DrinkWrite;
+import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/trace.dart';
@@ -505,6 +508,30 @@ class FakeSinsRepository implements SinsRepository {
   Future<void> applyEveningLoss(Character before, List<Sin> evening, Actor by) async {
     calls.add('loss:${before.id}:${[for (final s in evening) s.id].join(',')}');
     if (error != null) throw error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeBondsRepository implements BondsRepository {
+  final calls = <String>[];
+  DrinkWrite? lastDrink;
+  Bond? lastSaved;
+  Object? error;
+
+  @override
+  Future<void> drink(DrinkWrite w, Actor by) async {
+    calls.add('drink:${w.after.id}:${w.after.level}');
+    if (error != null) throw error!;
+    lastDrink = w;
+  }
+
+  @override
+  Future<void> save(Bond b, Actor by) async {
+    calls.add('save:${b.id}:${b.level}');
+    if (error != null) throw error!;
+    lastSaved = b;
   }
 
   @override
