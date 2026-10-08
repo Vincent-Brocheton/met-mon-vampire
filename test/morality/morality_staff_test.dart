@@ -130,9 +130,11 @@ void main() {
   testWidgets('refus d’écriture : message', (tester) async {
     final (sins, _) = await pump(tester);
     sins.error = Exception('refus');
+    await tester.enterText(find.byKey(const Key('sin-what')), 'A tué le journaliste');
     await tester.tap(find.byKey(const Key('sin-save')));
     await tester.pumpAndSettle();
     expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'A tué le journaliste'), findsOneWidget);
   });
 
   testWidgets('narrateur : lecture seule', (tester) async {

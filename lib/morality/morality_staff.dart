@@ -48,18 +48,20 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
         _form++;
       });
 
-  Future<void> _write(Future<void> Function(Actor by) action, String done) async {
+  Future<bool> _write(Future<void> Function(Actor by) action, String done) async {
     final by = actorOf(ref.read(currentUserProvider).value);
-    if (by == null) return;
+    if (by == null) return false;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
       await action(by);
       messenger.showSnackBar(SnackBar(content: Text(done)));
+      return true;
     } catch (_) {
       final latest = ref.read(characterProvider(c.id)).value;
       final moved = latest != null && latest.version != c.version;
       messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -153,8 +155,8 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
               initial: _editing ?? Sin(id: '', date: dayOf(DateTime.now()), remorse: Remorse.failed),
               busy: _busy,
               onSave: (s) async {
-                await _write((by) => ref.read(sinsRepositoryProvider).save(c.id, s, by), s.id.isEmpty ? 'Péché ajouté.' : 'Péché enregistré.');
-                if (mounted) _edit(null);
+                final ok = await _write((by) => ref.read(sinsRepositoryProvider).save(c.id, s, by), s.id.isEmpty ? 'Péché ajouté.' : 'Péché enregistré.');
+                if (ok && mounted) _edit(null);
               },
               onCancel: _editing == null ? null : () => _edit(null),
             ),
