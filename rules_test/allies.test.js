@@ -61,5 +61,5 @@ test('suivi : écrit par le conte avec version et historique', async () => {
 
 test('brouillon du joueur : la clé allies est protégée (Review Focus 3)', async () => {
   await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', version: 2 }));
-  await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { allies: [{ id: 'd1-a1', name: 'X', level: 5 }], version: 2 }));
+  await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { allies: [{ id: 'd1-a1', name: 'X', level: 5 }], version: 3 }));
 });
