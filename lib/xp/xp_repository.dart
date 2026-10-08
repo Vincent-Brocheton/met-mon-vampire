@@ -43,6 +43,12 @@ class XpRepository {
   Stream<List<XpRequest>> watchPending() =>
       _col.where('status', isEqualTo: RequestStatus.pending.name).snapshots().map(_sorted(_oldestFirst));
 
+  /// Demandes ouvertes (en attente ou à compléter), de tous les joueurs.
+  Stream<List<XpRequest>> watchOpen() => _col
+      .where('status', whereIn: [for (final s in RequestStatus.values.where((s) => s.open)) s.name])
+      .snapshots()
+      .map(_sorted(_oldestFirst));
+
   Stream<List<XpRequest>> watchForCharacter(String characterId) =>
       _col.where('characterId', isEqualTo: characterId).snapshots().map(_sorted(_newestFirst));
 
@@ -214,6 +220,9 @@ Stream<List<XpRequest>> myRequests(Ref ref) {
 
 @riverpod
 Stream<List<XpRequest>> pendingRequests(Ref ref) => ref.watch(xpRepositoryProvider).watchPending();
+
+@riverpod
+Stream<List<XpRequest>> openRequests(Ref ref) => ref.watch(xpRepositoryProvider).watchOpen();
 
 @riverpod
 Stream<List<XpRequest>> characterRequests(Ref ref, String characterId) =>

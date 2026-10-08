@@ -240,13 +240,17 @@ class AlliesSection extends ConsumerWidget {
     final files = ref.watch(characterAllyFilesProvider(character.id)).value ?? const <AllyFile>[];
     final byId = {for (final f in files) f.id: f};
     final now = DateTime.now();
+    // Joueur : ses demandes ; conte : celles du personnage.
+    final isStaff = ref.watch(currentUserProvider.select((u) => u.value?.role.isStaff ?? false));
+    final requests = (isStaff ? ref.watch(characterRequestsProvider(character.id)) : ref.watch(myRequestsProvider)).value ?? const <XpRequest>[];
+    final pending = pendingAllyNames(requests, character.id);
     return Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SectionTitle('Alliés'),
         const SizedBox(height: 8),
         if (character.allies.isEmpty) Text('Aucun allié.', style: t.bodySmall),
         for (final a in character.allies)
-          Text('${a.name} · ${dots(a.level)} · ${allyStatus(pending: false, returnAt: byId[a.id]?.returnAt, now: now)}', style: t.bodyMedium),
+          Text('${a.name} · ${dots(a.level)} · ${allyStatus(pending: pending.contains(nameKey(a.name)), returnAt: byId[a.id]?.returnAt, now: now)}', style: t.bodyMedium),
         for (final l in legacyAllies(character)) Text('À convertir par le conte : ${l.name} ${dots(l.level)}', style: t.bodySmall),
         Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: () => context.go(link), child: const Text('Voir les alliés'))),
       ]),

@@ -122,4 +122,27 @@ void main() {
     expect(find.text('Me Castan'), findsOneWidget);
     expect(find.text('En attente du conte'), findsOneWidget);
   });
+
+  testWidgets('J2 : un allié avec une demande ouverte y est « En attente du conte »', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(camille)),
+        myRequestsProvider.overrideWith((ref) => Stream.value([
+              XpRequest(
+                id: 'r1',
+                characterId: 'x',
+                characterName: 'Isaure de Valcourt',
+                playerUid: 'u1',
+                playerName: 'Camille R.',
+                status: RequestStatus.pending,
+                items: [const XpItem(XpKind.ally, 'Maëlle Garnier, critique', 0, 2, 3)],
+              ),
+            ])),
+        characterAllyFilesProvider('x').overrideWith((ref) => Stream.value(const <AllyFile>[])),
+      ],
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: Scaffold(body: AlliesSection(character: isaure(), link: '/x'))),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('En attente du conte'), findsOneWidget);
+  });
 }

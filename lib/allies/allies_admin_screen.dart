@@ -52,7 +52,7 @@ class _AlliesAdminScreenState extends ConsumerState<AlliesAdminScreen> {
     if (!me.role.isStaff) {
       return const EmptyState(kind: EmptyKind.forbidden, title: 'Réservé à l’équipe', message: 'Les alliés sont suivis par le conte.');
     }
-    final pending = ref.watch(pendingRequestsProvider).value ?? const <XpRequest>[];
+    final pending = ref.watch(openRequestsProvider).value ?? const <XpRequest>[];
     return asyncView(
       ref.watch(allCharactersProvider),
       (chars) => asyncView(

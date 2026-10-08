@@ -13,6 +13,7 @@ import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/xp/xp_repository.dart';
+import 'package:portail_met/xp/xp_request.dart';
 
 import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
@@ -25,7 +26,7 @@ void main() {
   Character victor() => Character(id: 'y', name: 'Victor Laine', kind: CharacterKind.pj, playerUid: 'u2', playerName: 'Max', status: CharacterStatus.active)
     ..backgrounds = [Trait('Contacts', 3)];
 
-  Future<(FakeAlliesRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<AllyFile> files = const [], Stream<List<AllyFile>>? filesStream}) async {
+  Future<(FakeAlliesRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<AllyFile> files = const [], List<XpRequest> requests = const [], Stream<List<AllyFile>>? filesStream}) async {
     tester.view.physicalSize = const Size(1440, 2800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -38,7 +39,7 @@ void main() {
         rulebookProvider.overrideWith((ref) => rb),
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()..allies = [castan()], victor()])),
         allAllyFilesProvider.overrideWith((ref) => filesStream ?? Stream.value(files)),
-        pendingRequestsProvider.overrideWith((ref) => Stream.value(const [])),
+        openRequestsProvider.overrideWith((ref) => Stream.value(requests)),
         alliesRepositoryProvider.overrideWith((ref) => allies),
         characterRepositoryProvider.overrideWith((ref) => characters),
       ],
@@ -148,5 +149,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
     expect(find.text('Modifié entre-temps : rechargez la page.'), findsNothing);
+  });
+
+  testWidgets('filtre « Demandes » : une demande à compléter compte aussi', (tester) async {
+    await pump(tester, requests: [
+      XpRequest(
+        id: 'r1',
+        characterId: 'x',
+        characterName: 'Isaure de Valcourt',
+        playerUid: 'u1',
+        playerName: 'Camille R.',
+        status: RequestStatus.changes,
+        items: [const XpItem(XpKind.ally, 'Me Castan', 0, 1, 2, ally: {'type': 'Gotha', 'domain': 'Police', 'influence': 0, 'specialties': ['Contact']})],
+      ),
+    ]);
+    expect(find.text('Demandes · 1'), findsOneWidget);
   });
 }
