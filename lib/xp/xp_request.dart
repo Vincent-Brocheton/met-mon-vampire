@@ -48,7 +48,7 @@ String levelText(XpKind k, int n) => switch (k) {
 
 /// Un achat : un niveau d'un trait (atout : sa valeur ; rachat : la valeur du handicap vers 0).
 class XpItem {
-  const XpItem(this.kind, this.name, this.fromLevel, this.toLevel, this.cost, {this.note, this.ally});
+  const XpItem(this.kind, this.name, this.fromLevel, this.toLevel, this.cost, {this.note, this.ally, this.derangement});
 
   factory XpItem.fromMap(Map<String, dynamic> m) => XpItem(
         XpKind.values.asNameMap()[m['kind']] ?? XpKind.skill,
@@ -67,6 +67,9 @@ class XpItem {
 
   /// Allié demandé (type, domaine, Influence, spécialisations) ; null pour les autres achats.
   final Map<String, dynamic>? ally;
+
+  /// Dérangement demandé (type, déclencheur, sévère, clan) ; null pour les autres achats.
+  final Map<String, dynamic>? derangement;
 
   /// Un nom d'attribut inconnu (demande écrite hors de l'application) reste affiché tel quel.
   String get displayName => kind == XpKind.attribute ? AttrCategory.values.asNameMap()[name]?.label ?? name : name;
