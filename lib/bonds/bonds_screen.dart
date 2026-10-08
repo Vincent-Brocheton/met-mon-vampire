@@ -71,7 +71,7 @@ class _BondsScreenState extends ConsumerState<BondsScreen> {
       Widget panel() {
         final pickable = [
           for (final x in chars)
-            if (x.playerUid == null || x.playerUid != me?.uid) x,
+            if (bondable(x) && (x.playerUid == null || x.playerUid != me?.uid)) x,
         ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         Widget pick(String key, String label, String? value, ValueChanged<String?> onChanged) => KeyedSubtree(
               key: ValueKey('$key-$value'),
@@ -119,6 +119,7 @@ class _BondsScreenState extends ConsumerState<BondsScreen> {
                 all: all,
                 today: today,
                 busy: _busy,
+                touchesOwn: (e) => byId(e.regnantId)?.playerUid == me?.uid || byId(e.thrallId)?.playerUid == me?.uid,
                 onDrink: (w) => _run((by) => repo.drink(withCurrentPlayers(w, byId), by)),
                 onContact: base.stored ? (b) => _run((by) => repo.save(b, by)) : null,
               ),

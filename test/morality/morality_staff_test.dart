@@ -44,7 +44,6 @@ void main() {
         sinsRepositoryProvider.overrideWith((ref) => sinsRepo),
         characterRepositoryProvider.overrideWith((ref) => chars),
         allBondsProvider.overrideWith((ref) => Stream.value(const <Bond>[])),
-        bondsRepositoryProvider.overrideWith((ref) => FakeBondsRepository()),
         allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
       ],
       child: MaterialApp(

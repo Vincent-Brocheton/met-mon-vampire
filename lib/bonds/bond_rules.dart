@@ -185,6 +185,9 @@ List<String> bondChecks({required String? regnantId, required String? thrallId, 
       if (!validDrinkDay(day, today)) 'Date invalide',
     ];
 
+/// Fiche que l'on peut lier : un PNJ, ou un PJ au-delà du brouillon et de la validation.
+bool bondable(Character c) => c.kind == CharacterKind.pnj || (c.status != CharacterStatus.draft && c.status != CharacterStatus.review);
+
 /// « PNJ · Ventrue », « Goule · PNJ », « PJ · Malkavien ».
 String partyTag(Character c) => c.ghoul != null
     ? 'Goule · ${c.kind.label}'

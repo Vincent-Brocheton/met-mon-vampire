@@ -37,9 +37,12 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
   Character get c => widget.character;
 
   Future<void> _run(Future<void> Function(Actor by) write) async {
-    final by = actorOf(ref.read(currentUserProvider).value);
-    if (by == null) return;
     final messenger = ScaffoldMessenger.of(context);
+    final by = actorOf(ref.read(currentUserProvider).value);
+    if (by == null) {
+      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+      return;
+    }
     setState(() => _busy = true);
     try {
       await write(by);
@@ -73,7 +76,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
     }
     final all = bondsAsync.requireValue;
     final chars = ref.watch(allCharactersProvider).value ?? const <Character>[];
-    final repo = ref.read(bondsRepositoryProvider);
+    BondsRepository repo() => ref.read(bondsRepositoryProvider);
     Character? byId(String id) => chars.where((x) => x.id == id).firstOrNull;
     final ro = !widget.canEdit || !(c.kind == CharacterKind.pnj || c.status.settled);
     final suffered = activeBonds(all.where((b) => b.thrallId == c.id), today);
@@ -94,8 +97,9 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
           all: all,
           today: today,
           busy: _busy,
-          onDrink: (w) => _run((by) => repo.drink(withCurrentPlayers(w, byId), by)),
-          onContact: base.stored ? (b) => _run((by) => repo.save(b, by)) : null,
+          touchesOwn: (e) => byId(e.regnantId)?.playerUid == me?.uid || byId(e.thrallId)?.playerUid == me?.uid,
+          onDrink: (w) => _run((by) => repo().drink(withCurrentPlayers(w, byId), by)),
+          onContact: base.stored ? (b) => _run((by) => repo().save(b, by)) : null,
         );
 
     Widget tile(Bond b, {required bool isSuffered}) {
@@ -126,7 +130,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
               ),
               OutlinedButton(
                 key: Key('bo-contact-${b.id}'),
-                onPressed: _busy ? null : () => _run((by) => repo.save(contacted(current(b), today), by)),
+                onPressed: _busy ? null : () => _run((by) => repo().save(contacted(current(b), today), by)),
                 child: const Text('Contact'),
               ),
             ],
@@ -143,7 +147,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
     Widget newLink() {
       final partners = [
         for (final x in chars)
-          if (x.id != c.id && (me == null || x.playerUid != me.uid)) x,
+          if (x.id != c.id && bondable(x) && (me == null || x.playerUid != me.uid)) x,
       ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       final p = _partnerId == null ? null : byId(_partnerId!);
       Bond? base;
@@ -209,7 +213,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
               if (!ro && domitor != null)
                 OutlinedButton(
                   key: const Key('bo-date-create'),
-                  onPressed: _busy ? null : () => _run((by) => repo.save(datedGhoulBond(c, domitor, today), by)),
+                  onPressed: _busy ? null : () => _run((by) => repo().save(datedGhoulBond(c, domitor, today), by)),
                   child: const Text('Créer le lien'),
                 ),
             ]),

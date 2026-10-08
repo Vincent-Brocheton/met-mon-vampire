@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +20,7 @@ void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
   Future<FakeBondsRepository> pump(WidgetTester tester, Character c,
-      {List<Bond> bonds = const [], bool canEdit = true, Size size = const Size(1000, 1800)}) async {
+      {List<Bond> bonds = const [], bool canEdit = true, Size size = const Size(1000, 1800), List<Character>? chars}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -28,7 +30,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allBondsProvider.overrideWith((ref) => Stream.value(bonds)),
-        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+        allCharactersProvider.overrideWith((ref) => Stream.value(chars ?? cast())),
         bondsRepositoryProvider.overrideWith((ref) => repo),
       ],
       child: MaterialApp(
@@ -85,6 +87,30 @@ void main() {
     expect(tester.widget<FilledButton>(find.byKey(const Key('dr-save'))).onPressed, isNull);
   });
 
+  testWidgets('formulaire : date illisible, gorgée passée, simple contact qui referme', (tester) async {
+    final repo = await pump(tester, lucie(), bonds: [octLuc()]);
+    await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('dr-date')), 'hier');
+    await tester.pumpAndSettle();
+    expect(find.text('Date invalide'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('dr-save'))).onPressed, isNull);
+    expect(find.byKey(const Key('dr-contact')), findsNothing);
+    await tester.enterText(find.byKey(const Key('dr-date')), '10/09/2026');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dr-save')));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['drink:oct_luc:3']);
+    expect(repo.lastDrink!.after.lastDrink, DateTime(2026, 9, 20), reason: 'la gorgée passée n’antidate pas');
+    await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dr-contact')));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['drink:oct_luc:3', 'save:oct_luc:2']);
+    expect(repo.lastSaved!.lastContact, today);
+    expect(find.byKey(const Key('dr-save')), findsNothing, reason: 'formulaire refermé');
+  });
+
   testWidgets('liens en chargement : ni « Aucun lien. » ni action (revue finale)', (tester) async {
     tester.view.physicalSize = const Size(1000, 1800);
     tester.view.devicePixelRatio = 1;
@@ -138,6 +164,17 @@ void main() {
     expect(repo.calls, isEmpty);
   });
 
+  testWidgets('lien moindre à effacer sur la fiche du conte connecté : refus explicite, bouton inactif', (tester) async {
+    final mine = person('mine', 'Léa joue', kind: CharacterKind.pj, player: 'lea');
+    final leaLuc = link(mine, lucie(), 1, DateTime(2026, 9, 1));
+    final repo = await pump(tester, lucie(), bonds: [octLuc(), leaLuc], chars: [...cast(), mine]);
+    await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));
+    await tester.pumpAndSettle();
+    expect(find.text('Un lien à effacer touche votre propre fiche : un autre conte doit noter cette gorgée.'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('dr-save'))).onPressed, isNull);
+    expect(repo.calls, isEmpty);
+  });
+
   testWidgets('lien complet : liens moindres effacés dans le même lot', (tester) async {
     final agaLuc = link(agathe(), lucie(), 1, DateTime(2026, 9, 1));
     final repo = await pump(tester, lucie(), bonds: [octLuc(), agaLuc]);
@@ -172,6 +209,21 @@ void main() {
     expect(repo.lastDrink!.after.stored, isFalse);
   });
 
+  testWidgets('partenaires : fiches de PJ en brouillon ou en validation écartées, PNJ gardés', (tester) async {
+    final draftPj = person('d1', 'Pj Brouillon', kind: CharacterKind.pj, player: 'p1')..status = CharacterStatus.draft;
+    final reviewPj = person('d2', 'Pj Validation', kind: CharacterKind.pj, player: 'p2')..status = CharacterStatus.review;
+    final draftNpc = person('d3', 'Pnj Brouillon')..status = CharacterStatus.draft;
+    await pump(tester, lucie(), chars: [...cast(), draftPj, reviewPj, draftNpc]);
+    await tester.tap(find.byKey(const Key('bo-new')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bo-partner')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Sœur Agathe'), findsOneWidget);
+    expect(find.textContaining('Pnj Brouillon'), findsOneWidget);
+    expect(find.textContaining('Pj Brouillon'), findsNothing);
+    expect(find.textContaining('Pj Validation'), findsNothing);
+  });
+
   testWidgets('goule à dater : créer le lien au niveau de la fiche', (tester) async {
     final repo = await pump(tester, lemaire());
     expect(find.text('Lien de Lucie Arnaud ●●● à dater'), findsOneWidget);
@@ -201,6 +253,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
     expect(find.byKey(const Key('dr-save')), findsOneWidget);
+  });
+
+  testWidgets('dépôt lu à l’action, pas à la construction ; auteur absent : refus signalé', (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final user = StreamController<AppUser?>();
+    addTearDown(user.close);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => user.stream),
+        allBondsProvider.overrideWith((ref) => Stream.value([octLuc()])),
+        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+      ],
+      child: MaterialApp(
+        theme: buildTheme(withFonts: false),
+        home: Scaffold(body: SingleChildScrollView(child: StaffBonds(character: lucie(), canEdit: true, today: today))),
+      ),
+    ));
+    user.add(lea);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('bo-contact-oct_luc')), findsOneWidget);
+    user.add(null);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bo-contact-oct_luc')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
   });
 
   testWidgets('390 px : formulaire ouvert sans débordement (Review Focus 5)', (tester) async {

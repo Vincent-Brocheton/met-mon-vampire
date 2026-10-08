@@ -16,6 +16,7 @@ class DrinkForm extends StatefulWidget {
     this.onContact,
     this.errors = const [],
     this.busy = false,
+    this.touchesOwn,
   });
 
   /// Le lien tel qu'il est (ou nouveau, au niveau 0), noms à jour.
@@ -32,6 +33,9 @@ class DrinkForm extends StatefulWidget {
   /// Contrôles du choix des fiches.
   final List<String> errors;
   final bool busy;
+
+  /// Vrai si ce lien (à effacer) touche la fiche du conte connecté : les règles refuseraient l'écriture.
+  final bool Function(Bond erased)? touchesOwn;
 
   @override
   State<DrinkForm> createState() => _DrinkFormState();
@@ -57,8 +61,15 @@ class _DrinkFormState extends State<DrinkForm> {
     final validDay = validDrinkDay(day, widget.today);
     final errors = [...widget.errors, if (!validDay) 'Date invalide'];
     final base = widget.base.copy()..known = _known;
-    final preview = day == null || !validDay || widget.errors.isNotEmpty ? const <String>[] : drinkPreview(base, widget.all, day, _count);
-    final write = day == null || !validDay || widget.errors.isNotEmpty ? null : drinkWrite(base, widget.all, day, _count, _known);
+    final ready = day != null && validDay && widget.errors.isEmpty;
+    final computed = ready ? drinkWrite(base, widget.all, day, _count, _known) : null;
+    final refused = computed != null && (widget.touchesOwn != null && computed.erased.any(widget.touchesOwn!));
+    final write = refused ? null : computed;
+    final preview = refused
+        ? const ['Un lien à effacer touche votre propre fiche : un autre conte doit noter cette gorgée.']
+        : ready
+            ? drinkPreview(base, widget.all, day, _count)
+            : const <String>[];
     final canContact = widget.onContact != null && day != null && validDay && effectiveLevel(widget.base, day) > 0;
     return Padding(
       padding: const EdgeInsets.only(top: 10),

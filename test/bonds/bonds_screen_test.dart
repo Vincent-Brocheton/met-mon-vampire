@@ -5,6 +5,7 @@ import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/bonds/bonds_screen.dart';
+import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
 
@@ -15,7 +16,7 @@ void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   const julien = AppUser(uid: 'julien', displayName: 'Julien', email: 'j@ex.fr', role: Role.narrateur);
 
-  Future<FakeBondsRepository> pump(WidgetTester tester, {AppUser user = lea, Size size = const Size(1440, 1400)}) async {
+  Future<FakeBondsRepository> pump(WidgetTester tester, {AppUser user = lea, Size size = const Size(1440, 1400), List<Character>? chars}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -25,7 +26,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         allBondsProvider.overrideWith((ref) => Stream.value([octJon(), octLuc(), agaBas(), lucLem()])),
-        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+        allCharactersProvider.overrideWith((ref) => Stream.value(chars ?? cast())),
         bondsRepositoryProvider.overrideWith((ref) => repo),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: Scaffold(body: BondsScreen(today: today))),
@@ -88,6 +89,18 @@ void main() {
     await tester.tap(find.byKey(const Key('dr-contact')));
     await tester.pumpAndSettle();
     expect(repo.calls, ['save:luc_lem:3']);
+  });
+
+  testWidgets('panneau : fiches de PJ en brouillon ou en validation écartées, PNJ gardés', (tester) async {
+    final draftPj = person('d1', 'Pj Brouillon', kind: CharacterKind.pj, player: 'p1')..status = CharacterStatus.draft;
+    final reviewPj = person('d2', 'Pj Validation', kind: CharacterKind.pj, player: 'p2')..status = CharacterStatus.review;
+    final draftNpc = person('d3', 'Pnj Brouillon')..status = CharacterStatus.draft;
+    await pump(tester, chars: [...cast(), draftPj, reviewPj, draftNpc]);
+    await tester.tap(find.byKey(const Key('bo-regnant')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Pnj Brouillon'), findsOneWidget);
+    expect(find.textContaining('Pj Brouillon'), findsNothing);
+    expect(find.textContaining('Pj Validation'), findsNothing);
   });
 
   testWidgets('même fiche des deux côtés : refus', (tester) async {
