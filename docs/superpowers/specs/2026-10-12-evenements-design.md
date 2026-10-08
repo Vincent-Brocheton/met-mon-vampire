@@ -68,7 +68,7 @@ Chaque type a une couleur de pastille :
 
 **Date à précision variable :** l'année est obligatoire, le mois et le jour sont facultatifs. Exemples : « 1974 », « sept. 2026 », « 20 sept. 2026 ».
 
-**Tri :** du plus récent au plus ancien, par année, puis mois, puis jour. Une valeur absente compte avant les valeurs connues de la même période. En cas d'égalité, le plus récemment créé passe en premier.
+**Tri :** du plus récent au plus ancien, par année, puis mois, puis jour. Une valeur absente compte comme la plus petite : « sept. 2026 » s'affiche après « 20 sept. 2026 », et « 2026 » après les deux. En cas d'égalité, le plus récemment créé passe en premier.
 
 **Source affichée :**
 - « Automatique » si `auto` ;
