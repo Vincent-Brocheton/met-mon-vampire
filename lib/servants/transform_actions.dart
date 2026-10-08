@@ -2,6 +2,7 @@ import '../auth/session.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
 import '../characters/transformations.dart';
+import '../events/event_rules.dart';
 import '../rulebook/rulebook.dart';
 import 'servant_file.dart';
 import 'servant_rules.dart';
@@ -57,7 +58,7 @@ Future<String?> embraceFollower(
     return 'Le domitor ${owner.name} a une fiche en création : étreignez ${row.name} après sa validation.';
   }
   // Même identifiant que la fiche d'origine : une relance ne crée pas de seconde fiche.
-  await chars.createSheet(sheet, by, 'Fiche créée par l’étreinte de ${row.name}', id: row.id);
+  await chars.createSheet(sheet, by, 'Fiche créée par l’étreinte de ${row.name}', id: row.id, events: [embraceEvent(sheet, DateTime.now())]);
   try {
     final d = row.domitor;
     if (row.entry != null && d != null) {

@@ -9,6 +9,7 @@ import 'package:portail_met/characters/character_edit_screen.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
@@ -223,6 +224,8 @@ void main() {
     await tester.pumpAndSettle();
     expect((repo.lastKind, repo.lastAfter!.ghoul, repo.lastAfter!.clan), ('embrace', null, 'Toreador'));
     expect(repo.lastExtra!.containsKey('ghoul'), isTrue);
+    final e = repo.lastEvents.single;
+    expect((e.type, e.title, e.auto, e.visibility), (EventType.embrace, 'Étreinte par ${repo.lastAfter!.sire}', true, EventVisibility.player));
   });
 
   testWidgets('Annuler restaure exactement la fiche lue (Review Focus 5)', (tester) async {

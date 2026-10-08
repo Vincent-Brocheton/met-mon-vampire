@@ -10,6 +10,7 @@ import '../chronicle/chronicle_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../events/event_rules.dart';
 import '../items/character_items_screen.dart';
 import '../items/items_repository.dart';
 import '../npcs/my_npc_loans_screen.dart';
@@ -136,7 +137,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       return;
     }
     try {
-      await ref.read(characterRepositoryProvider).saveEdit(latest, r.after!, choice.reason, by, kind: 'embrace', extra: {'ghoul': FieldValue.delete()});
+      await ref.read(characterRepositoryProvider).saveEdit(latest, r.after!, choice.reason, by, kind: 'embrace', extra: {'ghoul': FieldValue.delete()}, events: [embraceEvent(r.after!, DateTime.now())]);
       messenger.showSnackBar(const SnackBar(content: Text('Étreinte enregistrée.')));
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Modifié entre-temps : rechargez la page.')));

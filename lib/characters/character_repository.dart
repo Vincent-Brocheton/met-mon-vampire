@@ -4,6 +4,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../events/event_rules.dart';
+import '../events/story_event.dart';
 import 'character.dart';
 import 'describe_changes.dart';
 
@@ -90,23 +92,26 @@ class CharacterRepository {
 
   /// Fiche complète créée d'un coup (étreinte d'un mortel ou d'un serviteur) ; renvoie l'id.
   /// [id] imposé : une seconde création sous le même identifiant est refusée par les règles (pas de doublon).
-  Future<String> createSheet(Character c, Actor by, String summary, {String? id}) async {
+  Future<String> createSheet(Character c, Actor by, String summary, {String? id, List<StoryEvent> events = const []}) async {
     final ref = _col.doc(id);
     final h = ref.collection('history').doc();
     final sheet = Character.fromMap(ref.id, c.toMap())
       ..version = 1
       ..lastHistoryId = h.id;
     final now = FieldValue.serverTimestamp();
-    await (_db.batch()
-          ..set(ref, {...sheet.toMap(), 'createdAt': now, 'updatedAt': now})
-          ..set(h, _entry(by, 'creation', [summary], '')))
-        .commit();
+    final batch = _db.batch()
+      ..set(ref, {...sheet.toMap(), 'createdAt': now, 'updatedAt': now})
+      ..set(h, _entry(by, 'creation', [summary], ''));
+    for (final e in events) {
+      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name));
+    }
+    await batch.commit();
     return ref.id;
   }
 
   /// Modification tracée (C3, transformations). Refusée par les règles si la fiche a changé entre-temps (version).
   /// [extra] : clés écrites en plus, par exemple la suppression de `ghoul` à l'étreinte.
-  Future<void> saveEdit(Character before, Character after, String reason, Actor by, {String? kind, Map<String, Object?> extra = const {}}) =>
+  Future<void> saveEdit(Character before, Character after, String reason, Actor by, {String? kind, Map<String, Object?> extra = const {}, List<StoryEvent> events = const []}) =>
       _commit(
         after,
         fromVersion: before.version,
@@ -117,6 +122,7 @@ class CharacterRepository {
         delta: xpDelta(before, after),
         // Un rituel retiré après un premier enregistrement doit être effacé (revue du plan C).
         extra: {...after.laterKeys(), ...extra},
+        events: events,
       );
 
   /// Brouillon du joueur : version +1, pas d'historique (règle playerDraftSave).
@@ -184,6 +190,7 @@ class CharacterRepository {
           },
         ],
         reason: comment,
+        events: to == CharacterStatus.active ? [validatedEvent(c, DateTime.now())] : const [],
       );
 
   /// Ajoute à [batch] une modification tracée de la fiche (version + 1, entrée d'historique).
@@ -197,6 +204,7 @@ class CharacterRepository {
     required String reason,
     Map<String, int> delta = const {'initial': 0, 'earned': 0, 'spent': 0},
     Map<String, Object?> extra = const {},
+    List<StoryEvent> events = const [],
   }) {
     final ref = _col.doc(c.id);
     final h = ref.collection('history').doc();
@@ -210,6 +218,9 @@ class CharacterRepository {
       })
       ..set(h, _entry(by, kind, withConversion(c, summary), reason, delta));
     c.legacyServants = false;
+    for (final e in events) {
+      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name));
+    }
   }
 
   Future<void> _commit(
@@ -221,9 +232,10 @@ class CharacterRepository {
     required String reason,
     Map<String, int> delta = const {'initial': 0, 'earned': 0, 'spent': 0},
     Map<String, Object?> extra = const {},
+    List<StoryEvent> events = const [],
   }) {
     final batch = _db.batch();
-    stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta, extra: extra);
+    stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta, extra: extra, events: events);
     return batch.commit();
   }
 
