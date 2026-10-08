@@ -13,6 +13,7 @@ import '../core/widgets.dart';
 import '../npcs/loan_rules.dart' show formatLoanDay;
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
+import 'derangements_staff.dart';
 import 'morality_rules.dart';
 import 'morality_staff.dart';
 import 'sin.dart';
@@ -50,7 +51,12 @@ class CharacterMoralityScreen extends ConsumerWidget {
         (sins) => PageBody(children: [
           CharacterHeader(c, basePath: basePath, tab: CharacterTab.morality),
           const SizedBox(height: 22),
-          if (staffView) StaffMorality(character: c, sins: sins, rb: rb, canEdit: canEdit) else playerMorality(context, c, sins, rb, basePath),
+          if (staffView) ...[
+            StaffMorality(character: c, sins: sins, rb: rb, canEdit: canEdit),
+            const SizedBox(height: 20),
+            StaffDerangements(character: c, rb: rb, canEdit: canEdit),
+          ] else
+            playerMorality(context, c, sins, rb, basePath),
         ]),
         onRetry: () => ref.invalidate(characterSinsProvider(c.id)),
       );
