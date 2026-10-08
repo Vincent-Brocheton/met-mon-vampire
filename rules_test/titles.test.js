@@ -21,7 +21,7 @@ beforeEach(async () => {
     const users = { lea: 'conteur', julien: 'narrateur', zoe: 'joueur' };
     for (const [uid, role] of Object.entries(users)) await setDoc(doc(db, `users/${uid}`), { displayName: uid, email: `${uid}@ex.fr`, role });
     await setDoc(doc(db, 'court/luc'), entry({}));
-    await setDoc(doc(db, 'characters/d1'), { name: 'Brouillon', playerUid: 'zoe', kind: 'pj', status: 'draft', version: 1, creation: {} });
+    for (const id of ['d1', 'd2', 'd3']) await setDoc(doc(db, `characters/${id}`), { name: 'Brouillon', playerUid: 'zoe', kind: 'pj', status: 'draft', version: 1, creation: {} });
   });
 });
 
@@ -48,6 +48,6 @@ test('Cour : clés et longueurs', async () => {
 
 test('brouillon du joueur : titre et date protégés (Review Focus 5)', async () => {
   await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', version: 2 }));
-  await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { title: 'Prince', version: 2 }));
-  await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { titleSince: Timestamp.fromDate(new Date(2026, 2, 1)), version: 2 }));
+  await assertFails(updateDoc(doc(as('zoe'), 'characters/d2'), { title: 'Prince', version: 2 }));
+  await assertFails(updateDoc(doc(as('zoe'), 'characters/d3'), { titleSince: Timestamp.fromDate(new Date(2026, 2, 1)), version: 2 }));
 });
