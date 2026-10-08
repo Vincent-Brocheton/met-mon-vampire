@@ -6,6 +6,8 @@ import 'package:portail_met/auth/auth_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/trace.dart';
+import 'package:portail_met/events/events_repository.dart';
+import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/items/item.dart';
 import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
@@ -452,3 +454,25 @@ class FakeAlliesRepository implements AlliesRepository {
 
 /// Aucun suivi d'allié pour la fiche 'x'.
 final noAllyFiles = characterAllyFilesProvider('x').overrideWith((ref) => Stream.value(const <AllyFile>[]));
+
+class FakeEventsRepository implements EventsRepository {
+  final calls = <String>[];
+  StoryEvent? lastSaved;
+  Object? error;
+
+  @override
+  Future<void> save(String characterId, StoryEvent e, Actor by) async {
+    calls.add('save:$characterId:${e.id.isEmpty ? 'new' : e.id}');
+    if (error != null) throw error!;
+    lastSaved = e;
+  }
+
+  @override
+  Future<void> delete(String characterId, String id) async {
+    calls.add('delete:$characterId:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
