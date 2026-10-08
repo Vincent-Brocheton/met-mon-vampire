@@ -107,6 +107,24 @@ void main() {
     expect(find.text('Rex : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'), findsOneWidget);
   });
 
+  testWidgets('C3 : joueur changé, alliés refusés : le message indique le bon remède', (tester) async {
+    const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
+    final allies = FakeAlliesRepository()..error = Exception('refus');
+    await pump(tester, sample(), allies: allies, users: const [lea, zoe]);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('c3-player')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zoé A.').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reason')), 'Changement de joueuse');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('« Alliés en jeu »'), findsOneWidget);
+    expect(find.textContaining('Goules et mortels'), findsNothing);
+  });
+
   testWidgets('C3 : joueur changé, l’accès aux fiches des serviteurs suit (revue)', (tester) async {
     const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
     final servants = FakeServantsRepository();

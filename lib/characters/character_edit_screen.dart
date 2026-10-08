@@ -87,6 +87,8 @@ class _ReasonDialogState extends State<_ReasonDialog> {
       );
 }
 
+const _servantRemedy = 'fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.';
+
 /// C3 : fiche en édition, côté conteur.
 class CharacterEditScreen extends ConsumerStatefulWidget {
   const CharacterEditScreen({super.key, required this.id});
@@ -162,7 +164,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         try {
           await ref.read(servantsRepositoryProvider).release(s.id, by, rank: s.rank);
         } catch (_) {
-          failed.add(s.name);
+          failed.add('${s.name} : $_servantRemedy');
         }
       }
       // Joueur changé : l'accès aux fiches détaillées des serviteurs suit.
@@ -171,18 +173,18 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           try {
             await ref.read(servantsRepositoryProvider).setPlayers(s.id, [?_draft!.playerUid], by);
           } catch (_) {
-            failed.add(s.name);
+            failed.add('${s.name} : $_servantRemedy');
           }
         }
         try {
           await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
         } catch (_) {
-          failed.add('Équipement');
+          failed.add('Équipement : accès aux objets non mis à jour. Rouvrez chaque objet dans « Objets en jeu » et enregistrez.');
         }
         try {
           await ref.read(alliesRepositoryProvider).setPlayers(_draft!.id, [?_draft!.playerUid], by);
         } catch (_) {
-          failed.add('Alliés');
+          failed.add('Alliés : accès aux alliés non mis à jour. Rouvrez chaque allié dans « Alliés en jeu » et enregistrez.');
         }
       }
       if (mounted) {
@@ -193,7 +195,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(failed.isEmpty
               ? 'Fiche enregistrée.'
-              : '${failed.join(', ')} : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'),
+              : failed.join(' ')),
         ));
       }
     } catch (_) {
