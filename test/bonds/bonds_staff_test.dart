@@ -283,6 +283,34 @@ void main() {
     expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
   });
 
+  testWidgets('utilisateur absent : un PNJ à effacer n’est pas pris pour sa propre fiche', (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final user = StreamController<AppUser?>();
+    addTearDown(user.close);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => user.stream),
+        allBondsProvider.overrideWith((ref) => Stream.value([octLuc(), link(agathe(), lucie(), 1, DateTime(2026, 9, 1))])),
+        allCharactersProvider.overrideWith((ref) => Stream.value(cast())),
+        bondsRepositoryProvider.overrideWith((ref) => FakeBondsRepository()),
+      ],
+      child: MaterialApp(
+        theme: buildTheme(withFonts: false),
+        home: Scaffold(body: SingleChildScrollView(child: StaffBonds(character: lucie(), canEdit: true, today: today))),
+      ),
+    ));
+    user.add(lea);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));
+    await tester.pumpAndSettle();
+    user.add(null);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('votre propre fiche'), findsNothing);
+    expect(tester.widget<FilledButton>(find.byKey(const Key('dr-save'))).onPressed, isNotNull);
+  });
+
   testWidgets('390 px : formulaire ouvert sans débordement (Review Focus 5)', (tester) async {
     await pump(tester, lucie(), bonds: [octLuc(), lucLem()], size: const Size(390, 1600));
     await tester.tap(find.byKey(const Key('bo-drink-oct_luc')));

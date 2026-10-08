@@ -97,7 +97,7 @@ class _StaffBondsState extends ConsumerState<StaffBonds> {
           all: all,
           today: today,
           busy: _busy,
-          touchesOwn: (e) => byId(e.regnantId)?.playerUid == me?.uid || byId(e.thrallId)?.playerUid == me?.uid,
+          touchesOwn: (e) => me != null && (byId(e.regnantId)?.playerUid == me.uid || byId(e.thrallId)?.playerUid == me.uid),
           onDrink: (w) => _run((by) => repo().drink(withCurrentPlayers(w, byId), by)),
           onContact: base.stored ? (b) => _run((by) => repo().save(b, by)) : null,
         );
