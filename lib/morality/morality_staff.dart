@@ -102,6 +102,8 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final ro = !widget.canEdit;
+    // Voie, valeur et perte s'écrivent par une modification tracée : refusée sur un brouillon ou une fiche en validation (PJ).
+    final sheetRo = ro || !(c.kind == CharacterKind.pnj || c.status.settled);
     final max = moralityMax(c, widget.rb);
 
     final paths = <String?>[null, for (final e in widget.rb.offered(pathsCat)) e.name];
@@ -116,12 +118,12 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
               key: Key('mo-path-${p ?? humanityLabel}'),
               label: Text('${p ?? humanityLabel} (max. ${pathMax(widget.rb, p)})'),
               selected: (c.path ?? '') == (p ?? ''),
-              onSelected: ro || _busy ? null : (_) => _changePath(p),
+              onSelected: sheetRo || _busy ? null : (_) => _changePath(p),
             ),
         ]),
         const SizedBox(height: 16),
         Row(children: [
-          if (!ro)
+          if (!sheetRo)
             IconButton(
               key: const Key('mo-minus'),
               tooltip: 'Retirer un point',
@@ -129,7 +131,7 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
               icon: const Icon(Icons.remove),
             ),
           Text('${c.humanity}', style: t.headlineMedium),
-          if (!ro)
+          if (!sheetRo)
             IconButton(
               key: const Key('mo-plus'),
               tooltip: 'Ajouter un point',
@@ -181,13 +183,16 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
           SectionTitle('Traits de Bête · soirée du ${formatLoanDay(day)}'),
           const SizedBox(height: 8),
           if (evenings.length > 1)
-            DropdownButtonFormField<DateTime>(
+            KeyedSubtree(
               key: const Key('sin-evening'),
-              initialValue: day,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Soirée'),
-              items: [for (final (d, _) in evenings) DropdownMenuItem(value: d, child: Text('Soirée du ${formatLoanDay(d)}'))],
-              onChanged: (v) => setState(() => _evening = v),
+              child: DropdownButtonFormField<DateTime>(
+                key: ValueKey(day),
+                initialValue: day,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Soirée'),
+                items: [for (final (d, _) in evenings) DropdownMenuItem(value: d, child: Text('Soirée du ${formatLoanDay(d)}'))],
+                onChanged: (v) => setState(() => _evening = v),
+              ),
             ),
           const SizedBox(height: 8),
           Text('$total / $lossThreshold', style: t.headlineSmall?.copyWith(color: total >= lossThreshold ? AppColors.accentIcon : AppColors.text)),
@@ -217,14 +222,14 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
               ]),
             ),
           if (list.any((s) => s.lossApplied)) Text('Perte appliquée', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
-          if (lossDue(list)) ...[
+          if (lossDue(list) && c.humanity > 0) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: AppColors.deadBg, borderRadius: BorderRadius.circular(8)),
               child: Text(lossMessage(c, list), style: t.bodyMedium?.copyWith(color: AppColors.linkHover)),
             ),
-            if (!ro) ...[
+            if (!sheetRo) ...[
               const SizedBox(height: 8),
               FilledButton(
                 key: const Key('sin-loss'),

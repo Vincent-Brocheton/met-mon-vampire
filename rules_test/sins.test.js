@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDocs, updateDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, getDocs, updateDoc, deleteDoc, collection, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 let env;
 before(async () => {
@@ -71,4 +71,29 @@ test('brouillon du joueur : path protégé ; événement « Moralité » accept�
   await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', version: 2 }));
   await assertFails(updateDoc(doc(as('zoe'), 'characters/d1'), { path: 'Voie de la Nuit', version: 3 }));
   await assertSucceeds(setDoc(doc(as('lea'), 'characters/c1/events/m1'), ev({})));
+});
+
+test('perte de la soirée en un lot : fiche, historique, deux péchés verrouillés, événement ; puis plus rien', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/c1'), { name: 'Lucie', kind: 'pj', playerUid: 'zoe', status: 'active', version: 1, humanity: 5 });
+  });
+  const lea = as('lea');
+  const lock = () => ({ lossApplied: true, byUid: 'lea', updatedAt: new Date() });
+  const loss = (version, n) => {
+    const b = writeBatch(lea);
+    b.update(doc(lea, 'characters/c1'), { humanity: 4, version, lastHistoryId: `h${version}` });
+    b.set(doc(lea, `characters/c1/history/h${version}`), {
+      at: serverTimestamp(), byUid: 'lea', kind: 'edit', reason: 'Perte de la soirée du 20/09/2026', summary: ['Humanité 5 → 4'],
+    });
+    b.update(doc(lea, 'characters/c1/sins/open'), lock());
+    b.update(doc(lea, 'characters/c1/sins/second'), lock());
+    b.set(doc(lea, `characters/c1/events/m${n}`), ev({}));
+    return b.commit();
+  };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'characters/c1/sins/second'), sin({ level: 3 }));
+  });
+  await assertSucceeds(loss(2, 1));
+  // Les péchés sont verrouillés : le même lot ne passe plus.
+  await assertFails(loss(3, 2));
 });

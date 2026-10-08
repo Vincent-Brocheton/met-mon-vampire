@@ -30,7 +30,8 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
 /// Niveau après les achats déjà dans la demande.
 int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
   // Un serviteur se reconnaît sans tenir compte de la casse : « Rex » et « rex » sont le même.
-  bool same(XpItem i) => i.kind == k && (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name);
+  // L'Humanité n'a qu'un niveau par fiche : le nom (Humanité ou voie) a pu changer entre deux achats.
+  bool same(XpItem i) => i.kind == k && (k == XpKind.humanity || (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name));
   final last = items.where(same).lastOrNull;
   return last?.toLevel ?? levelNow(c, k, name);
 }
@@ -307,7 +308,7 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
 /// Retire l'achat [index] ; seulement le plus haut niveau d'un trait.
 String? removeItem(List<XpItem> items, int index) {
   final i = items[index];
-  if (items.skip(index + 1).any((x) => x.kind == i.kind && x.name == i.name)) {
+  if (items.skip(index + 1).any((x) => x.kind == i.kind && (i.kind == XpKind.humanity || x.name == i.name))) {
     return 'Retirez d’abord le niveau supérieur.';
   }
   items.removeAt(index);

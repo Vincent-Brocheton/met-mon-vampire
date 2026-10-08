@@ -145,6 +145,31 @@ void main() {
     expect(find.byKey(const Key('mo-minus')), findsNothing);
   });
 
+  testWidgets('brouillon ou fiche en validation : voie, valeur et perte en lecture seule, péchés saisissables', (tester) async {
+    await pump(tester, c: sample()..humanity = 5..status = CharacterStatus.draft, sins: evening);
+    expect(find.byKey(const Key('mo-minus')), findsNothing);
+    expect(find.byKey(const Key('mo-plus')), findsNothing);
+    expect(find.byKey(const Key('sin-loss')), findsNothing);
+    expect(tester.widget<ChoiceChip>(find.byKey(const Key('mo-path-Humanité'))).onSelected, isNull);
+    expect(find.byKey(const Key('sin-save')), findsOneWidget);
+    await pump(tester, c: sample()..humanity = 5..kind = CharacterKind.pnj..status = CharacterStatus.draft, sins: evening);
+    expect(find.byKey(const Key('mo-minus')), findsOneWidget);
+    expect(find.byKey(const Key('sin-loss')), findsOneWidget);
+  });
+
+  testWidgets('Humanité à 0 : la perte n’est pas proposée', (tester) async {
+    await pump(tester, c: sample()..humanity = 0, sins: evening);
+    expect(find.byKey(const Key('sin-loss')), findsNothing);
+    expect(find.textContaining('perd un point'), findsNothing);
+  });
+
+  testWidgets('menu des soirées : clé par soirée, ancienne clé conservée', (tester) async {
+    final two = [...evening, Sin(id: 's3', date: DateTime(2026, 9, 10), level: 1, what: 'Mensonge', remorse: Remorse.failed)];
+    await pump(tester, sins: two);
+    expect(find.byKey(const Key('sin-evening')), findsOneWidget);
+    expect(find.byKey(ValueKey(DateTime(2026, 9, 20))), findsOneWidget);
+  });
+
   testWidgets('mobile : une colonne', (tester) async {
     await pump(tester, sins: evening, size: const Size(390, 2600));
     expect(find.byKey(const Key('sin-save')), findsOneWidget);

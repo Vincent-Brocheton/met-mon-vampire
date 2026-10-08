@@ -13,6 +13,7 @@ import '../core/widgets.dart';
 import '../events/event_rules.dart';
 import '../items/character_items_screen.dart';
 import '../items/items_repository.dart';
+import '../morality/morality_rules.dart' show moralityName;
 import '../npcs/my_npc_loans_screen.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
@@ -459,7 +460,7 @@ class _Editor extends ConsumerWidget {
       PointsField(label: 'Sang', value: c.blood, max: 30, asDots: false, onChanged: (v) => set(() => c.blood = v)),
       PointsField(label: 'Sang par tour', value: c.bloodPerTurn, max: 5, asDots: false, onChanged: (v) => set(() => c.bloodPerTurn = v)),
       PointsField(label: 'Volonté', value: c.willpower, onChanged: (v) => set(() => c.willpower = v)),
-      PointsField(label: 'Humanité', value: c.humanity, onChanged: (v) => set(() => c.humanity = v)),
+      PointsField(label: moralityName(c), value: c.humanity, onChanged: (v) => set(() => c.humanity = v)),
       TextFieldRow(label: 'Santé', value: c.health, onChanged: (v) => set(() => c.health = v ?? '')),
       PointsField(label: 'XP initiale', value: c.xpInitial, max: 2000, asDots: false, onChanged: (v) => set(() => c.xpInitial = v)),
       PointsField(label: 'XP gagnée', value: c.xpEarned, max: 2000, asDots: false, onChanged: (v) => set(() => c.xpEarned = v)),

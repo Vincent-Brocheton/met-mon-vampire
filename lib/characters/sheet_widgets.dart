@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../morality/morality_rules.dart' show moralityName;
 import 'character.dart';
 import 'describe_changes.dart';
 import 'ghoul_panel.dart';
@@ -132,7 +133,7 @@ class CharacterSheetView extends StatelessWidget {
     final derived = section('Traits dérivés', [
       InfoRow('Sang', '${c.blood} · ${c.bloodPerTurn} par tour'),
       InfoRow('Volonté', dots(c.willpower)),
-      InfoRow('Humanité', dots(c.humanity)),
+      InfoRow(moralityName(c), dots(c.humanity)),
       InfoRow('Santé', c.health),
     ]);
     final xp = section('Expérience', [
