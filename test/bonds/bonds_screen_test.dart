@@ -134,4 +134,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('bo-panel')), findsNothing);
   });
+
+  testWidgets('390 px : panneau d’un lien chargé, sans exception', (tester) async {
+    await pump(tester, size: const Size(390, 1600));
+    await tester.scrollUntilVisible(find.byKey(const Key('bo-row-oct_luc')), 300, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const Key('bo-row-oct_luc')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('bo-panel')), findsOneWidget);
+    expect(find.byKey(const Key('dr-save')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('écriture refusée : message sur la page, panneau gardé', (tester) async {
+    final repo = await pump(tester);
+    repo.error = Exception('refusé');
+    await tester.tap(find.byKey(const Key('bo-row-oct_luc')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('dr-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrement refusé : réessayez.'), findsOneWidget);
+    expect(find.byKey(const Key('dr-save')), findsOneWidget);
+  });
 }

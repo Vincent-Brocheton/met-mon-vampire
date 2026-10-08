@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +27,26 @@ void main() {
     expect(find.text('ne peut pas baisser'), findsOneWidget);
     expect(find.text('●○○'), findsOneWidget, reason: 'sans lien de sang enregistré : ancien niveau de la fiche');
     expect(identityLine(mila()), 'Goule de Isaure de Valcourt · clan du domitor : Toreador', reason: 'revue : en-tête de la spec');
+  });
+
+  Widget scopeAsync(Future<List<Bond>> Function() bonds) => ProviderScope(
+        key: UniqueKey(),
+        overrides: [characterBondsProvider('g').overrideWith((ref) => bonds())],
+        child: MaterialApp(
+          theme: buildTheme(withFonts: false),
+          home: Scaffold(body: SingleChildScrollView(child: GhoulPanel(ghoulState(), characterId: 'g', now: DateTime(2026, 10, 20)))),
+        ),
+      );
+
+  testWidgets('liens en chargement ou illisibles : pas de repli sur l’ancien niveau', (tester) async {
+    await tester.pumpWidget(scopeAsync(() => Completer<List<Bond>>().future));
+    await tester.pump();
+    expect(find.text('●○○'), findsNothing);
+    expect(find.text('…'), findsOneWidget);
+    await tester.pumpWidget(scopeAsync(() => Future<List<Bond>>.error('boom')));
+    await tester.pumpAndSettle();
+    expect(find.text('●○○'), findsNothing);
+    expect(find.text('Liens indisponibles.'), findsOneWidget);
   });
 
   testWidgets('lien de sang lu dans les liens, au niveau du jour', (tester) async {

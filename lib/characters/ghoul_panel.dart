@@ -33,10 +33,17 @@ class GhoulPanel extends ConsumerWidget {
       DueState.soon => 'Buvez avant le ${formatDay(dueDate(last!))}, sinon son âge le rattrape : 10 ans par jour.',
       _ => null,
     };
-    final bond = (ref.watch(characterBondsProvider(characterId)).value ?? const <Bond>[])
-        .where((b) => b.regnantId == g.domitorId && b.thrallId == characterId)
-        .firstOrNull;
-    final level = bond == null ? g.bond.clamp(0, 3) : effectiveLevel(bond, today);
+    final async = ref.watch(characterBondsProvider(characterId));
+    final bond = ((async.hasError ? null : async.value) ?? const <Bond>[]).where((b) => b.regnantId == g.domitorId && b.thrallId == characterId).firstOrNull;
+    // Le repli sur l'ancien niveau de la fiche seulement une fois les liens lus.
+    final level = bond != null ? effectiveLevel(bond, today) : g.bond.clamp(0, 3);
+    final bondText = async.hasError
+        ? 'Liens indisponibles.'
+        : !async.hasValue
+            ? '…'
+            : level == 0
+                ? 'aucun'
+                : bondDots(level);
     return Panel(
       padding: const EdgeInsets.all(20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -44,7 +51,7 @@ class GhoulPanel extends ConsumerWidget {
         const SizedBox(height: 10),
         Text(ghoulLine(g), style: t.titleSmall),
         const SizedBox(height: 6),
-        InfoRow('Lien de sang', level == 0 ? 'aucun' : bondDots(level)),
+        InfoRow('Lien de sang', bondText),
         InfoRow('Vitae', '${g.vitae} / 5'),
         InfoRow('Dernière gorgée', last == null ? '—' : formatDay(last)),
         if (alert != null) Text(alert, style: t.bodySmall?.copyWith(color: AppColors.linkHover)),

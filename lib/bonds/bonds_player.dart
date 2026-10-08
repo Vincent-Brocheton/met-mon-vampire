@@ -22,7 +22,8 @@ class PlayerBonds extends ConsumerWidget {
     final t = Theme.of(context).textTheme;
     final day = today ?? DateTime.now();
     final c = character;
-    final bonds = ref.watch(characterBondsProvider(c.id)).value ?? const <Bond>[];
+    final async = ref.watch(characterBondsProvider(c.id));
+    final bonds = async.hasError ? const <Bond>[] : async.value ?? const <Bond>[];
     final suffered = activeBonds(bonds.where((b) => b.thrallId == c.id), day);
     final exerted = activeBonds(bonds.where((b) => b.regnantId == c.id), day);
     final muted = t.bodySmall?.copyWith(color: AppColors.textMuted);
@@ -52,7 +53,15 @@ class PlayerBonds extends ConsumerWidget {
           ]),
         );
 
-    Widget empty() => Padding(padding: const EdgeInsets.only(top: 10), child: Text('Aucun lien.', style: t.bodyMedium));
+    // Chargement ou erreur : ni « Aucun lien. » ni l'ancienne valeur.
+    Widget empty() => Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: async.hasError
+              ? Text('Liens indisponibles.', style: t.bodyMedium)
+              : async.hasValue
+                  ? Text('Aucun lien.', style: t.bodyMedium)
+                  : const Center(child: CircularProgressIndicator()),
+        );
 
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Panel(
