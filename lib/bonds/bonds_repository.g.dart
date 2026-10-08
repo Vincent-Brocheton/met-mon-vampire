@@ -296,7 +296,7 @@ final class CharacterBondsProvider
   }
 }
 
-String _$characterBondsHash() => r'd8ccbd7ffe0311f8e54ed48b50af00ef1bb549f5';
+String _$characterBondsHash() => r'419cb746f87009a3758694ca0c99b9e18b0b67a5';
 
 /// Liens d'une fiche : tous pour l'équipe (hors sa propre fiche), ceux connus du joueur sinon.
 

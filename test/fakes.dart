@@ -25,6 +25,7 @@ import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/rulebook/rules_repository.dart';
 import 'package:portail_met/servants/servant_file.dart';
 import 'package:portail_met/servants/servants_repository.dart';
+import 'package:portail_met/titles/titles_repository.dart';
 import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_gain.dart';
 import 'package:portail_met/xp/xp_repository.dart';
@@ -538,6 +539,34 @@ class FakeBondsRepository implements BondsRepository {
     calls.add('save:${b.id}:${b.level}');
     if (error != null) throw error!;
     lastSaved = b;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeTitlesRepository implements TitlesRepository {
+  final calls = <String>[];
+  Character? lastBefore;
+  String? lastTitle;
+  DateTime? lastSince;
+  String? lastReason;
+  Object? error;
+
+  @override
+  Future<void> assign(Character before, String? title, DateTime? since, String reason, Actor by, Rulebook rb) async {
+    calls.add('assign:${before.id}:${title ?? 'aucun'}');
+    if (error != null) throw error!;
+    lastBefore = before;
+    lastTitle = title;
+    lastSince = since;
+    lastReason = reason;
+  }
+
+  @override
+  Future<void> refreshCourt(Character c, Rulebook rb) async {
+    calls.add('court:${c.id}');
+    if (error != null) throw error!;
   }
 
   @override
