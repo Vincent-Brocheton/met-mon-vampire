@@ -20,7 +20,7 @@ void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   final chars = [lucie(), octave(), agathe()];
 
-  Future<FakeTitlesRepository> pumpSection(WidgetTester tester, String title, {List<CourtEntry> court = const [], bool readOnly = false}) async {
+  Future<FakeTitlesRepository> pumpSection(WidgetTester tester, String title, {List<CourtEntry> court = const [], bool readOnly = false, List<Character>? sheets}) async {
     tester.view.physicalSize = const Size(1200, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -34,7 +34,7 @@ void main() {
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
-        home: Scaffold(body: SingleChildScrollView(child: TitleHoldersSection(title: title, chars: chars, rb: rbTitles, readOnly: readOnly))),
+        home: Scaffold(body: SingleChildScrollView(child: TitleHoldersSection(title: title, chars: sheets ?? chars, rb: rbTitles, readOnly: readOnly))),
       ),
     ));
     await tester.pumpAndSettle();
@@ -81,6 +81,13 @@ void main() {
     await confirmReason(tester, 'Nommée');
     expect(harpie.calls, ['assign:luc:Harpie']);
     expect(repo.calls, isEmpty);
+  });
+
+  testWidgets('sa propre fiche : ni retrait ni mise à jour', (tester) async {
+    await pumpSection(tester, 'Sénéchal', sheets: [octave()..playerUid = 'lea']);
+    expect(find.text('Octave Marchetti'), findsOneWidget);
+    expect(find.byKey(const Key('th-remove-oct')), findsNothing);
+    expect(find.byKey(const Key('th-refresh-oct')), findsNothing);
   });
 
   testWidgets('lecture seule : ni retrait ni attribution', (tester) async {

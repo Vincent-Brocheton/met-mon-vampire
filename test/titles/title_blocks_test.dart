@@ -65,6 +65,23 @@ void main() {
     expect(repo.calls, isEmpty);
   });
 
+  testWidgets('conte : titre unique pris pendant le motif, refus avant écriture (Review Focus 1)', (tester) async {
+    final live = StreamController<List<Character>>();
+    addTearDown(live.close);
+    live.add([lucie(), agathe()]);
+    final repo = await pump(tester, StaffTitle(character: lucie(), rb: rbTitles, canEdit: true), chars: live.stream);
+    await choose(tester, 'ti-title', 'Sénéchal');
+    await tester.tap(find.byKey(const Key('ti-save')));
+    await tester.pumpAndSettle();
+    live.add([lucie(), octave(), agathe()]);
+    await tester.pump();
+    await tester.enterText(find.byKey(const Key('reason')), 'Nommé');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, isEmpty);
+    expect(find.text('Sénéchal est déjà tenu par Octave Marchetti.'), findsWidgets);
+  });
+
   testWidgets('conte : retirer le titre ; hors liste signalé', (tester) async {
     final repo = await pump(tester, StaffTitle(character: lucie()..title = 'Ancien rang', rb: rbTitles, canEdit: true));
     expect(find.textContaining('hors liste'), findsOneWidget);

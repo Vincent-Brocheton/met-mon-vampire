@@ -48,6 +48,14 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
     }
     final reason = await askReason(context, describeChanges(c, withTitle(c, title, since)));
     if (reason == null || !mounted) return;
+    // widget.chars suit le flux : un autre conte a pu prendre le titre pendant le dialogue.
+    if (title != null) {
+      final errs = titleChecks(title, c, widget.chars, widget.rb, since: since).errors;
+      if (errs.isNotEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(errs.first)));
+        return;
+      }
+    }
     setState(() => _busy = true);
     try {
       await ref.read(titlesRepositoryProvider).assign(c, title, since, reason, by, widget.rb);
@@ -106,7 +114,7 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
             ),
             if (courtRead && courtOutdated(c, court[c.id], widget.rb))
               Text('Copie publique à mettre à jour', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
-            if (!widget.readOnly)
+            if (!widget.readOnly && me != null && c.playerUid != me.uid)
               Wrap(spacing: 8, children: [
                 if (courtRead && courtOutdated(c, court[c.id], widget.rb))
                   TextButton(key: Key('th-refresh-${c.id}'), onPressed: _busy ? null : () => _refresh(c), child: const Text('Mettre à jour')),

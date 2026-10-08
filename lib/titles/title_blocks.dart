@@ -69,6 +69,15 @@ class _StaffTitleState extends ConsumerState<StaffTitle> {
     if (changes.isEmpty) return;
     final reason = await askReason(context, changes);
     if (reason == null || !mounted) return;
+    // Données relues après le dialogue : un autre conte a pu prendre le titre entre-temps.
+    final fresh = ref.read(allCharactersProvider).value;
+    if (_title != null && fresh != null) {
+      final errs = titleChecks(_title, c, fresh, widget.rb, since: since).errors;
+      if (errs.isNotEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(errs.first)));
+        return;
+      }
+    }
     setState(() => _busy = true);
     try {
       await ref.read(titlesRepositoryProvider).assign(c, _title, since, reason, by, widget.rb);
