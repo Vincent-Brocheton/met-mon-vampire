@@ -15,6 +15,7 @@ import 'characters/character_edit_screen.dart';
 import 'characters/character_screen.dart';
 import 'characters/characters_list_screen.dart';
 import 'characters/my_characters_screen.dart';
+import 'bonds/bonds_screen.dart';
 import 'chronicle/accounts_screen.dart';
 import 'chronicle/startup_screen.dart';
 import 'chronicle/team_screen.dart';
@@ -170,6 +171,7 @@ GoRouter router(Ref ref) {
           page('/conteur/goules', const ServantsScreen()),
           page('/conteur/objets', const ItemsScreen()),
           page('/conteur/allies', const AlliesAdminScreen()),
+          page('/conteur/liens', const BondsScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
