@@ -1,3 +1,4 @@
+import '../allies/ally_rules.dart';
 import '../characters/character.dart';
 import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
@@ -18,6 +19,7 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
       XpKind.merit => _trait(c.merits, name)?.level ?? 0,
       XpKind.humanity => c.humanity,
       XpKind.servant => _servant(c, name)?.rank ?? 0,
+      XpKind.ally => _ally(c, name)?.level ?? 0,
       XpKind.flawBuyback => _trait(c.flaws, name)?.level ?? 0,
       XpKind.ritual => _knows(c.rituals.map((r) => r.name), name) ? 1 : 0,
       XpKind.technique => _knows(c.techniques, name) ? 1 : 0,
@@ -27,7 +29,7 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
 /// Niveau après les achats déjà dans la demande.
 int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
   // Un serviteur se reconnaît sans tenir compte de la casse : « Rex » et « rex » sont le même.
-  bool same(XpItem i) => i.kind == k && (k == XpKind.servant ? nameKey(i.name) == nameKey(name) : i.name == name);
+  bool same(XpItem i) => i.kind == k && (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name);
   final last = items.where(same).lastOrNull;
   return last?.toLevel ?? levelNow(c, k, name);
 }
@@ -54,6 +56,15 @@ const newAnimalServant = '+animal';
 ServantKind? servantKindOfNote(String? note) => ServantKind.values.where((k) => k.label == note).firstOrNull;
 
 Servant? _servant(Character c, String name) => c.servants.where((s) => nameKey(s.name) == nameKey(name)).firstOrNull;
+
+Ally? _ally(Character c, String name) => c.allies.where((a) => nameKey(a.name) == nameKey(name)).firstOrNull;
+
+/// État demandé d'un allié, porté par l'achat.
+Map<String, dynamic> allyData(Ally a) =>
+    {'type': a.type, 'domain': a.domain, 'influence': a.influence, 'specialties': [...a.specialties]};
+
+/// L'allié tel que l'achat le demande.
+Ally allyOfItem(XpItem i, {String id = ''}) => Ally.fromMap({...?i.ally, 'id': id, 'name': i.name, 'level': i.toLevel});
 
 bool _isBonus(XpItem i) => i.kind == XpKind.attribute && i.note == bonusNote;
 
@@ -97,6 +108,7 @@ String? ruleCategoryOf(XpKind k) => switch (k) {
 int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => 3,
       XpKind.skill || XpKind.background || XpKind.servant => i.toLevel * _row(c, rb).traitFactor,
+      XpKind.ally => _row(c, rb).traitFactor * [for (var n = i.fromLevel + 1; n <= i.toLevel; n++) n].fold(0, (s, n) => s + n),
       XpKind.discipline => i.toLevel * (inClan(c, i.name, rb: rb) ? 3 : _row(c, rb).outOfClanFactor),
       XpKind.merit => i.toLevel,
       XpKind.humanity => 10,
@@ -109,6 +121,7 @@ int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i
 String ruleText(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => '3 XP par point',
       XpKind.skill || XpKind.background || XpKind.servant => 'Nouveau niveau × ${_row(c, rb).traitFactor}',
+      XpKind.ally => 'Somme des nouveaux niveaux × ${_row(c, rb).traitFactor}',
       XpKind.discipline =>
         inClan(c, i.name, rb: rb) ? 'En clan · nouveau niveau × 3' : 'Hors clan · nouveau niveau × ${_row(c, rb).outOfClanFactor}',
       XpKind.merit => 'Sa valeur en XP',
@@ -169,7 +182,7 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
     XpKind.skill => {for (final n in {...c.skills.map((t) => t.name), ...rb.offeredNames('skills')}) n: label('skills', n)},
     XpKind.background => {
         for (final n in {...c.backgrounds.map((t) => t.name), ...rb.offeredNames('backgrounds')})
-          if (n != generationName && n != servantsBackground) n: label('backgrounds', n),
+          if (n != generationName && n != servantsBackground && !legacyAllyBackgrounds.contains(n)) n: label('backgrounds', n),
       },
     XpKind.discipline => {
         for (final n in {...c.disciplines.map((d) => d.name), ...rb.clanDisciplines(c.clan), ...rb.commonDisciplines()})
@@ -194,6 +207,7 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
           if (!_knows(c.elderPowers.map((x) => x.name), e.name)) e.name: label('elderPowers', e.name),
       },
     XpKind.humanity => {humanityName: humanityName},
+    XpKind.ally => const {},
     XpKind.servant => {
         newHumanServant: 'Nouvelle goule humaine',
         newAnimalServant: 'Nouvelle goule animale',
@@ -243,6 +257,9 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
   }
   if (item.kind == XpKind.background && item.name == servantsBackground) {
     return 'Les serviteurs s’achètent avec le type « Serviteur ».';
+  }
+  if ((item.kind == XpKind.background && legacyAllyBackgrounds.contains(item.name)) || item.kind == XpKind.ally) {
+    return 'Les alliés se demandent depuis la page Alliés.';
   }
   final cat = ruleCategoryOf(item.kind);
   final entry = cat == null ? null : rb.find(cat, item.name);
@@ -313,6 +330,7 @@ bool wellFormed(XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.ritual || XpKind.technique || XpKind.elderPower => i.fromLevel == 0 && i.toLevel == 1,
       XpKind.merit => i.fromLevel == 0 && rb.cost('merits', i.name) == i.toLevel,
       XpKind.flawBuyback => i.toLevel == 0 && i.fromLevel > 0,
+      XpKind.ally => i.toLevel > i.fromLevel && i.ally != null,
       _ => i.toLevel == i.fromLevel + 1,
     };
 
@@ -360,11 +378,19 @@ List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers
       seen.add(i);
       continue;
     }
+    if (i.kind == XpKind.ally) {
+      if (i.fromLevel > 0 && _ally(applyRequest(c, seen, rb: rb), i.name) == null) {
+        out.add(const Check(0, CheckLevel.error, 'Allié introuvable sur la fiche'));
+      }
+      for (final e in allyChecks(allyOfItem(i), rb)) {
+        out.add(Check(0, CheckLevel.error, e));
+      }
+    }
     final expected = levelWith(c, seen, i.kind, i.name);
     if (expected != i.fromLevel) out.add(Check(0, CheckLevel.error, _gap(i, expected)));
     final cost = costOf(c, i, rb: rb);
     if (cost != i.cost) out.add(Check(0, CheckLevel.warn, 'Coût recalculé : $cost XP au lieu de ${i.cost} (${i.label})'));
-    if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.kind != XpKind.attribute && !_isPower(i.kind)) {
+    if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.kind != XpKind.attribute && i.kind != XpKind.ally && !_isPower(i.kind)) {
       final cap = capOf(c, i.kind, i.name, rb: rb);
       if (i.toLevel > cap) out.add(Check(0, CheckLevel.error, 'Plafond dépassé : ${i.label} ($cap au plus)'));
     }
@@ -451,6 +477,19 @@ Character applyRequest(Character c, List<XpItem> items, {Rulebook rb = const Rul
           n.servants.add(Servant(newServantId(n.id), i.name, servantKindOfNote(i.note) ?? ServantKind.human, i.toLevel));
         } else {
           s.rank = i.toLevel;
+        }
+      case XpKind.ally:
+        final existing = _ally(n, i.name);
+        final a = allyOfItem(i, id: existing?.id ?? newAllyId(n.id));
+        if (existing == null) {
+          n.allies.add(a);
+        } else {
+          existing
+            ..level = a.level
+            ..type = a.type
+            ..domain = a.domain
+            ..influence = a.influence
+            ..specialties = a.specialties;
         }
       case XpKind.humanity:
         n.humanity = i.toLevel;

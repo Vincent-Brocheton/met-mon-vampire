@@ -32,7 +32,8 @@ enum XpKind {
   elderPower('Pouvoir d’ancien'),
   humanity('Humanité'),
   flawBuyback('Rachat d’un handicap'),
-  servant('Serviteur');
+  servant('Serviteur'),
+  ally('Allié');
 
   const XpKind(this.label);
   final String label;
@@ -40,14 +41,14 @@ enum XpKind {
 
 /// Pastilles pour les traits ; chiffre pour attributs, Humanité, atouts et handicaps.
 String levelText(XpKind k, int n) => switch (k) {
-      XpKind.skill || XpKind.background || XpKind.discipline || XpKind.servant => dots(n),
+      XpKind.skill || XpKind.background || XpKind.discipline || XpKind.servant || XpKind.ally => dots(n),
       XpKind.ritual || XpKind.technique || XpKind.elderPower => n > 0 ? 'appris' : '—',
       _ => '$n',
     };
 
 /// Un achat : un niveau d'un trait (atout : sa valeur ; rachat : la valeur du handicap vers 0).
 class XpItem {
-  const XpItem(this.kind, this.name, this.fromLevel, this.toLevel, this.cost, {this.note});
+  const XpItem(this.kind, this.name, this.fromLevel, this.toLevel, this.cost, {this.note, this.ally});
 
   factory XpItem.fromMap(Map<String, dynamic> m) => XpItem(
         XpKind.values.asNameMap()[m['kind']] ?? XpKind.skill,
@@ -56,12 +57,16 @@ class XpItem {
         (m['toLevel'] as num?)?.toInt() ?? 0,
         (m['cost'] as num?)?.toInt() ?? 0,
         note: m['note'] as String?,
+        ally: m['ally'] is Map ? Map<String, dynamic>.from(m['ally'] as Map) : null,
       );
 
   final XpKind kind;
   final String name;
   final int fromLevel, toLevel, cost;
   final String? note;
+
+  /// Allié demandé (type, domaine, Influence, spécialisations) ; null pour les autres achats.
+  final Map<String, dynamic>? ally;
 
   /// Un nom d'attribut inconnu (demande écrite hors de l'application) reste affiché tel quel.
   String get displayName => kind == XpKind.attribute ? AttrCategory.values.asNameMap()[name]?.label ?? name : name;
@@ -73,7 +78,7 @@ class XpItem {
       };
 
   Map<String, dynamic> toMap() =>
-      {'kind': kind.name, 'name': name, 'fromLevel': fromLevel, 'toLevel': toLevel, 'cost': cost, 'note': note};
+      {'kind': kind.name, 'name': name, 'fromLevel': fromLevel, 'toLevel': toLevel, 'cost': cost, 'note': note, if (ally != null) 'ally': ally};
 }
 
 /// Message du fil joueur ↔ conte. La date est en millisecondes (voir nowMs).
