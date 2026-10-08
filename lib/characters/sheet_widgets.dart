@@ -188,7 +188,7 @@ class CharacterSheetView extends StatelessWidget {
             for (final e in c.elderPowers) InfoRow('Pouvoir d’ancien · ${e.name}', e.discipline),
           ]);
 
-    final ghoul = c.ghoul == null ? null : GhoulPanel(c.ghoul!);
+    final ghoul = c.ghoul == null ? null : GhoulPanel(c.ghoul!, characterId: c.id);
 
     Widget column(List<Widget> items) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           for (final (i, w) in items.indexed) ...[if (i > 0) const SizedBox(height: 20), w],

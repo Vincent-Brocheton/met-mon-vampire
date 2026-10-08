@@ -484,12 +484,9 @@ class _Editor extends ConsumerWidget {
                 onChanged: (v) => set(() => g.vitae = v ?? g.vitae),
               ),
             ),
-            DropdownButtonFormField<int>(
-              key: const Key('ghoul-bond'),
-              initialValue: g.bond.clamp(0, 3),
-              decoration: const InputDecoration(labelText: 'Lien de sang'),
-              items: [for (var v = 0; v <= 3; v++) DropdownMenuItem(value: v, child: Text(v == 0 ? 'Aucun' : dots(v)))],
-              onChanged: (v) => set(() => g.bond = v ?? g.bond),
+            Text(
+              'Lien de sang : il se règle dans l’onglet Moralité & liens.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textMuted),
             ),
             Row(children: [
               Expanded(child: Text(g.lastDrink == null ? 'Aucune gorgée notée' : 'Dernière gorgée : ${formatDay(g.lastDrink)}')),

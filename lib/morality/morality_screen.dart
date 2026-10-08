@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../auth/session_providers.dart';
+import '../bonds/bonds_player.dart';
 import '../bonds/bonds_staff.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
@@ -63,6 +64,8 @@ class CharacterMoralityScreen extends ConsumerWidget {
             playerMorality(context, c, sins, rb, basePath),
             const SizedBox(height: 20),
             PlayerDerangements(character: c, rb: rb, basePath: basePath),
+            const SizedBox(height: 20),
+            PlayerBonds(character: c),
           ],
         ]),
         onRetry: () => ref.invalidate(characterSinsProvider(c.id)),

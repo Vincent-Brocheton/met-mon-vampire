@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portail_met/bonds/bond.dart';
+import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
@@ -36,6 +38,7 @@ void main() {
         myRequestsProvider.overrideWith((ref) => Stream.value(const <XpRequest>[])),
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         characterSinsProvider('x').overrideWith((ref) => Stream.value(list)),
+        characterBondsProvider('x').overrideWith((ref) async => const <Bond>[]),
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
