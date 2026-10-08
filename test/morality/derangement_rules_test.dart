@@ -64,6 +64,12 @@ void main() {
     expect(back.derangementTraits, 2);
     expect(sample().laterKeys().keys, containsAll(['derangements', 'derangementTraits']));
     expect(draftData(c).keys, isNot(anyOf(contains('derangements'), contains('derangementTraits'))));
+    final full = sample()
+      ..allies = [Ally('x-a1', 'Maître', level: 2)]
+      ..path = 'x'
+      ..rituals = [Ritual('Rite', 'Thaumaturgie', 1)];
+    expect(draftData(full).keys, isNot(anyOf(contains('allies'), contains('path'))));
+    expect(draftData(full).keys, contains('rituals'));
     expect(newDerangementId('x'), startsWith('x-d'));
     expect(describeChanges(sample(), c), containsAll(['+ Dérangement Peur du feu', 'Traits de dérangement : 0 → 2']));
     final edited = c.clone();

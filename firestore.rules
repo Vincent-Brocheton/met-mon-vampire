@@ -133,7 +133,7 @@ service cloud.firestore {
       function playerDraftSave() {
         return own() && resource.data.status == 'draft' && request.resource.data.status == 'draft'
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace', 'allies', 'path'])
+               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace', 'allies', 'path', 'derangements', 'derangementTraits'])
           && decisionUnchanged();
       }
 

@@ -33,7 +33,8 @@ enum XpKind {
   humanity('Humanité'),
   flawBuyback('Rachat d’un handicap'),
   servant('Serviteur'),
-  ally('Allié');
+  ally('Allié'),
+  derangement('Dérangement');
 
   const XpKind(this.label);
   final String label;
@@ -43,6 +44,7 @@ enum XpKind {
 String levelText(XpKind k, int n) => switch (k) {
       XpKind.skill || XpKind.background || XpKind.discipline || XpKind.servant || XpKind.ally => dots(n),
       XpKind.ritual || XpKind.technique || XpKind.elderPower => n > 0 ? 'appris' : '—',
+      XpKind.derangement => n > 0 ? 'oui' : '—',
       _ => '$n',
     };
 
@@ -58,6 +60,7 @@ class XpItem {
         (m['cost'] as num?)?.toInt() ?? 0,
         note: m['note'] as String?,
         ally: m['ally'] is Map ? Map<String, dynamic>.from(m['ally'] as Map) : null,
+        derangement: m['derangement'] is Map ? Map<String, dynamic>.from(m['derangement'] as Map) : null,
       );
 
   final XpKind kind;
@@ -81,7 +84,7 @@ class XpItem {
       };
 
   Map<String, dynamic> toMap() =>
-      {'kind': kind.name, 'name': name, 'fromLevel': fromLevel, 'toLevel': toLevel, 'cost': cost, 'note': note, if (ally != null) 'ally': ally};
+      {'kind': kind.name, 'name': name, 'fromLevel': fromLevel, 'toLevel': toLevel, 'cost': cost, 'note': note, if (ally != null) 'ally': ally, if (derangement != null) 'derangement': derangement};
 }
 
 /// Message du fil joueur ↔ conte. La date est en millisecondes (voir nowMs).
@@ -177,6 +180,7 @@ class XpRequest {
       for (final i in last.values)
         switch (i.kind) {
           XpKind.merit => 'Atout ${i.name}',
+          XpKind.derangement => 'Dérangement ${i.name}',
           XpKind.flawBuyback => 'Rachat ${i.name}',
           XpKind.humanity => '${i.name} ${i.toLevel}',
           XpKind.attribute => '${i.displayName} ${i.toLevel}',

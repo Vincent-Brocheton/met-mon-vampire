@@ -79,6 +79,8 @@ void _revert(Character n, XpItem i) {
       } else {
         s.rank = i.fromLevel;
       }
+    case XpKind.derangement:
+      n.derangements.removeWhere((d) => nameKey(d.name) == nameKey(i.name));
     case XpKind.ally:
       // Le niveau est rendu ; les spécialisations se corrigent dans C3.
       final a = n.allies.firstWhere((a) => nameKey(a.name) == nameKey(i.name));
