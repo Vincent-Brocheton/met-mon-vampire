@@ -133,7 +133,7 @@ service cloud.firestore {
       function playerDraftSave() {
         return own() && resource.data.status == 'draft' && request.resource.data.status == 'draft'
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace'])
+               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace', 'allies'])
           && decisionUnchanged();
       }
 
@@ -369,6 +369,37 @@ service cloud.firestore {
           && request.resource.data.byUid == request.auth.uid
           && request.resource.data.at == request.time
           && getAfter(/databases/$(database)/documents/items/$(id)).data.lastHistoryId == h;
+        allow delete: if managesAccounts();
+      }
+    }
+
+    // Alliés (sous-projet 6g) : suivi d'usage, lu par l'équipe et le joueur du personnage.
+    function allyFileValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'characterId', 'characterName', 'holderPlayers', 'usedAt', 'returnAt', 'lastUse',
+          'version', 'lastHistoryId', 'createdAt', 'updatedAt', 'updatedByName'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.characterId is string && d.holderPlayers is list
+        && d.lastUse is string && d.lastUse.size() <= 2000;
+    }
+    function allyHistoryOk(id) {
+      let h = getAfter(/databases/$(database)/documents/allies/$(id)/history/$(request.resource.data.lastHistoryId)).data;
+      return h.byUid == request.auth.uid && h.at == request.time;
+    }
+
+    match /allies/{id} {
+      allow read: if isStaff() || (signedIn() && request.auth.uid in resource.data.holderPlayers);
+      allow create: if managesAccounts() && allyFileValid() && request.resource.data.version == 1 && allyHistoryOk(id);
+      allow update: if managesAccounts() && allyFileValid()
+        && request.resource.data.version == resource.data.version + 1 && allyHistoryOk(id);
+      allow delete: if managesAccounts();
+
+      match /history/{h} {
+        allow read: if isStaff();
+        allow create: if managesAccounts()
+          && request.resource.data.byUid == request.auth.uid
+          && request.resource.data.at == request.time
+          && getAfter(/databases/$(database)/documents/allies/$(id)).data.lastHistoryId == h;
         allow delete: if managesAccounts();
       }
     }

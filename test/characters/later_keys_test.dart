@@ -25,6 +25,13 @@ void main() {
     expect(back.clone().toMap()['rituals'], isEmpty);
   });
 
+  test('brouillon du joueur : draftData n’écrit jamais allies (clé protégée par les règles)', () {
+    final c = sample();
+    expect(draftData(c).keys, containsAll(['rituals', 'servants']));
+    expect(draftData(c).keys, isNot(contains('allies')));
+    expect(c.laterKeys().keys, contains('allies'), reason: 'le conte, lui, l’écrit');
+  });
+
   test('résumé des changements et rebase des listes tardives', () {
     final a = sample();
     final b = a.clone()

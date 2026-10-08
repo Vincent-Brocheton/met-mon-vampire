@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portail_met/allies/allies_repository.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
@@ -21,7 +22,7 @@ import 'ghoul_test.dart' show ghoulState;
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, List<AppUser> users = const [lea]}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, FakeAlliesRepository? allies, List<AppUser> users = const [lea]}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -36,10 +37,12 @@ void main() {
         noPlaces,
         noServantFiles,
         noItems,
+        noAllyFiles,
         noNpcLoans,
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         itemsRepositoryProvider.overrideWith((ref) => items ?? FakeItemsRepository()),
+        alliesRepositoryProvider.overrideWith((ref) => allies ?? FakeAlliesRepository()),
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),
@@ -104,11 +107,30 @@ void main() {
     expect(find.text('Rex : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'), findsOneWidget);
   });
 
+  testWidgets('C3 : joueur changé, alliés refusés : le message indique le bon remède', (tester) async {
+    const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
+    final allies = FakeAlliesRepository()..error = Exception('refus');
+    await pump(tester, sample(), allies: allies, users: const [lea, zoe]);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('c3-player')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zoé A.').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reason')), 'Changement de joueuse');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('« Alliés en jeu »'), findsOneWidget);
+    expect(find.textContaining('Goules et mortels'), findsNothing);
+  });
+
   testWidgets('C3 : joueur changé, l’accès aux fiches des serviteurs suit (revue)', (tester) async {
     const zoe = AppUser(uid: 'zoe', displayName: 'Zoé A.', email: 'z@ex.fr', role: Role.joueur);
     final servants = FakeServantsRepository();
     final items = FakeItemsRepository();
-    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, items: items, users: const [lea, zoe]);
+    final allies = FakeAlliesRepository();
+    await pump(tester, sample()..servants = [Servant('x-s1', 'Rex', ServantKind.animal, 2)], servants: servants, items: items, allies: allies, users: const [lea, zoe]);
     await tester.pumpAndSettle(); // liste des joueurs reçue
     await tester.tap(find.byKey(const Key('c3-player')));
     await tester.pumpAndSettle();
@@ -121,6 +143,22 @@ void main() {
     await tester.pumpAndSettle();
     expect(servants.calls, ['players:x-s1:zoe']);
     expect(items.calls, ['player:x:zoe']);
+    expect(allies.calls, ['players:x:zoe']);
+  });
+
+  testWidgets('C3 : ajouter un allié, enregistré avec le motif', (tester) async {
+    final repo = await pump(tester, sample());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ Allié'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    expect(find.text('+ Allié Nouvel allié ●'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('reason')), 'Allié accordé en jeu');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['saveEdit:Allié accordé en jeu']);
+    expect(repo.lastAfter!.allies.single.name, 'Nouvel allié');
   });
 
   /// Goule active dont le domitor est 'x' : ici la fiche elle-même, ce qui suffit à vérifier la recopie

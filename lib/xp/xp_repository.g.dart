@@ -128,6 +128,45 @@ final class PendingRequestsProvider
 
 String _$pendingRequestsHash() => r'859e3bebb87502c38d7361d0a2892eb00ee0703f';
 
+@ProviderFor(openRequests)
+final openRequestsProvider = OpenRequestsProvider._();
+
+final class OpenRequestsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<XpRequest>>,
+          List<XpRequest>,
+          Stream<List<XpRequest>>
+        >
+    with $FutureModifier<List<XpRequest>>, $StreamProvider<List<XpRequest>> {
+  OpenRequestsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'openRequestsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$openRequestsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<XpRequest>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<XpRequest>> create(Ref ref) {
+    return openRequests(ref);
+  }
+}
+
+String _$openRequestsHash() => r'b86fd6d99d42fec91aed8d40c9d55d70501e7ed3';
+
 @ProviderFor(characterRequests)
 final characterRequestsProvider = CharacterRequestsFamily._();
 

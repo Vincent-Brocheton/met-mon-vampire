@@ -55,5 +55,15 @@ List<RuleEntry> baseEntries(String cat) => switch (cat) {
               'eldersLimit': r == GenRank.pretender ? 1 : 0,
             }),
         ],
+      'allies' => [
+          _e('Double expertise', {'effect': 'L’allié couvre un second domaine de la liste.', 'condition': 'Tout niveau'}),
+          _e('Contact', {'effect': 'Il donne des informations pendant la partie.', 'condition': 'Tout niveau'}),
+          _e('Nocturne', {'effect': 'Il peut agir pendant les parties.', 'condition': 'Tout niveau'}),
+          _e('Influent', {'effect': 'Il mène des actions d’influence : Influence 2, 4 ou 5 prend 1, 2 ou 3 spécialisations.', 'condition': '1 à 3 fois'}),
+          _e('Expert', {'effect': 'Une action d’un niveau supérieur dans son domaine d’influence.', 'condition': 'Si Influent'}),
+          _e('Remplaçable', {'effect': 'Retour en 2 mois au lieu de X mois (X = niveau de l’allié).', 'condition': 'Si Influent'}),
+          _e('Ressource', {'effect': 'Double les ressources récupérées par une action d’influence.', 'condition': 'Si Influent'}),
+          _e('Sécurité', {'effect': 'Double le niveau nécessaire aux actions d’attaque contre lui.', 'condition': 'Si Influent'}),
+        ],
       _ => const [],
     };

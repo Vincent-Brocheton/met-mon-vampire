@@ -79,6 +79,14 @@ void _revert(Character n, XpItem i) {
       } else {
         s.rank = i.fromLevel;
       }
+    case XpKind.ally:
+      // Le niveau est rendu ; les spécialisations se corrigent dans C3.
+      final a = n.allies.firstWhere((a) => nameKey(a.name) == nameKey(i.name));
+      if (i.fromLevel == 0) {
+        n.allies.remove(a);
+      } else {
+        a.level = i.fromLevel;
+      }
     case XpKind.humanity:
       n.humanity = i.fromLevel;
     case XpKind.flawBuyback:

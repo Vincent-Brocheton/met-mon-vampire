@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../allies/allies_repository.dart';
+import '../allies/ally_list_editor.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
 import '../chronicle/chronicle_repository.dart';
@@ -85,6 +87,8 @@ class _ReasonDialogState extends State<_ReasonDialog> {
       );
 }
 
+const _servantRemedy = 'fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.';
+
 /// C3 : fiche en édition, côté conteur.
 class CharacterEditScreen extends ConsumerStatefulWidget {
   const CharacterEditScreen({super.key, required this.id});
@@ -160,7 +164,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         try {
           await ref.read(servantsRepositoryProvider).release(s.id, by, rank: s.rank);
         } catch (_) {
-          failed.add(s.name);
+          failed.add('${s.name} : $_servantRemedy');
         }
       }
       // Joueur changé : l'accès aux fiches détaillées des serviteurs suit.
@@ -169,13 +173,18 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           try {
             await ref.read(servantsRepositoryProvider).setPlayers(s.id, [?_draft!.playerUid], by);
           } catch (_) {
-            failed.add(s.name);
+            failed.add('${s.name} : $_servantRemedy');
           }
         }
         try {
           await ref.read(itemsRepositoryProvider).setPlayer(_draft!.id, _draft!.playerUid ?? '', by);
         } catch (_) {
-          failed.add('Équipement');
+          failed.add('Équipement : accès aux objets non mis à jour. Rouvrez chaque objet dans « Objets en jeu » et enregistrez.');
+        }
+        try {
+          await ref.read(alliesRepositoryProvider).setPlayers(_draft!.id, [?_draft!.playerUid], by);
+        } catch (_) {
+          failed.add('Alliés : accès aux alliés non mis à jour. Rouvrez chaque allié dans « Alliés en jeu » et enregistrez.');
         }
       }
       if (mounted) {
@@ -186,7 +195,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(failed.isEmpty
               ? 'Fiche enregistrée.'
-              : '${failed.join(', ')} : fiche du serviteur non mise à jour. Ouvrez-la dans « Goules et mortels » et enregistrez.'),
+              : failed.join(' ')),
         ));
       }
     } catch (_) {
@@ -515,6 +524,7 @@ class _Editor extends ConsumerWidget {
       section('Compétences', [TraitListEditor(items: c.skills, options: names('skills'), noteLabel: 'Domaine', onChanged: onChanged)]),
       section('Historiques', [TraitListEditor(items: c.backgrounds, options: [for (final n in names('backgrounds')) if (n != servantsBackground) n], noteLabel: 'Précisions', onChanged: onChanged)]),
       section('Serviteurs', [ServantListEditor(characterId: c.id, items: c.servants, onChanged: onChanged)]),
+      section('Alliés', [AllyListEditor(characterId: c.id, items: c.allies, rb: rb, onChanged: onChanged)]),
       section('Disciplines', [DisciplineListEditor(items: c.disciplines, options: names('disciplines'), onChanged: onChanged)]),
       section('Atouts', [TraitListEditor(items: c.merits, options: names('merits'), max: 7, asDots: false, onChanged: onChanged)]),
       section('Handicaps', [TraitListEditor(items: c.flaws, options: names('flaws'), max: 7, asDots: false, onChanged: onChanged)]),

@@ -170,6 +170,46 @@ int _servantSeq = 0;
 String newServantId(String characterId) =>
     '$characterId-s${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_servantSeq++}';
 
+/// Allié de la chronique (sous-projet 6g) : remplace les historiques Influence, Alliés et Contacts.
+/// Le suivi d'usage vit dans `allies/{id}`.
+class Ally {
+  Ally(this.id, this.name, {this.level = 1, this.type = '', this.domain = '', this.influence = 0, List<String>? specialties})
+      : specialties = specialties ?? [];
+
+  factory Ally.fromMap(Map<String, dynamic> m) => Ally(
+        m['id'] as String? ?? '',
+        m['name'] as String? ?? '',
+        level: _int(m['level']),
+        type: m['type'] as String? ?? '',
+        domain: m['domain'] as String? ?? '',
+        influence: _int(m['influence']),
+        specialties: [for (final s in (m['specialties'] as List?) ?? const []) '$s'],
+      );
+
+  final String id;
+  String name;
+  int level;
+  String type;
+  String domain;
+
+  /// 0, 2, 4 ou 5.
+  int influence;
+  List<String> specialties;
+
+  Map<String, dynamic> toMap() =>
+      {'id': id, 'name': name, 'level': level, 'type': type, 'domain': domain, 'influence': influence, 'specialties': [...specialties]};
+
+  Ally copy() => Ally.fromMap(toMap());
+}
+
+/// Anciens historiques que l'allié remplace : le conte les convertit (sous-projet 6g).
+const legacyAllyBackgrounds = ['Alliés', 'Influence', 'Contacts'];
+
+int _allySeq = 0;
+
+/// Identifiant d'un nouvel allié : jamais réutilisé.
+String newAllyId(String characterId) => '$characterId-a${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_allySeq++}';
+
 /// Discipline du domitor, recopiée sur la fiche de sa goule.
 class DomitorDiscipline {
   const DomitorDiscipline(this.name, this.level);
@@ -261,7 +301,7 @@ String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == n
 
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'ghoul', 'embrace'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -320,6 +360,7 @@ class Character {
       ..techniques = [for (final t in (m['techniques'] as List?) ?? const []) '$t']
       ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
       ..servants = _maps(m['servants']).map(Servant.fromMap).toList()
+      ..allies = _maps(m['allies']).map(Ally.fromMap).toList()
       ..ghoul = m['ghoul'] is Map ? GhoulState.fromMap(_map(m['ghoul'])) : null
       ..embrace = m['embrace'] is Map ? EmbraceState.fromMap(_map(m['embrace'])) : null
       ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
@@ -368,6 +409,7 @@ class Character {
   List<String> techniques = [];
   List<ElderPower> elderPowers = [];
   List<Servant> servants = [];
+  List<Ally> allies = [];
 
   /// Fiche de goule jouée (sous-projet 6c) ; null pour un vampire.
   GhoulState? ghoul;
@@ -407,7 +449,7 @@ class Character {
 
   int get xpAvailable => xpInitial + xpEarned - xpSpent;
 
-  /// Les quatre clés tardives, vides comprises. Pour les écritures qui peuvent tout changer (brouillon du joueur,
+  /// Les clés tardives, vides comprises. Pour les écritures qui peuvent tout changer (brouillon du joueur,
   /// édition du conte) : leur copie de travail survit à l'écriture et ignore qu'une clé a été écrite entre-temps.
   Map<String, dynamic> laterKeys() => {
         'rituals': [for (final r in rituals) r.toMap()],
@@ -415,6 +457,7 @@ class Character {
         'elderPowers': [for (final e in elderPowers) e.toMap()],
         'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         'servants': [for (final s in servants) s.toMap()],
+        'allies': [for (final a in allies) a.toMap()],
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
       };
@@ -454,6 +497,7 @@ class Character {
         if (attributeBonus.values.any((v) => v != 0) || storedKeys.contains('attributeBonus'))
           'attributeBonus': {for (final e in attributeBonus.entries) e.key.name: e.value},
         if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
+        if (allies.isNotEmpty || storedKeys.contains('allies')) 'allies': [for (final a in allies) a.toMap()],
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
         'blood': blood,
