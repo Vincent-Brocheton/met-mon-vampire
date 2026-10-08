@@ -285,7 +285,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               ],
               const SizedBox(height: 22),
               // Reconstruit les champs texte après Annuler / Repartir ; les notes restent hors de ce sous-arbre.
-              KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch)),
+              KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch, dirty: changes.isNotEmpty)),
               const SizedBox(height: 22),
               NotesPanel(id: latest.id),
               const SizedBox(height: 20),
@@ -358,9 +358,10 @@ class _Banner extends StatelessWidget {
 
 /// Tous les champs éditables de la fiche (le brouillon est modifié en place).
 class _Editor extends ConsumerWidget {
-  const _Editor({required this.c, required this.onChanged});
+  const _Editor({required this.c, required this.onChanged, required this.dirty});
   final Character c;
   final VoidCallback onChanged;
+  final bool dirty;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -437,7 +438,9 @@ class _Editor extends ConsumerWidget {
       TextFieldRow(label: 'Sire', value: c.sire, onChanged: (v) => set(() => c.sire = v)),
       Row(children: [
         Expanded(child: Text('Titre : ${(c.title ?? '').trim().isEmpty ? 'aucun' : c.title}')),
-        TextButton(onPressed: () => context.go('/conteur/fiches/${c.id}/moralite'), child: const Text('Changer le titre')),
+        // Quitter l'éditeur perdrait les modifications non enregistrées.
+        if (dirty) const Flexible(child: Text('Enregistrez d’abord vos modifications.')),
+        TextButton(onPressed: dirty ? null : () => context.go('/conteur/fiches/${c.id}/moralite'), child: const Text('Changer le titre')),
       ]),
     ]);
 
