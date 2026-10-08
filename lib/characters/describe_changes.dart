@@ -57,6 +57,7 @@ List<String> describeChanges(Character a, Character b) {
   number('Sang par tour', a.bloodPerTurn, b.bloodPerTurn);
   number('Volonté', a.willpower, b.willpower);
   number('Humanité', a.humanity, b.humanity);
+  if ((a.path ?? '') != (b.path ?? '')) out.add('Voie : ${a.path ?? 'Humanité'} → ${b.path ?? 'Humanité'}');
   text('Santé', a.health, b.health);
   number('XP initiale', a.xpInitial, b.xpInitial);
   number('Bonus du conte', a.xpBonus, b.xpBonus);

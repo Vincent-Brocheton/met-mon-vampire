@@ -10,6 +10,7 @@ enum EventType {
   titleLost('Titre perdu', EventTone.title),
   sectChange('Changement de secte', EventTone.plot),
   pathAdopted('Voie adoptée', EventTone.moral),
+  morality('Moralité', EventTone.moral),
   bloodHunt('Chasse de sang', EventTone.plot),
   torpor('Torpeur', EventTone.life),
   awakening('Réveil', EventTone.life),
