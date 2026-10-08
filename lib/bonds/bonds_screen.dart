@@ -246,7 +246,15 @@ class _BondsScreenState extends ConsumerState<BondsScreen> {
           ),
         ]),
         const SizedBox(height: 18),
+        Panel(
+          padding: EdgeInsets.zero,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (shown.isEmpty) Padding(padding: const EdgeInsets.all(18), child: Text('Aucun lien.', style: t.bodyMedium)),
+            for (final b in shown) row(b),
+          ]),
+        ),
         if (!wide && canEdit) ...[
+          const SizedBox(height: 16),
           Row(children: [
             Expanded(
               child: OutlinedButton(
@@ -264,15 +272,7 @@ class _BondsScreenState extends ConsumerState<BondsScreen> {
               ),
             ),
           ]),
-          const SizedBox(height: 14),
         ],
-        Panel(
-          padding: EdgeInsets.zero,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            if (shown.isEmpty) Padding(padding: const EdgeInsets.all(18), child: Text('Aucun lien.', style: t.bodyMedium)),
-            for (final b in shown) row(b),
-          ]),
-        ),
       ]);
 
       if (!wide && _panel && canEdit) {

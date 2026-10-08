@@ -111,6 +111,7 @@ void main() {
     expect(find.text('Le lien de Bastien Roche envers Sœur Agathe : s’efface le 3 oct. sans contact.'), findsOneWidget);
     expect(find.byKey(const Key('bo-panel')), findsNothing);
     expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.byKey(const Key('bo-m-drink')), 300, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.byKey(const Key('bo-m-drink')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('bo-panel')), findsOneWidget);
