@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'allies/allies_admin_screen.dart';
 import 'allies/character_allies_screen.dart';
 import 'account/account_screen.dart';
 import 'auth/forgot_password_screen.dart';
@@ -151,6 +152,7 @@ GoRouter router(Ref ref) {
           page('/conteur/lieux', const PlacesScreen()),
           page('/conteur/goules', const ServantsScreen()),
           page('/conteur/objets', const ItemsScreen()),
+          page('/conteur/allies', const AlliesAdminScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),
