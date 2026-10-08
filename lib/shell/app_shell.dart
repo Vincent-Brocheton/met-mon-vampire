@@ -30,6 +30,7 @@ List<Destination> destinationsFor(Role role) => role == Role.joueur
         Destination('Accueil', '/joueur', Icons.home_outlined, mobileTab: true),
         Destination('Mes personnages', '/joueur/personnages', Icons.person_outline, shortLabel: 'Personnages', mobileTab: true),
         Destination('PNJ confiés', '/joueur/pnj', Icons.theater_comedy_outlined, shortLabel: 'PNJ', mobileTab: true),
+        Destination('La Cour', '/joueur/cour', Icons.account_balance_outlined),
         Destination('Mes demandes', '/joueur/demandes', Icons.inbox_outlined, shortLabel: 'Demandes', mobileTab: true),
         Destination('Wiki', '/joueur/wiki', Icons.menu_book_outlined, mobileTab: true),
         Destination('Notifications', '/joueur/notifications', Icons.notifications_none, iconOnly: true),
