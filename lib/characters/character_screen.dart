@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../allies/character_allies_screen.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -57,6 +58,8 @@ class CharacterScreen extends ConsumerWidget {
           PlacesSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/lieux' : '/conteur/lieux'),
           const SizedBox(height: 20),
           ItemsSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/equipement' : '/conteur/objets'),
+          const SizedBox(height: 20),
+          AlliesSection(character: c, link: basePath.startsWith('/joueur') ? '$basePath/allies' : '/conteur/allies'),
           const SizedBox(height: 20),
           ServantsSection(
             character: c,

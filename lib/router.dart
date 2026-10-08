@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'allies/character_allies_screen.dart';
 import 'account/account_screen.dart';
 import 'auth/forgot_password_screen.dart';
 import 'auth/login_screen.dart';
@@ -125,6 +126,10 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/equipement',
             builder: (_, s) => CharacterItemsScreen(characterId: s.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/allies',
+            builder: (_, s) => CharacterAlliesScreen(characterId: s.pathParameters['id']!),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/serviteurs/:sid',
