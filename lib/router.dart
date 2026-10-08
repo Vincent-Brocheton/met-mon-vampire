@@ -22,6 +22,7 @@ import 'core/empty_state.dart';
 import 'creation/creation_screen.dart';
 import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
+import 'events/events_screen.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
@@ -164,6 +165,10 @@ GoRouter router(Ref ref) {
               basePath: '/conteur/fiches/${s.pathParameters['id']}',
               history: true,
             ),
+          ),
+          GoRoute(
+            path: '/conteur/fiches/:id/evenements',
+            builder: (_, s) => CharacterEventsScreen(characterId: s.pathParameters['id']!),
           ),
           page('/conteur/demandes', const ValidationScreen()),
           page('/conteur/pnj', const NpcLoansScreen()),

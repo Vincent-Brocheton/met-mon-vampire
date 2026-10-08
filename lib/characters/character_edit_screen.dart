@@ -236,7 +236,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       };
       if (readOnlyReason != null) {
         return PageBody(children: [
-          CharacterHeader(latest, basePath: '/conteur/fiches/${latest.id}', history: false),
+          CharacterHeader(latest, basePath: '/conteur/fiches/${latest.id}'),
           const SizedBox(height: 16),
           _Banner(readOnlyReason),
           if (latest.kind == CharacterKind.pj &&
@@ -257,7 +257,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       return Column(children: [
         Expanded(
           child: PageBody(children: [
-              CharacterHeader(_base!, basePath: '/conteur/fiches/${latest.id}', history: false),
+              CharacterHeader(_base!, basePath: '/conteur/fiches/${latest.id}'),
               const SizedBox(height: 16),
               const _Banner('Mode conteur — les modifications s’appliquent directement et sont tracées dans l’historique, avec un motif.'),
               if (_incoming != null) ...[
