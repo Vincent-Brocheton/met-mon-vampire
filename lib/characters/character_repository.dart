@@ -285,9 +285,9 @@ Stream<List<Character>> reviewQueue(Ref ref) => ref.watch(characterRepositoryPro
 
 /// Écriture du brouillon par le joueur : les clés tardives toujours, vides comprises (règle playerDraftSave).
 /// Sinon, un rituel acheté puis retiré dans la même séance resterait dans le document.
-/// Sans `allies`, `path`, `derangements` ni `derangementTraits` : clés protégées, que seul le conte écrit (règle playerDraftSave).
+/// Sans `allies`, `path`, `derangements`, `derangementTraits`, `title` ni `titleSince` : clés protégées, que seul le conte écrit (règle playerDraftSave).
 Map<String, dynamic> draftData(Character c) {
-  const protected = ['allies', 'path', 'derangements', 'derangementTraits'];
+  const protected = ['allies', 'path', 'derangements', 'derangementTraits', 'title', 'titleSince'];
   return {
     ...c.toMap()..removeWhere((k, _) => protected.contains(k)),
     ...c.laterKeys()..removeWhere((k, _) => protected.contains(k)),

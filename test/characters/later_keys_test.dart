@@ -32,6 +32,12 @@ void main() {
     expect(c.laterKeys().keys, contains('allies'), reason: 'le conte, lui, l’écrit');
   });
 
+  test('brouillon du joueur : draftData n’écrit ni title ni titleSince (clés protégées par les règles)', () {
+    final c = sample()..titleSince = DateTime(2026, 3, 1);
+    expect(draftData(c).keys, isNot(anyOf(contains('title'), contains('titleSince'))));
+    expect(c.laterKeys().keys, contains('titleSince'), reason: 'le conte, lui, l’écrit');
+  });
+
   test('résumé des changements et rebase des listes tardives', () {
     final a = sample();
     final b = a.clone()

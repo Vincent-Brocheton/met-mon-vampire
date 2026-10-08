@@ -51,3 +51,9 @@ test('brouillon du joueur : titre et date protégés (Review Focus 5)', async ()
   await assertFails(updateDoc(doc(as('zoe'), 'characters/d2'), { title: 'Prince', version: 2 }));
   await assertFails(updateDoc(doc(as('zoe'), 'characters/d3'), { titleSince: Timestamp.fromDate(new Date(2026, 2, 1)), version: 2 }));
 });
+
+test('brouillon du joueur : la forme réelle de draftData est acceptée (C1)', async () => {
+  const late = { rituals: [], techniques: [], elderPowers: [], attributeBonus: {}, servants: [] };
+  await assertSucceeds(updateDoc(doc(as('zoe'), 'characters/d1'), { concept: 'Avocate', ...late, version: 2 }));
+  await assertFails(updateDoc(doc(as('zoe'), 'characters/d2'), { concept: 'Avocate', ...late, titleSince: null, version: 2 }));
+});
