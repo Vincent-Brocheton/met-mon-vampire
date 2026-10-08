@@ -10,6 +10,8 @@ import 'package:portail_met/events/events_repository.dart';
 import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/items/item.dart';
 import 'package:portail_met/items/items_repository.dart';
+import 'package:portail_met/morality/sin.dart';
+import 'package:portail_met/morality/sins_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
 import 'package:portail_met/npcs/npc_loans_repository.dart';
 import 'package:portail_met/places/place.dart';
@@ -474,6 +476,34 @@ class FakeEventsRepository implements EventsRepository {
   @override
   Future<void> delete(String characterId, String id) async {
     calls.add('delete:$characterId:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeSinsRepository implements SinsRepository {
+  final calls = <String>[];
+  Sin? lastSaved;
+  Object? error;
+
+  @override
+  Future<void> save(String characterId, Sin s, Actor by) async {
+    calls.add('save:$characterId:${s.id.isEmpty ? 'new' : s.id}');
+    if (error != null) throw error!;
+    lastSaved = s;
+  }
+
+  @override
+  Future<void> delete(String characterId, String id) async {
+    calls.add('delete:$characterId:$id');
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> applyEveningLoss(Character before, List<Sin> evening, Actor by) async {
+    calls.add('loss:${before.id}:${[for (final s in evening) s.id].join(',')}');
     if (error != null) throw error!;
   }
 
