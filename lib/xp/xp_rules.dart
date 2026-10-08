@@ -1,4 +1,5 @@
 import '../allies/ally_rules.dart';
+import '../morality/derangement_rules.dart';
 import '../characters/character.dart';
 import '../morality/morality_rules.dart' show moralityMax, moralityName;
 import '../rulebook/rule_entry.dart';
@@ -21,6 +22,7 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
       XpKind.humanity => c.humanity,
       XpKind.servant => _servant(c, name)?.rank ?? 0,
       XpKind.ally => _ally(c, name)?.level ?? 0,
+      XpKind.derangement => c.derangements.any((d) => nameKey(d.name) == nameKey(name)) ? 1 : 0,
       XpKind.flawBuyback => _trait(c.flaws, name)?.level ?? 0,
       XpKind.ritual => _knows(c.rituals.map((r) => r.name), name) ? 1 : 0,
       XpKind.technique => _knows(c.techniques, name) ? 1 : 0,
@@ -31,7 +33,7 @@ int levelNow(Character c, XpKind k, String name) => switch (k) {
 int levelWith(Character c, List<XpItem> items, XpKind k, String name) {
   // Un serviteur se reconnaît sans tenir compte de la casse : « Rex » et « rex » sont le même.
   // L'Humanité n'a qu'un niveau par fiche : le nom (Humanité ou voie) a pu changer entre deux achats.
-  bool same(XpItem i) => i.kind == k && (k == XpKind.humanity || (k == XpKind.servant || k == XpKind.ally ? nameKey(i.name) == nameKey(name) : i.name == name));
+  bool same(XpItem i) => i.kind == k && (k == XpKind.humanity || (k == XpKind.servant || k == XpKind.ally || k == XpKind.derangement ? nameKey(i.name) == nameKey(name) : i.name == name));
   final last = items.where(same).lastOrNull;
   return last?.toLevel ?? levelNow(c, k, name);
 }
@@ -110,6 +112,7 @@ String? ruleCategoryOf(XpKind k) => switch (k) {
 int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => 3,
       XpKind.skill || XpKind.background || XpKind.servant => i.toLevel * _row(c, rb).traitFactor,
+      XpKind.derangement => 0,
       XpKind.ally => _row(c, rb).traitFactor * [for (var n = i.fromLevel + 1; n <= i.toLevel; n++) n].fold(0, (s, n) => s + n),
       XpKind.discipline => i.toLevel * (inClan(c, i.name, rb: rb) ? 3 : _row(c, rb).outOfClanFactor),
       XpKind.merit => i.toLevel,
@@ -123,6 +126,7 @@ int costOf(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i
 String ruleText(Character c, XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.attribute => '3 XP par point',
       XpKind.skill || XpKind.background || XpKind.servant => 'Nouveau niveau × ${_row(c, rb).traitFactor}',
+      XpKind.derangement => 'Sans coût',
       XpKind.ally => 'Somme des nouveaux niveaux × ${_row(c, rb).traitFactor}',
       XpKind.discipline =>
         inClan(c, i.name, rb: rb) ? 'En clan · nouveau niveau × 3' : 'Hors clan · nouveau niveau × ${_row(c, rb).outOfClanFactor}',
@@ -209,7 +213,7 @@ Map<String, String> elementOptions(Character c, XpKind k, {Rulebook rb = const R
           if (!_knows(c.elderPowers.map((x) => x.name), e.name)) e.name: label('elderPowers', e.name),
       },
     XpKind.humanity => {moralityName(c): moralityName(c)},
-    XpKind.ally => const {},
+    XpKind.ally || XpKind.derangement => const {},
     XpKind.servant => {
         newHumanServant: 'Nouvelle goule humaine',
         newAnimalServant: 'Nouvelle goule animale',
@@ -263,6 +267,7 @@ String? itemError(Character c, List<XpItem> items, XpItem item, {required int us
   if ((item.kind == XpKind.background && legacyAllyBackgrounds.contains(item.name)) || item.kind == XpKind.ally) {
     return 'Les alliés se demandent depuis la page Alliés.';
   }
+  if (item.kind == XpKind.derangement) return 'Les dérangements se demandent depuis la page Moralité.';
   final cat = ruleCategoryOf(item.kind);
   final entry = cat == null ? null : rb.find(cat, item.name);
   // Racheter un handicap interdit reste possible.
@@ -333,6 +338,7 @@ bool wellFormed(XpItem i, {Rulebook rb = const Rulebook()}) => switch (i.kind) {
       XpKind.merit => i.fromLevel == 0 && rb.cost('merits', i.name) == i.toLevel,
       XpKind.flawBuyback => i.toLevel == 0 && i.fromLevel > 0,
       XpKind.ally => i.toLevel > i.fromLevel && i.ally != null,
+      XpKind.derangement => i.fromLevel == 0 && i.toLevel == 1 && i.derangement != null,
       _ => i.toLevel == i.fromLevel + 1,
     };
 
@@ -388,11 +394,16 @@ List<Check> requestChecks(Character c, XpRequest r, {required int reservedOthers
         out.add(Check(0, CheckLevel.error, e));
       }
     }
+    if (i.kind == XpKind.derangement) {
+      for (final e in derangementChecks(derangementOfItem(i), applyRequest(c, seen, rb: rb).derangements)) {
+        out.add(Check(0, CheckLevel.error, e));
+      }
+    }
     final expected = levelWith(c, seen, i.kind, i.name);
     if (expected != i.fromLevel) out.add(Check(0, CheckLevel.error, _gap(i, expected)));
     final cost = costOf(c, i, rb: rb);
     if (cost != i.cost) out.add(Check(0, CheckLevel.warn, 'Coût recalculé : $cost XP au lieu de ${i.cost} (${i.label})'));
-    if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.kind != XpKind.attribute && i.kind != XpKind.ally && !_isPower(i.kind)) {
+    if (i.kind != XpKind.merit && i.kind != XpKind.flawBuyback && i.kind != XpKind.attribute && i.kind != XpKind.ally && i.kind != XpKind.derangement && !_isPower(i.kind)) {
       final cap = capOf(c, i.kind, i.name, rb: rb);
       if (i.toLevel > cap) out.add(Check(0, CheckLevel.error, 'Plafond dépassé : ${i.label} ($cap au plus)'));
     }
@@ -479,6 +490,10 @@ Character applyRequest(Character c, List<XpItem> items, {Rulebook rb = const Rul
           n.servants.add(Servant(newServantId(n.id), i.name, servantKindOfNote(i.note) ?? ServantKind.human, i.toLevel));
         } else {
           s.rank = i.toLevel;
+        }
+      case XpKind.derangement:
+        if (!n.derangements.any((d) => nameKey(d.name) == nameKey(i.name))) {
+          n.derangements.add(derangementOfItem(i, id: newDerangementId(n.id)));
         }
       case XpKind.ally:
         final existing = _ally(n, i.name);

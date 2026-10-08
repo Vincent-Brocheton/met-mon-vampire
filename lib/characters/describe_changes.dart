@@ -50,6 +50,8 @@ List<String> describeChanges(Character a, Character b) {
   _names(out, 'Pouvoir d’ancien', [for (final e in a.elderPowers) e.name], [for (final e in b.elderPowers) e.name]);
   _servants(out, a.servants, b.servants);
   _allies(out, a.allies, b.allies);
+  _derangements(out, a.derangements, b.derangements);
+  if (a.derangementTraits != b.derangementTraits) out.add('Traits de dérangement : ${a.derangementTraits} → ${b.derangementTraits}');
   _ghoul(out, a.ghoul, b.ghoul);
   for (final cat in AttrCategory.values) {
     number('Points bonus ${cat.label}', a.attributeBonus[cat] ?? 0, b.attributeBonus[cat] ?? 0);
@@ -143,6 +145,22 @@ void _servants(List<String> out, List<Servant> a, List<Servant> b) {
   }
   for (final s in a) {
     if (!after.containsKey(s.id)) out.add('− Serviteur ${s.name} ${dots(s.rank)}');
+  }
+}
+
+void _derangements(List<String> out, List<Derangement> a, List<Derangement> b) {
+  final before = {for (final x in a) x.id: x};
+  final after = {for (final x in b) x.id: x};
+  for (final x in b) {
+    final old = before[x.id];
+    if (old == null) {
+      out.add('+ Dérangement ${x.name}');
+    } else if (old.toMap().toString() != x.toMap().toString()) {
+      out.add(old.name == x.name ? 'Dérangement ${x.name} modifié' : 'Dérangement ${old.name} → ${x.name}');
+    }
+  }
+  for (final x in a) {
+    if (!after.containsKey(x.id)) out.add('− Dérangement ${x.name}');
   }
 }
 

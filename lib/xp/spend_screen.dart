@@ -162,7 +162,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
               initialValue: _kind,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Type'),
-              items: [for (final k in XpKind.values) if (k != XpKind.ally && ghoulXpError(c, k) == null) DropdownMenuItem(value: k, child: Text(k.label))],
+              items: [for (final k in XpKind.values) if (k != XpKind.ally && k != XpKind.derangement && ghoulXpError(c, k) == null) DropdownMenuItem(value: k, child: Text(k.label))],
               onChanged: (k) => setState(() {
                 _kind = k ?? _kind;
                 _name = null;

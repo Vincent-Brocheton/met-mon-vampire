@@ -10,6 +10,8 @@ import 'package:portail_met/morality/morality_screen.dart';
 import 'package:portail_met/morality/sin.dart';
 import 'package:portail_met/morality/sins_repository.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
+import 'package:portail_met/xp/xp_repository.dart';
+import 'package:portail_met/xp/xp_request.dart';
 
 import '../characters/character_test.dart' show sample;
 import 'morality_rules_test.dart' show rb;
@@ -31,6 +33,7 @@ void main() {
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(camille)),
         rulebookProvider.overrideWith((ref) => rb),
+        myRequestsProvider.overrideWith((ref) => Stream.value(const <XpRequest>[])),
         characterProvider('x').overrideWith((ref) => Stream.value(c)),
         characterSinsProvider('x').overrideWith((ref) => Stream.value(list)),
       ],

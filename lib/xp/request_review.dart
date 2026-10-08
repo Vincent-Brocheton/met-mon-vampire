@@ -8,6 +8,7 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../morality/derangement_rules.dart' show derangementOfItem, derangementSummary;
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart' show Check, CheckLevel;
@@ -144,6 +145,7 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
                     ),
                     SizedBox(width: 60, child: Text('${costOf(c, i, rb: rb)} XP', textAlign: TextAlign.right, style: t.titleSmall)),
                     Text(ruleText(c, i, rb: rb), style: t.bodySmall),
+                    if (i.derangement != null) Text(derangementSummary(derangementOfItem(i)), style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
                   ]),
                 ),
             ]),

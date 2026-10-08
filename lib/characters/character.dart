@@ -210,6 +210,39 @@ int _allySeq = 0;
 /// Identifiant d'un nouvel allié : jamais réutilisé.
 String newAllyId(String characterId) => '$characterId-a${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_allySeq++}';
 
+/// Dérangement détaillé (sous-projet 7b2) : handicap de 2 points, 3 si sévère ; celui du clan est incurable.
+class Derangement {
+  Derangement(this.id, this.name, {this.type = 'belief', this.trigger = '', this.severe = false, this.clan = false});
+
+  factory Derangement.fromMap(Map<String, dynamic> m) => Derangement(
+        m['id'] as String? ?? '',
+        m['name'] as String? ?? '',
+        type: m['type'] as String? ?? 'belief',
+        trigger: m['trigger'] as String? ?? '',
+        severe: m['severe'] == true,
+        clan: m['clan'] == true,
+      );
+
+  final String id;
+  String name;
+
+  /// Valeur du champ `type` du référentiel : belief, incapacity, compulsion, phobia, destruction, obsession.
+  String type;
+  String trigger;
+  bool severe;
+  bool clan;
+
+  Map<String, dynamic> toMap() => {'id': id, 'name': name, 'type': type, 'trigger': trigger, 'severe': severe, 'clan': clan};
+
+  Derangement copy() => Derangement.fromMap(toMap());
+}
+
+int _derangementSeq = 0;
+
+/// Identifiant d'un nouveau dérangement : jamais réutilisé.
+String newDerangementId(String characterId) =>
+    '$characterId-d${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}${_derangementSeq++}';
+
 /// Discipline du domitor, recopiée sur la fiche de sa goule.
 class DomitorDiscipline {
   const DomitorDiscipline(this.name, this.level);
@@ -301,7 +334,7 @@ String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == n
 
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace', 'path'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace', 'path', 'derangements', 'derangementTraits'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -361,6 +394,8 @@ class Character {
       ..elderPowers = _maps(m['elderPowers']).map(ElderPower.fromMap).toList()
       ..servants = _maps(m['servants']).map(Servant.fromMap).toList()
       ..allies = _maps(m['allies']).map(Ally.fromMap).toList()
+      ..derangements = _maps(m['derangements']).map(Derangement.fromMap).toList()
+      ..derangementTraits = _int(m['derangementTraits'])
       ..ghoul = m['ghoul'] is Map ? GhoulState.fromMap(_map(m['ghoul'])) : null
       ..embrace = m['embrace'] is Map ? EmbraceState.fromMap(_map(m['embrace'])) : null
       ..attributeBonus = {for (final a in AttrCategory.values) a: _int(_map(m['attributeBonus'])[a.name])}
@@ -414,6 +449,10 @@ class Character {
   List<ElderPower> elderPowers = [];
   List<Servant> servants = [];
   List<Ally> allies = [];
+  List<Derangement> derangements = [];
+
+  /// Traits de dérangement en jeu, de 0 à 3 (plancher 1 pour un Malkavien).
+  int derangementTraits = 0;
 
   /// Fiche de goule jouée (sous-projet 6c) ; null pour un vampire.
   GhoulState? ghoul;
@@ -463,6 +502,8 @@ class Character {
         'servants': [for (final s in servants) s.toMap()],
         'allies': [for (final a in allies) a.toMap()],
         'path': path,
+        'derangements': [for (final d in derangements) d.toMap()],
+        'derangementTraits': derangementTraits,
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
       };
@@ -504,6 +545,8 @@ class Character {
         if (servants.isNotEmpty || storedKeys.contains('servants')) 'servants': [for (final s in servants) s.toMap()],
         if (allies.isNotEmpty || storedKeys.contains('allies')) 'allies': [for (final a in allies) a.toMap()],
         if (path != null || storedKeys.contains('path')) 'path': path,
+        if (derangements.isNotEmpty || storedKeys.contains('derangements')) 'derangements': [for (final d in derangements) d.toMap()],
+        if (derangementTraits != 0 || storedKeys.contains('derangementTraits')) 'derangementTraits': derangementTraits,
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
         'blood': blood,
