@@ -143,7 +143,7 @@ class _StaffDerangementsState extends ConsumerState<StaffDerangements> {
         ],
         const SizedBox(height: 16),
         Text('Traits de dérangement en jeu', style: t.labelMedium),
-        Row(children: [
+        Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
           if (!ro)
             IconButton(
               key: const Key('de-minus'),

@@ -121,4 +121,18 @@ void main() {
     expect(find.byKey(const Key('de-edit-x-d1')), findsNothing);
     expect(find.byKey(const Key('de-plus')), findsNothing);
   });
+
+  testWidgets('390 px : aucun débordement (compteur, liste, formulaire ouvert)', (tester) async {
+    await pump(tester, sample()
+      ..clan = 'Malkavien'
+      ..derangementTraits = 3
+      ..derangements = [fire()]
+      ..flaws = [Trait('Cauchemars', 2), Trait('Peur du vide', 1)]);
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('de-edit-x-d1')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }
