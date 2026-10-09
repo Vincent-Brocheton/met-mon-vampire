@@ -49,7 +49,7 @@ Le gel est **en cours** si `liftedAt == null` et que l’heure précède `until`
 |---|---|
 | `sheet` | la fiche, `toMap()` complet |
 | `version` | version de la fiche copiée |
-| `gameDate` | date de la partie, pour trouver l’instantané précédent |
+| `gameDate` | date de la partie : l’écran du gel lit les instantanés d’une partie par ce champ (index `frozen.gameDate`, `firestore.indexes.json`) |
 | `at` | heure de la copie |
 | `byUid` | auteur de la copie |
 | `reason` | `null` pour la copie initiale, le motif pour une correction urgente |
@@ -65,7 +65,7 @@ Le gel est **en cours** si `liftedAt == null` et que l’heure précède `until`
 - `sheetsToFreeze(sheets, loans, now)` : les PJ actifs et les PNJ dont un prêt est actif (`loanState == active`).
 - `isRunning(game, now)` et `isFrozen(game, characterId, now)`.
 - `defaultUntil(date)` : le lendemain de la partie à 6h.
-- `previousSnapshot(snapshots, gameDate)` : l’instantané de la fiche dont `gameDate` est la plus récente avant celle-ci.
+- `previousGame(games, game)` : le dernier gel figé avant celui-ci. Chaque fiche est comparée à son instantané de ce gel ; absente de ce gel, elle affiche « Première version figée ».
 - `changeCount(previous, current)` : le nombre de lignes de `describeChanges`.
 - **Textes :**
   - « Gel en cours · partie du samedi 3 octobre » ;
@@ -131,7 +131,7 @@ Le gel est **en cours** si `liftedAt == null` et que l’heure précède `until`
 - **Horloge de l’appareil décalée :** les règles tranchent. Un refus affiche « Enregistrement refusé : réessayez. ».
 - **Fiche morte ou retirée pendant le gel :** elle reste dans `sheetIds`.
 - **Prêt de PNJ terminé pendant le gel :** le PNJ reste figé jusqu’à la levée.
-- **Fiche sans instantané précédent :** « Première version figée ».
+- **Fiche absente du gel précédent :** « Première version figée ».
 - **Formulaire :** « Partie du » doit être une date valide ; « Lever le » doit tomber après maintenant (« La levée doit être dans le futur. »).
 - **Demandes en attente :** leur XP reste réservée, comme aujourd’hui.
 - **Conte sur sa propre fiche :** il la voit en joueur, comme ailleurs.
