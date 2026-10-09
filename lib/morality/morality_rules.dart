@@ -113,3 +113,29 @@ String lossMessage(Character c, List<Sin> evening) {
 
 /// Motif de la modification tracée de la fiche.
 String lossReason(DateTime evening) => 'Traits de Bête : soirée du ${formatLoanDay(evening)}';
+
+/// Péchés saisis deux fois (sous-projet 8d) : même jour, même niveau, deux auteurs, ni verrouillés ni tranchés « distincts ».
+/// Chaque péché entre dans une paire au plus, dans l'ordre de création ; les péchés en attente (sans heure) viennent en dernier.
+List<(Sin, Sin)> conflicts(List<Sin> sins) {
+  final open = sins.where((s) => !s.lossApplied && !s.distinct && s.byUid.isNotEmpty).toList()
+    ..sort((a, b) {
+      final t = (a.createdAt ?? DateTime(9999)).compareTo(b.createdAt ?? DateTime(9999));
+      return t != 0 ? t : a.id.compareTo(b.id);
+    });
+  final used = <Sin>{};
+  final pairs = <(Sin, Sin)>[];
+  for (var i = 0; i < open.length; i++) {
+    final a = open[i];
+    if (used.contains(a)) continue;
+    for (var j = i + 1; j < open.length; j++) {
+      final b = open[j];
+      if (used.contains(b) || b.byUid == a.byUid || b.level != a.level || dayOf(b.date) != dayOf(a.date)) continue;
+      used
+        ..add(a)
+        ..add(b);
+      pairs.add((a, b));
+      break;
+    }
+  }
+  return pairs;
+}

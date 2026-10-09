@@ -511,6 +511,12 @@ class FakeSinsRepository implements SinsRepository {
   }
 
   @override
+  Future<void> markDistinct(String characterId, List<Sin> sins, Actor by) async {
+    calls.add('distinct:$characterId:${[for (final s in sins) s.id].join(',')}');
+    if (error != null) throw error!;
+  }
+
+  @override
   Future<void> applyEveningLoss(Character before, List<Sin> evening, Actor by) async {
     calls.add('loss:${before.id}:${[for (final s in evening) s.id].join(',')}');
     if (error != null) throw error!;

@@ -38,6 +38,20 @@ class SinsRepository {
 
   Future<void> delete(String characterId, String id) => _col(characterId).doc(id).delete();
 
+  /// « Deux péchés distincts » (sous-projet 8d) : les deux sortent du conflit, en un lot.
+  Future<void> markDistinct(String characterId, List<Sin> sins, Actor by) {
+    final batch = _db.batch();
+    for (final s in sins) {
+      batch.update(_col(characterId).doc(s.id), {
+        'distinct': true,
+        'byUid': by.uid,
+        'byName': by.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
+    return batch.commit();
+  }
+
   /// Perte de la soirée, en un lot : fiche (moralité − 1, tracée), péchés verrouillés, événement « Moralité ».
   /// Une seconde application échoue en entier : les péchés déjà verrouillés refusent la modification.
   Future<void> applyEveningLoss(Character before, List<Sin> evening, Actor by) {
