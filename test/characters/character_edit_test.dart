@@ -10,6 +10,8 @@ import 'package:portail_met/characters/character_edit_screen.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
@@ -18,13 +20,14 @@ import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/servants/servants_repository.dart';
 
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 import 'character_test.dart' show sample;
 import 'ghoul_test.dart' show ghoulState;
 
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
 
-  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, FakeAlliesRepository? allies, FakeBondsRepository? bonds, List<AppUser> users = const [lea]}) async {
+  Future<FakeCharacterRepository> pump(WidgetTester tester, Character c, {AppUser me = lea, Rulebook rb = const Rulebook(), FakeServantsRepository? servants, FakeItemsRepository? items, FakeAlliesRepository? allies, FakeBondsRepository? bonds, List<AppUser> users = const [lea], List<Game> games = const []}) async {
     tester.view.physicalSize = const Size(1440, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -41,6 +44,7 @@ void main() {
         noItems,
         noAllyFiles,
         noNpcLoans,
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
         allCharactersProvider.overrideWith((ref) => Stream.value([sample()])),
         servantsRepositoryProvider.overrideWith((ref) => servants ?? FakeServantsRepository()),
         itemsRepositoryProvider.overrideWith((ref) => items ?? FakeItemsRepository()),
@@ -55,6 +59,30 @@ void main() {
   }
 
   Character withHumanity() => sample()..humanity = 5;
+
+  testWidgets('C3 : fiche figée, bandeau et XP verrouillée (sous-projet 8a, Review Focus 2)', (tester) async {
+    final repo = await pump(tester, withHumanity(), games: [frozenGame(year: 2099)]);
+    expect(find.text('Figée pour la partie du samedi 3 oct., jusqu’au dimanche 4 oct. à 6h : son XP ne peut pas changer.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ajouter un point : XP gagnée'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fiche figée jusqu’au 4 oct. : l’XP ne peut pas changer.'), findsOneWidget);
+    expect(find.text('Confirmer'), findsNothing);
+    expect(repo.calls, isEmpty);
+  });
+
+  testWidgets('C3 : fiche figée, une modification hors XP passe (sous-projet 8a)', (tester) async {
+    final repo = await pump(tester, withHumanity(), games: [frozenGame(year: 2099)]);
+    await tester.tap(find.byTooltip('Ajouter un point : Humanité'));
+    await tester.pump();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reason')), 'Correction');
+    await tester.tap(find.text('Confirmer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['saveEdit:Correction']);
+  });
 
   testWidgets('un point d’Humanité, motif obligatoire, enregistrement', (tester) async {
     final repo = await pump(tester, withHumanity());

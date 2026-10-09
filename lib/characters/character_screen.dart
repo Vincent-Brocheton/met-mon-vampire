@@ -6,6 +6,10 @@ import '../allies/character_allies_screen.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../games/freeze_banner.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../items/character_items_screen.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -44,9 +48,17 @@ class CharacterScreen extends ConsumerWidget {
           message: 'Elle a pu être retirée.',
         );
       }
+      // Fiche du joueur pendant un gel (J-Fiche) ; l'historique n'en a pas besoin.
+      final frozen = basePath.startsWith('/joueur') && !history
+          ? frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], c.id, DateTime.now())
+          : null;
       return PageBody(children: [
         CharacterHeader(c, basePath: basePath, tab: history ? CharacterTab.history : CharacterTab.sheet),
         const SizedBox(height: 22),
+        if (frozen != null) ...[
+          FreezeBanner(playerFreezeText(frozen)),
+          const SizedBox(height: 22),
+        ],
         if (!history && basePath.startsWith('/joueur') && c.kind == CharacterKind.pj && c.status == CharacterStatus.active) ...[
           Align(
             alignment: Alignment.centerLeft,

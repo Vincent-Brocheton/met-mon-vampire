@@ -7,6 +7,8 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/rulebook/base_rules.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
@@ -18,6 +20,7 @@ import 'package:portail_met/xp/xp_request.dart';
 import '../characters/character_test.dart' show sample;
 import '../characters/ghoul_test.dart' show mila;
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 
 void main() {
   const camille = AppUser(uid: 'u1', displayName: 'Camille R.', email: 'c@ex.fr', role: Role.joueur);
@@ -32,7 +35,7 @@ void main() {
         items: [const XpItem(XpKind.discipline, 'Auspex', 3, 4, 12)],
       );
 
-  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet, String? requestId, Rulebook rb = const Rulebook()}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, {List<XpRequest> requests = const [], Character? sheet, String? requestId, Rulebook rb = const Rulebook(), List<Game> games = const []}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -44,6 +47,7 @@ void main() {
         characterProvider('x').overrideWith((ref) => Stream.value(sheet ?? sample())),
         myRequestsProvider.overrideWith((ref) => Stream.value(requests)),
         xpRepositoryProvider.overrideWith((ref) => repo),
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
       ],
       child: MaterialApp.router(
         theme: buildTheme(withFonts: false),
@@ -207,5 +211,12 @@ void main() {
     expect(find.text('Combat à mains nues.'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Domaine (facultatif)'), findsOneWidget);
     expect(tester.widget<OutlinedButton>(find.widgetWithText(OutlinedButton, 'Ajouter à la demande')).onPressed, isNotNull);
+  });
+
+  testWidgets('fiche figée : rappel du gel, la demande reste possible (sous-projet 8a)', (tester) async {
+    await pump(tester, games: [frozenGame(year: 2099)]);
+    await tester.pump(); // le flux des parties arrive après la fiche
+    expect(find.text('Fiche figée pour la partie du samedi 3 oct. Vos demandes restent en file et seront traitées à partir du 4 oct.'), findsOneWidget);
+    expect(find.text('Ajouter un achat'.toUpperCase()), findsOneWidget);
   });
 }

@@ -26,6 +26,11 @@ abstract final class AppColors {
   static const activeBg = Color(0xFF1E3A31);
   static const reviewBg = Color(0xFF3A3020);
   static const deadBg = Color(0xFF3A1D20);
+  // Gel des fiches (C-Figer, J-Fiche).
+  static const frozen = Color(0xFFA9C8EE);
+  static const frozenText = Color(0xFFC9D6E6);
+  static const frozenBg = Color(0xFF1E2A3A);
+  static const frozenBorder = Color(0xFF36506E);
 }
 
 /// Largeur à partir de laquelle on affiche la mise en page Web.

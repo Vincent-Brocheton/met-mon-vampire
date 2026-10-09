@@ -38,6 +38,7 @@ void main() {
         noItems,
         noAllyFiles,
         noNpcLoans,
+        noGames,
         characterNotesProvider('x').overrideWith((ref) => Stream.value('')),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: CharacterEditScreen(id: 'x'))),
