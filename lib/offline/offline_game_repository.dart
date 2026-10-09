@@ -32,18 +32,23 @@ class OfflineGameRepository {
 
   /// Lit une fois ce dont la partie a besoin : le cache persistant le garde pour la suite.
   /// Les notes du conte ne sont lisibles que par le conte, hors de sa propre fiche : un refus est ignoré.
+  /// Il l'est aussi pour les événements : sur sa propre fiche, le conte compte comme un joueur et la lecture non filtrée est refusée.
   Future<void> prepare(Game g, OfflinePrefs p) async {
     final chars = _db.collection('characters');
     Future<void> quiet(Future<Object?> f) => f.then((_) {}, onError: (Object _) {});
     await Future.wait<Object?>([
       _db.collection('games').get(),
       chars.get(),
-      if (p.rulebook) _db.collection('rules').get(),
+      if (p.rulebook) ...[
+        // Réglages `rules/{cat}`, puis les entrées (même requête que `RulesRepository.watchAll`).
+        _db.collection('rules').get(),
+        _db.collectionGroup('ruleEntries').get(),
+      ],
       if (p.bonds) _db.collection('bonds').get(),
       for (final id in g.sheetIds) ...[
         chars.doc(id).collection('frozen').doc(g.id).get(),
         _sub(id, 'sins').get(),
-        if (p.bonds) _sub(id, 'events').get(),
+        if (p.bonds) quiet(_sub(id, 'events').get()),
         if (p.notes) quiet(_sub(id, 'private').doc('notes').get()),
       ],
     ]);

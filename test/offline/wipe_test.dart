@@ -15,6 +15,7 @@ DeviceSession session(List<String> calls, {WipePolicy policy = WipePolicy.week, 
       restart: (location) async => calls.add('restart:$location'),
       clearPrepared: (uid, id) async => calls.add('clear:$uid/$id'),
       policy: () async => policy,
+      markWipePending: (p) async => calls.add('pending:$p'),
       removeTimeout: const Duration(milliseconds: 20),
     );
 
@@ -66,13 +67,13 @@ void main() {
   test('« Effacer maintenant » : partie oubliée, cache vidé, l’app repart ; le compte reste connecté', () async {
     final calls = <String>[];
     await session(calls).wipe('u1', 'd1', '/conteur/gel/hors-ligne');
-    expect(calls, ['clear:u1/d1', 'wipe', 'restart:/conteur/gel/hors-ligne']);
+    expect(calls, ['clear:u1/d1', 'pending:true', 'wipe', 'pending:false', 'restart:/conteur/gel/hors-ligne']);
   });
 
   test('effacement programmé : une semaine après la levée', () async {
     final calls = <String>[];
     await session(calls).wipeIfDue('u1', device, [lifted], DateTime(2026, 10, 12), '/');
-    expect(calls, ['clear:u1/d1', 'wipe', 'restart:/']);
+    expect(calls, ['clear:u1/d1', 'pending:true', 'wipe', 'pending:false', 'restart:/']);
   });
 
   test('effacement programmé : trop tôt, jamais, partie inconnue, rien de préparé', () async {
@@ -107,8 +108,10 @@ void main() {
       signOutAccount: () async {},
       restart: (location) async => calls.add('restart:$location'),
       clearPrepared: (_, _) async => throw Exception('refus'),
+      markWipePending: (p) async => calls.add('pending:$p'),
     );
     await s.wipe('u1', 'd1', '/');
-    expect(calls, ['restart:/']);
+    // Le drapeau reste posé : le prochain démarrage réessaiera.
+    expect(calls, ['pending:true', 'restart:/']);
   });
 }

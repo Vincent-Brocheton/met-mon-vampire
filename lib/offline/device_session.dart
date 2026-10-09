@@ -18,6 +18,8 @@ Future<void> _keepPrepared(String uid, String deviceId) async {}
 
 Future<WipePolicy> _weekPolicy() async => WipePolicy.week;
 
+Future<void> _ignorePending(bool pending) async {}
+
 /// Déconnexion de cet appareil (« Se déconnecter », ou demandée depuis un autre appareil) :
 /// document retiré, cache Firestore vidé, identifiant oublié, compte déconnecté, app relancée.
 /// Effacement des données de l'appareil (sous-projet 8d) : partie préparée oubliée, cache vidé, app relancée, compte gardé.
@@ -31,6 +33,7 @@ class DeviceSession {
     required this.restart,
     this.clearPrepared = _keepPrepared,
     this.policy = _weekPolicy,
+    this.markWipePending = _ignorePending,
     this.removeTimeout = const Duration(seconds: 3),
   });
 
@@ -54,6 +57,9 @@ class DeviceSession {
 
   /// Politique d'effacement choisie sur cet appareil.
   final Future<WipePolicy> Function() policy;
+
+  /// Note qu'un effacement du cache est en cours ou raté (repris au démarrage), ou qu'il a abouti.
+  final Future<void> Function(bool pending) markWipePending;
   final Duration removeTimeout;
 
   bool _busy = false;
@@ -99,8 +105,11 @@ class DeviceSession {
         }
       }
       try {
+        await markWipePending(true);
         await wipeCache();
+        await markWipePending(false);
       } catch (e) {
+        // Le drapeau reste : `main` réessaiera l'effacement au prochain démarrage.
         debugPrint('Effacement : cache Firestore non vidé ($e)');
       }
       // L'instance arrêtée par `terminate` ne resservirait pas : on repart dans tous les cas.
@@ -148,5 +157,13 @@ DeviceSession deviceSession(Ref ref) {
     },
     clearPrepared: devices.clearPrepared,
     policy: () async => (await OfflinePrefs.load()).policy,
+    markWipePending: (pending) async {
+      final p = await SharedPreferences.getInstance();
+      if (pending) {
+        await p.setBool(wipePendingKey, true);
+      } else {
+        await p.remove(wipePendingKey);
+      }
+    },
   );
 }

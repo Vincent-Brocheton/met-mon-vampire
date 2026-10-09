@@ -26,6 +26,9 @@ bool shouldWipe(WipePolicy p, Game? g, DateTime now) {
 }
 
 const wipePolicyKey = 'wipePolicy';
+
+/// Présent tant que le cache n'a pas pu être vidé : le prochain démarrage réessaie.
+const wipePendingKey = 'wipePending';
 const _rulebookKey = 'prepare.rulebook';
 const _bondsKey = 'prepare.bonds';
 const _notesKey = 'prepare.notes';
