@@ -4,8 +4,9 @@ import '../core/theme.dart';
 
 /// Bandeau bleu du gel (J-Fiche, C-Figer) : cadenas et texte.
 class FreezeBanner extends StatelessWidget {
-  const FreezeBanner(this.text, {super.key});
+  const FreezeBanner(this.text, {super.key, this.action});
   final String text;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -19,6 +20,7 @@ class FreezeBanner extends StatelessWidget {
           const Icon(Icons.lock_outline, size: 18, color: AppColors.frozen),
           const SizedBox(width: 10),
           Expanded(child: Text(text, style: const TextStyle(color: AppColors.frozenText, fontSize: 14))),
+          ?action,
         ]),
       );
 }

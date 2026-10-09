@@ -347,4 +347,9 @@ void main() {
     final add = find.ancestor(of: find.byTooltip('Ajouter un point : Points bonus Social'), matching: find.byType(IconButton));
     expect(tester.widget<IconButton>(add).onPressed, isNull, reason: 'Ancilla : 2 points bonus au plus');
   });
+
+  testWidgets('C3 : bouton « Imprimer » (sous-projet 8b)', (tester) async {
+    await pump(tester, withHumanity());
+    expect(find.byKey(const Key('c3-print')), findsOneWidget);
+  });
 }

@@ -88,4 +88,11 @@ void main() {
     await pump(tester, Stream.value(sample()..title = 'Main du Prince'), basePath: '/conteur/fiches/x');
     expect(find.text('Main du Prince'), findsOneWidget);
   });
+
+  testWidgets('J2 : bouton « Imprimer », aussi dans le bandeau du gel (sous-projet 8b)', (tester) async {
+    await pump(tester, Stream.value(sample()));
+    expect(find.text('Imprimer'), findsOneWidget);
+    await pump(tester, Stream.value(sample()), games: [frozenGame(year: 2099)]);
+    expect(find.text('Imprimer'), findsNWidgets(2));
+  });
 }
