@@ -235,4 +235,14 @@ void main() {
     await pump(tester, me: julien, games: [g1, g2]);
     expect(find.text('SUIVI DE LA SOIRÉE'), findsOneWidget);
   });
+
+  testWidgets('gel en cours : bouton « Partie hors ligne » (sous-projet 8d)', (tester) async {
+    await pump(tester, games: [g1, g2]);
+    expect(find.text('Partie hors ligne'), findsOneWidget);
+  });
+
+  testWidgets('sans gel : pas de bouton « Partie hors ligne » (sous-projet 8d)', (tester) async {
+    await pump(tester, games: [g1]);
+    expect(find.text('Partie hors ligne'), findsNothing);
+  });
 }

@@ -36,6 +36,7 @@ import 'offline/device_session.dart';
 import 'offline/devices_repository.dart';
 import 'offline/night_screen.dart';
 import 'offline/offline.dart';
+import 'offline/offline_game_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'print/print_screen.dart';
@@ -206,6 +207,7 @@ GoRouter router(Ref ref) {
           page('/conteur/equipe', const TeamScreen()),
           page('/conteur/fiches', const CharactersListScreen()),
           page('/conteur/gel', const FreezeScreen()),
+          page('/conteur/gel/hors-ligne', const OfflineGameScreen()),
           page('/conteur/lieux', const PlacesScreen()),
           page('/conteur/goules', const ServantsScreen()),
           page('/conteur/objets', const ItemsScreen()),

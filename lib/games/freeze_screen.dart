@@ -192,9 +192,12 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
       PageTitle(
         'Gel des fiches',
         subtitle: 'Une version figée par fiche fait foi pendant la partie. C’est elle qu’on imprimera.',
-        action: running != null && me.role.managesAccounts
-            ? OutlinedButton(onPressed: _busy ? null : () => _lift(running), child: const Text('Lever le gel'))
-            : null,
+        action: running == null
+            ? null
+            : Wrap(spacing: 10, runSpacing: 10, children: [
+                OutlinedButton(onPressed: () => context.go('/conteur/gel/hors-ligne'), child: const Text('Partie hors ligne')),
+                if (me.role.managesAccounts) OutlinedButton(onPressed: _busy ? null : () => _lift(running), child: const Text('Lever le gel')),
+              ]),
       ),
       const SizedBox(height: 22),
       if (running == null) _newFreeze(context, me, chars) else _running(context, me, running, games, chars),
