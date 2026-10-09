@@ -10,6 +10,9 @@ import '../characters/transformations.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/trace.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../core/widgets.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -270,7 +273,13 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
     }
     final r = await showDialog<(Character?, ServantKind, int, String)>(context: context, builder: (_) => ServantOfDialog(name: _base.name));
     final d = r?.$1;
-    if (r == null || d == null) return;
+    if (r == null || d == null || !mounted) return;
+    // Le domitor paie le rang en XP : refusé par les règles tant que sa fiche est figée.
+    final frozen = frozenBy(ref.read(gamesProvider).value ?? const <Game>[], d.id, DateTime.now());
+    if (frozen != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${frozenUntilText(frozen)} : l’XP ne peut pas changer.')));
+      return;
+    }
     await _transform((by) => mortalToServant(ref.read(characterRepositoryProvider), ref.read(servantsRepositoryProvider),
         mortal: _base, domitor: d, kind: r.$2, rank: r.$3, reason: r.$4, by: by, rb: widget.rb));
   }
@@ -351,6 +360,7 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(gamesProvider); // chargé pour la garde de gel de _toServant (lue par ref.read)
     final t = Theme.of(context).textTheme;
     final rb = widget.rb;
     final ro = widget.readOnly;

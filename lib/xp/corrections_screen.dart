@@ -8,6 +8,9 @@ import '../characters/character_screen.dart' show xpText;
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import 'xp_corrections.dart';
@@ -75,12 +78,15 @@ class _CorrectionsScreenState extends ConsumerState<CorrectionsScreen> {
     return asyncView(ref.watch(allCharactersProvider), (chars) {
       final t = Theme.of(context).textTheme;
       final names = {for (final c in chars) c.id: c.name};
+      final games = ref.watch(gamesProvider).value ?? const <Game>[];
+      final now = DateTime.now();
       // Les règles (staffEdit) n'acceptent une correction que sur un PNJ ou une fiche jouée ou close.
       final options = [
         for (final c in chars)
           if (c.playerUid != me.uid && (c.kind == CharacterKind.pnj || c.status.settled)) c,
       ];
-      final sheet = options.where((c) => c.id == _sheetId).firstOrNull;
+      // Une fiche figée ne se corrige pas pendant le gel (règle staffEdit).
+      final sheet = options.where((c) => c.id == _sheetId && frozenBy(games, c.id, now) == null).firstOrNull;
 
       final recent = Panel(
         padding: EdgeInsets.zero,
@@ -118,7 +124,13 @@ class _CorrectionsScreenState extends ConsumerState<CorrectionsScreen> {
             initialValue: sheet?.id,
             isExpanded: true,
             decoration: const InputDecoration(labelText: 'Fiche'),
-            items: [for (final c in options) DropdownMenuItem(value: c.id, child: Text('${c.name} · ${c.playerName ?? 'PNJ'}'))],
+            items: [
+              for (final c in options)
+                if (frozenBy(games, c.id, now) case final g?)
+                  DropdownMenuItem(value: c.id, enabled: false, child: Text('${c.name} · ${c.playerName ?? 'PNJ'} · ${frozenUntilText(g)}'))
+                else
+                  DropdownMenuItem(value: c.id, child: Text('${c.name} · ${c.playerName ?? 'PNJ'}')),
+            ],
             onChanged: (id) => setState(() {
               _sheetId = id;
               _reset();

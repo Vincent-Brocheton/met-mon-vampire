@@ -11,6 +11,10 @@ import '../core/widgets.dart';
 import '../rulebook/rule_hint.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
+import '../games/freeze_banner.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../morality/morality_rules.dart' show moralityName;
 import 'xp_repository.dart';
 import 'xp_request.dart';
@@ -148,6 +152,7 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
     final spec = name == null ? null : noteSpec(_kind, name, rb: rb);
     final rank = (c.genRank ?? GenRank.neonate).label;
     final problems = sendProblems(c, r.items, usable: usable, rb: rb);
+    final frozen = frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], c.id, DateTime.now());
     final canSend = r.items.isNotEmpty && problems.isEmpty && _why.text.trim().isNotEmpty && !_busy;
 
     final addSection = Panel(
@@ -277,6 +282,10 @@ class _SpendScreenState extends ConsumerState<SpendScreen> {
         'Le coût est calculé selon ${c.ghoul != null ? 'les règles de goule' : 'la génération du personnage ($rank)'}. L’XP est réservée jusqu’à la décision du conte.',
         style: t.bodyLarge?.copyWith(color: AppColors.textSecondary),
       ),
+      if (frozen != null) ...[
+        const SizedBox(height: 12),
+        FreezeBanner(playerFreezeText(frozen)),
+      ],
       if (r.status == RequestStatus.changes && r.thread.isNotEmpty) ...[
         const SizedBox(height: 12),
         Text('Le conte : « ${r.thread.last.text} »', style: t.bodyMedium?.copyWith(color: AppColors.goldLight)),

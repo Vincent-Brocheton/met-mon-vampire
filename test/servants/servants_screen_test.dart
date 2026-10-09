@@ -8,12 +8,15 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/servants/servant_file.dart';
 import 'package:portail_met/servants/servants_repository.dart';
 import 'package:portail_met/servants/servants_screen.dart';
 
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 import 'servant_rules_test.dart' show isaure, rb, rexFile;
 
 void main() {
@@ -21,7 +24,7 @@ void main() {
   const julien = AppUser(uid: 'julien', displayName: 'Julien', email: 'j@ex.fr', role: Role.narrateur);
   const ines = AppUser(uid: 'u2', displayName: 'Inès T.', email: 'i@ex.fr', role: Role.joueur);
 
-  Future<(FakeServantsRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<ServantFile>? files, Stream<List<ServantFile>>? stream}) async {
+  Future<(FakeServantsRepository, FakeCharacterRepository)> pump(WidgetTester tester, {AppUser user = lea, List<ServantFile>? files, Stream<List<ServantFile>>? stream, List<Game> games = const []}) async {
     tester.view.physicalSize = const Size(1440, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -33,6 +36,7 @@ void main() {
         rulebookProvider.overrideWith((ref) => rb),
         servantsRepositoryProvider.overrideWith((ref) => repo),
         characterRepositoryProvider.overrideWith((ref) => chars),
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea, ines])),
         allServantFilesProvider.overrideWith((ref) => stream ?? Stream.value(files ?? [rexFile()])),
         allCharactersProvider.overrideWith((ref) => Stream.value([isaure()])),
@@ -190,6 +194,22 @@ void main() {
     expect(find.byKey(const Key('so-domitor')), findsNothing);
     expect(chars.calls, isEmpty);
     expect((servants.lastSaved!.kind, servants.lastSaved!.domitorId), ('human', 'x'));
+  });
+
+  testWidgets('mortel devient serviteur : domitor figé, message et aucune écriture (revue finale)', (tester) async {
+    final (servants, chars) = await pump(tester, files: [ServantFile(id: 'm1', kind: 'mortal', name: 'Jeanne', attachment: 'Voisine', version: 1)], games: [frozenGame(year: 2099, sheetIds: const ['x'])]);
+    await tester.tap(find.text('Jeanne'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sv-to-servant')));
+    await tester.pumpAndSettle();
+    await choose(tester, 'so-domitor', 'Isaure de Valcourt');
+    await tester.enterText(find.byKey(const Key('so-reason')), 'Recrutée');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('so-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('l’XP ne peut pas changer.'), findsOneWidget);
+    expect(chars.calls, isEmpty);
+    expect(servants.calls, isEmpty);
   });
 
   testWidgets('fenêtres : sans le conteur parmi les joueurs, génération effaçable, pas d’étreinte d’animal (revue)', (tester) async {

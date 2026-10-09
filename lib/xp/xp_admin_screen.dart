@@ -12,6 +12,9 @@ import '../characters/edit_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import 'xp_gain.dart';
 import 'xp_repository.dart';
 import 'xp_settings.dart';
@@ -117,7 +120,11 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
     final t = Theme.of(context).textTheme;
     final current = monthKey(widget.now());
     final dues = monthlyGain(chars, settings, widget.now());
-    final payable = [for (final d in dues) if (d.c.playerUid != me.uid) d];
+    final games = ref.watch(gamesProvider).value ?? const <Game>[];
+    Game? frozen(Character c) => frozenBy(games, c.id, widget.now());
+    // Fiche figée : son XP ne bouge pas pendant le gel (règle staffEdit) ; ses mois seront versés après la levée.
+    final payable = [for (final d in dues) if (d.c.playerUid != me.uid && frozen(d.c) == null) d];
+    final held = dues.where((d) => d.c.playerUid != me.uid && frozen(d.c) != null).length;
     final mine = [for (final d in dues) if (d.c.playerUid == me.uid) d.c.name];
     final total = payable.fold<int>(0, (s, d) => s + d.xp);
 
@@ -163,11 +170,15 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
           const SizedBox(height: 8),
           Text('À verser par un autre conteur : ${mine.join(', ')}', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
         ],
+        if (held > 0) ...[
+          const SizedBox(height: 8),
+          Text(frozenGainText(held), style: t.bodySmall?.copyWith(color: AppColors.frozen)),
+        ],
       ]),
     );
 
     final actives = [for (final c in chars) if (c.kind == CharacterKind.pj && c.status == CharacterStatus.active) c];
-    final selectable = [for (final c in actives) if (c.playerUid != me.uid) c];
+    final selectable = [for (final c in actives) if (c.playerUid != me.uid && frozen(c) == null) c];
     final query = _search.text.trim().toLowerCase();
     final shown = [
       for (final c in actives)
@@ -241,11 +252,11 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
             decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
             child: Wrap(spacing: 12, crossAxisAlignment: WrapCrossAlignment.center, children: [
               Tooltip(
-                message: c.playerUid == me.uid ? 'Votre propre fiche' : '',
+                message: c.playerUid == me.uid ? 'Votre propre fiche' : (frozen(c) == null ? '' : frozenUntilText(frozen(c)!)),
                 child: Checkbox(
                   key: Key('award-${c.id}'),
                   value: _selected.containsKey(c.id),
-                  onChanged: c.playerUid == me.uid
+                  onChanged: c.playerUid == me.uid || frozen(c) != null
                       ? null
                       : (on) => setState(() => on == true ? _selected[c.id] = _amount : _selected.remove(c.id)),
                 ),
@@ -253,6 +264,7 @@ class _XpAdminScreenState extends ConsumerState<XpAdminScreen> {
               SizedBox(width: 200, child: Text(c.name, style: t.bodyMedium?.copyWith(color: c.playerUid == me.uid ? AppColors.textMuted : null))),
               SizedBox(width: 140, child: Text(c.playerName ?? '—', style: t.bodySmall)),
               SizedBox(width: 90, child: Text('${c.xpAvailable} XP', style: t.bodySmall)),
+              if (frozen(c) case final g?) Text(frozenUntilText(g), style: t.bodySmall?.copyWith(color: AppColors.frozen)),
               if (_selected.containsKey(c.id)) ...[
                 IconButton(
                   tooltip: 'Moins : ${c.name}',

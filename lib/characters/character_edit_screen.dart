@@ -13,6 +13,10 @@ import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../events/event_rules.dart';
+import '../games/freeze_banner.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../items/character_items_screen.dart';
 import '../items/items_repository.dart';
 import '../morality/morality_rules.dart' show moralityName;
@@ -122,6 +126,12 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
 
   /// Étreinte d'une goule jouée : une seule écriture tracée « embrace », clé `ghoul` supprimée.
   Future<void> _embraceGhoul(Character latest) async {
+    // L'étreinte ajoute son coût à l'XP dépensée : refusé par les règles tant que la fiche est figée.
+    final frozen = frozenBy(ref.read(gamesProvider).value ?? const <Game>[], latest.id, DateTime.now());
+    if (frozen != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${frozenUntilText(frozen)} : l’XP ne peut pas changer.')));
+      return;
+    }
     final rb = ref.read(rulebookProvider) ?? const Rulebook();
     final choice = await showDialog<EmbraceChoice>(
       context: context,
@@ -151,6 +161,12 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     final by = actorOf(ref.read(currentUserProvider).value);
     final changes = _changes;
     if (by == null || changes.isEmpty || _saving) return;
+    // Fiche figée : les règles refuseraient tout changement d'XP (staffEdit) ; on le dit avant le motif.
+    final frozen = frozenBy(ref.read(gamesProvider).value ?? const <Game>[], _base!.id, DateTime.now());
+    if (frozen != null && (_draft!.xpEarned != _base!.xpEarned || _draft!.xpSpent != _base!.xpSpent)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${frozenUntilText(frozen)} : l’XP ne peut pas changer.')));
+      return;
+    }
     if (_draft!.ghoul != null && _draft!.humanity < _base!.humanity) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('L’Humanité d’une goule ne peut pas baisser.')));
       return;
@@ -231,10 +247,12 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
       }
     });
     final me = ref.watch(currentUserProvider).value;
+    final games = ref.watch(gamesProvider).value ?? const <Game>[];
     return asyncView(ref.watch(characterProvider(widget.id)), (latest) {
       if (latest == null) {
         return const EmptyState(kind: EmptyKind.notFound, title: 'Cette fiche n’existe pas', message: 'Elle a pu être retirée.');
       }
+      final frozen = frozenBy(games, latest.id, DateTime.now());
       final readOnlyReason = switch (latest) {
         _ when me == null || !me.role.managesAccounts => 'Seuls les conteurs modifient les fiches.',
         _ when latest.playerUid == me.uid => 'C’est votre propre fiche : un autre conteur doit la modifier.',
@@ -247,6 +265,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           CharacterHeader(latest, basePath: '/conteur/fiches/${latest.id}'),
           const SizedBox(height: 16),
           _Banner(readOnlyReason),
+          if (frozen != null) ...[
+            const SizedBox(height: 12),
+            FreezeBanner(staffFreezeText(frozen)),
+          ],
           if (latest.kind == CharacterKind.pj &&
               latest.status == CharacterStatus.draft &&
               me != null &&
@@ -268,6 +290,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               CharacterHeader(_base!, basePath: '/conteur/fiches/${latest.id}'),
               const SizedBox(height: 16),
               const _Banner('Mode conteur — les modifications s’appliquent directement et sont tracées dans l’historique, avec un motif.'),
+              if (frozen != null) ...[
+                const SizedBox(height: 12),
+                FreezeBanner(staffFreezeText(frozen)),
+              ],
               if (_incoming != null) ...[
                 const SizedBox(height: 12),
                 _Banner(

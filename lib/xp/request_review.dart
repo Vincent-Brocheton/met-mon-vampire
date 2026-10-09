@@ -8,6 +8,9 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../games/game.dart';
+import '../games/game_rules.dart';
+import '../games/games_repository.dart';
 import '../morality/derangement_rules.dart' show derangementOfItem, derangementSummary;
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -116,6 +119,9 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
         final blocked = checks.any((k) => k.level == CheckLevel.error);
         final total = recomputedTotal(c, r.items, rb: rb);
         final after = c.xpAvailable - reservedOthers - total;
+        // Pendant le gel, une dépense ne se valide pas (règle staffEdit) ; une demande à 0 XP, si.
+        final frozen = frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], c.id, DateTime.now());
+        final xpLocked = frozen != null && total > 0;
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Wrap(spacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [
             const XpTypePill(),
@@ -190,9 +196,13 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
                   Text(_error!, style: const TextStyle(color: AppColors.linkHover)),
                 ],
                 const SizedBox(height: 12),
+                if (xpLocked) ...[
+                  Text(frozenUntilText(frozen), style: t.bodyMedium?.copyWith(color: AppColors.frozen)),
+                  const SizedBox(height: 8),
+                ],
                 Wrap(spacing: 12, runSpacing: 12, children: [
                   FilledButton(
-                    onPressed: blocked || _busy ? null : () => _decide(c, RequestStatus.accepted, rb),
+                    onPressed: blocked || xpLocked || _busy ? null : () => _decide(c, RequestStatus.accepted, rb),
                     child: const Text('Valider la dépense'),
                   ),
                   OutlinedButton(onPressed: _busy ? null : () => _decide(c, RequestStatus.changes, rb), child: const Text('Demander des compléments')),

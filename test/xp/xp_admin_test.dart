@@ -6,12 +6,15 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/xp/xp_admin_screen.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_settings.dart';
 
 import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
@@ -22,7 +25,7 @@ void main() {
           ..decidedAt = DateTime(2026, 8, 31),
       ];
 
-  Future<FakeXpRepository> pump(WidgetTester tester, {XpSettings settings = const XpSettings(monthlyEnabled: true, gainSince: '2026-01')}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, {XpSettings settings = const XpSettings(monthlyEnabled: true, gainSince: '2026-01'), List<Game> games = const []}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -33,6 +36,7 @@ void main() {
         xpRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => Stream.value(sheets())),
         xpSettingsProvider.overrideWith((ref) => Stream.value(settings)),
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
@@ -55,6 +59,14 @@ void main() {
     await tester.tap(find.text('Verser'));
     await tester.pumpAndSettle();
     expect(repo.calls, ['gain:x=6@2026-10']);
+  });
+
+  testWidgets('fiche figée : hors du gain mensuel, bonus impossible (sous-projet 8a, Review Focus 2)', (tester) async {
+    await pump(tester, games: [frozenGame(year: 2099)]);
+    expect(find.text('1 fiche figée : son gain sera versé après le gel.'), findsOneWidget);
+    expect(find.text('Verser 6 XP'), findsNothing);
+    expect(tester.widget<Checkbox>(find.byKey(const Key('award-x'))).onChanged, isNull);
+    expect(find.text('Fiche figée jusqu’au 4 oct.'), findsOneWidget);
   });
 
   testWidgets('versement : fiche refusée signalée (Review Focus 1)', (tester) async {

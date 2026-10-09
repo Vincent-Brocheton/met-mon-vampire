@@ -6,12 +6,15 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/creation/validation_screen.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
 
 import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 import 'creation_rules_test.dart' show valid;
 
 void main() {
@@ -37,6 +40,7 @@ void main() {
     List<XpRequest> requests = const [],
     Character? sheet,
     AppUser user = lea,
+    List<Game> games = const [],
   }) async {
     tester.view.physicalSize = const Size(1440, 3000);
     tester.view.devicePixelRatio = 1;
@@ -46,6 +50,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         baseRulebook,
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         characterRepositoryProvider.overrideWith((ref) => repo),
         xpRepositoryProvider.overrideWith((ref) => xp),
@@ -59,6 +64,19 @@ void main() {
     await tester.pumpAndSettle();
     return (repo, xp);
   }
+
+  testWidgets('dépense sur une fiche figée : validation bloquée, refus possible (sous-projet 8a, Review Focus 2)', (tester) async {
+    await pump(tester, const [], requests: [auspex()], games: [frozenGame(year: 2099)]);
+    expect(find.text('Fiche figée jusqu’au 4 oct.'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Valider la dépense')).onPressed, isNull);
+    expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Refuser')).onPressed, isNotNull);
+  });
+
+  testWidgets('dépense : gel d’une autre fiche, validation possible (sous-projet 8a)', (tester) async {
+    await pump(tester, const [], requests: [auspex()], games: [frozenGame(year: 2099, sheetIds: const ['y'])]);
+    expect(find.textContaining('Fiche figée'), findsNothing);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Valider la dépense')).onPressed, isNotNull);
+  });
 
   testWidgets('file vide', (tester) async {
     await pump(tester, const []);

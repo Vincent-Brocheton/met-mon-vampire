@@ -6,12 +6,15 @@ import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/xp/corrections_screen.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
 
 import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
+import '../games/game_rules_test.dart' show frozenGame;
 
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
@@ -27,7 +30,7 @@ void main() {
         decidedAt: DateTime(2026, 9, 12),
       );
 
-  Future<FakeXpRepository> pump(WidgetTester tester, Character sheet, {List<CorrectionEntry> recent = const [], List<Character> others = const []}) async {
+  Future<FakeXpRepository> pump(WidgetTester tester, Character sheet, {List<CorrectionEntry> recent = const [], List<Character> others = const [], List<Game> games = const []}) async {
     tester.view.physicalSize = const Size(1440, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -35,6 +38,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         baseRulebook,
+        gamesProvider.overrideWith((ref) => Stream.value(games)),
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         xpRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => Stream.value([sheet, ...others])),
@@ -62,6 +66,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Mira Kovač · Inès T.'), findsNothing);
     expect(find.text('Isaure de Valcourt · Camille R.'), findsWidgets);
+  });
+
+  testWidgets('fiche figée : proposée mais non sélectionnable (sous-projet 8a, Review Focus 2)', (tester) async {
+    await pump(tester, sample(), games: [frozenGame(year: 2099)]);
+    await tester.tap(find.byKey(const Key('corr-sheet')));
+    await tester.pumpAndSettle();
+    const label = 'Isaure de Valcourt · Camille R. · Fiche figée jusqu’au 4 oct.';
+    expect(find.text(label), findsWidgets);
+    await tester.tap(find.text(label).last, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Enregistrer la correction'), findsNothing);
   });
 
   testWidgets('dernières corrections affichées', (tester) async {

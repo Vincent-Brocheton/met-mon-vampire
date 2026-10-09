@@ -25,6 +25,7 @@ import 'creation/submitted_screen.dart';
 import 'creation/validation_screen.dart';
 import 'events/events_screen.dart';
 import 'events/story_screen.dart';
+import 'games/freeze_screen.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
@@ -169,6 +170,7 @@ GoRouter router(Ref ref) {
           page('/conteur/comptes', const AccountsScreen()),
           page('/conteur/equipe', const TeamScreen()),
           page('/conteur/fiches', const CharactersListScreen()),
+          page('/conteur/gel', const FreezeScreen()),
           page('/conteur/lieux', const PlacesScreen()),
           page('/conteur/goules', const ServantsScreen()),
           page('/conteur/objets', const ItemsScreen()),
