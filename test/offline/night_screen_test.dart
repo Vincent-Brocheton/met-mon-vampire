@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/characters/character.dart';
@@ -45,6 +46,7 @@ void main() {
     Stream<FrozenSheet?>? frozen,
     List<Sin> sins = const [],
     Device? device,
+    String basePath = '/joueur/personnages/x',
     Size size = const Size(1440, 1600),
   }) async {
     tester.view.physicalSize = size;
@@ -67,9 +69,13 @@ void main() {
         noItems,
         noPlaces,
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: buildTheme(withFonts: false),
-        home: Scaffold(body: NightScreen(characterId: 'x', now: () => now)),
+        routerConfig: GoRouter(initialLocation: '$basePath/partie', routes: [
+          GoRoute(path: '$basePath/partie', builder: (_, _) => Scaffold(body: NightScreen(characterId: 'x', basePath: basePath, now: () => now))),
+          GoRoute(path: basePath, builder: (_, _) => Text('fiche $basePath')),
+          GoRoute(path: '$basePath/xp', builder: (_, _) => const Text('demande')),
+        ]),
       ),
     ));
     await tester.pumpAndSettle();
@@ -182,6 +188,30 @@ void main() {
   testWidgets('version figée absente du cache : message de préparation', (tester) async {
     await pump(tester, frozen: StreamController<FrozenSheet?>().stream);
     expect(find.text(notPreparedText), findsOneWidget);
+  });
+
+  testWidgets('conte sur sa propre fiche : chemin conteur, pas de « Brouillon de demande »', (tester) async {
+    await pump(tester, basePath: '/conteur/fiches/x');
+    expect(find.text('Isaure en partie'), findsOneWidget);
+    expect(find.text('Brouillon de demande'), findsNothing);
+    await tap(tester, find.text('Fiche complète (lecture)'));
+    expect(find.text('fiche /conteur/fiches/x'), findsOneWidget);
+  });
+
+  testWidgets('joueur : « Fiche complète » et « Brouillon de demande » visent le chemin joueur', (tester) async {
+    await pump(tester);
+    await tap(tester, find.text('Brouillon de demande'));
+    expect(find.text('demande'), findsOneWidget);
+  });
+
+  testWidgets('maxima baissés après le gel : la note enregistre des valeurs bornées', (tester) async {
+    final (nights, _) = await pump(tester,
+        frozen: Stream.value(snapshot(isaure()..blood = 4)), view: const NightView(Night(blood: 10), exists: true));
+    await tester.ensureVisible(find.byKey(const Key('night-note')));
+    await tester.enterText(find.byKey(const Key('night-note')), 'Inès Morel');
+    await tap(tester, find.text('Ajouter la note'));
+    expect(nights.saved.last.blood, 4);
+    expect(nights.saved.last.notes.single.text, 'Inès Morel');
   });
 
   testWidgets('mobile, 390 px', (tester) async {

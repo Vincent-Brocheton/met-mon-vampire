@@ -11,6 +11,7 @@ import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/game_rules.dart' show staffFreezeText;
 import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/items/items_repository.dart';
@@ -351,5 +352,16 @@ void main() {
   testWidgets('C3 : bouton « Imprimer » (sous-projet 8b)', (tester) async {
     await pump(tester, withHumanity());
     expect(find.byKey(const Key('c3-print')), findsOneWidget);
+  });
+
+  testWidgets('C3 : « En partie » dans le bandeau du gel, sur la fiche du conte lui-même (sous-projet 8c)', (tester) async {
+    await pump(tester, withHumanity()..playerUid = 'lea', games: [frozenGame(year: 2099)]);
+    expect(find.byKey(const Key('c3-night')), findsOneWidget);
+  });
+
+  testWidgets('C3 : pas de « En partie » sur la fiche figée d’un joueur (sous-projet 8c)', (tester) async {
+    await pump(tester, withHumanity(), games: [frozenGame(year: 2099)]);
+    expect(find.text(staffFreezeText(frozenGame(year: 2099))), findsOneWidget);
+    expect(find.byKey(const Key('c3-night')), findsNothing);
   });
 }

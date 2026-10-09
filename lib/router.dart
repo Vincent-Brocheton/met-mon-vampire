@@ -136,7 +136,7 @@ GoRouter router(Ref ref) {
           ),
           GoRoute(
             path: '/joueur/personnages/:id/partie',
-            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!),
+            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']!}'),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
@@ -230,6 +230,11 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/conteur/fiches/:id/imprimer',
             builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/conteur/fiches/${s.pathParameters['id']}'),
+          ),
+          // Le conte sur sa propre fiche : « En partie », comme un joueur.
+          GoRoute(
+            path: '/conteur/fiches/:id/partie',
+            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!, basePath: '/conteur/fiches/${s.pathParameters['id']}'),
           ),
           page('/conteur/demandes', const ValidationScreen()),
           page('/conteur/pnj', const NpcLoansScreen()),

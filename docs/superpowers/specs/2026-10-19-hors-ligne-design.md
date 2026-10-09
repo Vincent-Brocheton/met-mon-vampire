@@ -61,7 +61,7 @@ Les bornes viennent de la version figée de la partie. Chaque coche réécrit le
 
 `deviceId` est un identifiant aléatoire créé au premier lancement et gardé par `shared_preferences`. Le document est écrit à chaque démarrage de l’app une fois connecté (`lastSeen`).
 
-## Calculs purs (`lib/offline/night_rules.dart`)
+## Calculs purs (`lib/offline/night.dart`)
 
 - **`NightLimits.of(sheet)` :** maxima du sang, de la volonté et des trois groupes de santé. Pour la santé, on lit `health` (« 3 · 3 · 3 ») ; une valeur illisible donne `[3, 3, 3]`.
 - **`toggle(night, track, index, limits)` :** cliquer la case n coche jusqu’à n. Cliquer la dernière case cochée la décoche. Le résultat reste dans les bornes.
@@ -96,6 +96,7 @@ Les bornes viennent de la version figée de la partie. Chaque coche réécrit le
 ### Joueur : « En partie », `/joueur/personnages/:id/partie` (J-HorsLigne)
 
 - **Accès :** un bouton « En partie » dans le bandeau du gel de la fiche du joueur, à côté d’« Imprimer ». Il n’apparaît que si la fiche est figée par la partie en cours. Ailleurs, la route affiche « Cette fiche n’est pas figée pour une partie en cours ».
+- **Conte sur sa propre fiche :** route `/conteur/fiches/:id/partie`, ouverte par « En partie » dans le bandeau du gel de C3 ; même écran, liens vers `/conteur/fiches/:id`, sans « Brouillon de demande ».
 - **En-tête :**
   - fil « <nom> / En partie », titre « <prénom> en partie » ;
   - badge « Hors ligne » quand les données viennent du cache, rien sinon ;
@@ -130,12 +131,12 @@ Lecture seule pour tout le conte, narrateur compris.
 
 - **Une ligne par appareil :** le nom ; « Cet appareil » pour l’appareil courant ; « Copie hors ligne · partie du 3 oct. » si `gameId` désigne une partie dont le gel n’est pas encore levé, sinon « Connexion web » ou « Application Android » ; la dernière visite.
 - **Bouton « Déconnecter » :**
-  - sur un autre appareil : écrit `revokedAt`, avec confirmation, puis la ligne affiche « Déconnexion en attente » ;
+  - sur un autre appareil : écrit `revokedAt`, avec confirmation, puis la ligne affiche « Déconnexion en attente », sans bouton ;
   - sur l’appareil courant : même effet que « Se déconnecter ».
 - **Phrases fixes :**
   - « Déconnecter un appareil efface aussi sa copie hors ligne. » ;
   - « Un appareil hors ligne est déconnecté à son prochain passage en ligne. ».
-- **Appareils marqués :** les appareils avec `revokedAt` restent listés jusqu’à ce que l’appareil supprime son document.
+- **Appareils marqués :** les appareils avec `revokedAt` restent listés, sans bouton, jusqu’à ce que l’appareil supprime son document.
 
 ### Surveillance de l’appareil
 
@@ -155,7 +156,7 @@ Un provider démarré avec la session :
 
 ## Tests
 
-- **Calculs purs (`test/offline/night_rules_test.dart`) :**
+- **Calculs purs (`test/offline/night_test.dart`) :**
   - maxima, y compris goule et `health` illisible ;
   - coche, décoche de la dernière case, bornes ;
   - annulation ;

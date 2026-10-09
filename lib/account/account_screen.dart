@@ -69,6 +69,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   /// « Se déconnecter » : le cache de l'appareil est vidé ; des saisies pas encore envoyées seraient perdues.
   Future<void> _signOut() async {
     final session = ref.read(deviceSessionProvider);
+    // Lu avant toute attente : l'écran peut être démonté pendant le dialogue.
+    final uid = ref.read(currentUserProvider).value?.uid;
+    // Sans identifiant d'appareil (préférences illisibles), la déconnexion a lieu quand même.
+    final deviceId = ref.read(deviceIdProvider.future).then<String?>((id) => id, onError: (Object _) => null);
     if (await session.pendingWrites()) {
       if (!mounted) return;
       final ok = await showDialog<bool>(
@@ -84,7 +88,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       );
       if (ok != true) return;
     }
-    await session.signOut(ref.read(currentUserProvider).value?.uid, await ref.read(deviceIdProvider.future));
+    await session.signOut(uid, await deviceId);
   }
 
   @override

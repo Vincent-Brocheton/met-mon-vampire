@@ -26,8 +26,11 @@ import 'night_repository.dart';
 
 /// « En partie » (J-HorsLigne) : suivi de la soirée sur la version figée, utilisable sans réseau.
 class NightScreen extends ConsumerStatefulWidget {
-  const NightScreen({super.key, required this.characterId, this.now});
+  const NightScreen({super.key, required this.characterId, required this.basePath, this.now});
   final String characterId;
+
+  /// Chemin de la fiche : joueur, ou conteur quand le conte suit sa propre fiche.
+  final String basePath;
 
   /// Heure de l'appareil ; remplacée dans les tests.
   final DateTime Function()? now;
@@ -45,7 +48,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
   /// Dernier gel connu : si le gel est levé pendant que l'écran est ouvert, il reste lisible.
   Game? _game;
 
-  String get _base => '/joueur/personnages/${widget.characterId}';
+  String get _base => widget.basePath;
   DateTime get _now => (widget.now ?? DateTime.now)();
 
   @override
@@ -55,28 +58,29 @@ class _NightScreenState extends ConsumerState<NightScreen> {
   }
 
   /// Hors ligne, l'écriture attend le réseau : on ne l'attend pas ; un refus du serveur est signalé.
-  void _save(String uid, String gameId, Night next) {
-    ref.read(nightRepositoryProvider).save(widget.characterId, gameId, next, uid).catchError((Object _) {
+  /// Bornée aux maxima de la version figée : une correction urgente qui les baisse ferait refuser l'écriture.
+  void _save(String uid, String gameId, NightLimits limits, Night next) {
+    ref.read(nightRepositoryProvider).save(widget.characterId, gameId, clampTo(next, limits), uid).catchError((Object _) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(refusedText)));
     });
   }
 
-  void _play(String uid, String gameId, Night before, Night after) {
+  void _play(String uid, String gameId, NightLimits limits, Night before, Night after) {
     setState(() => _undo.add(before));
-    _save(uid, gameId, after);
+    _save(uid, gameId, limits, after);
   }
 
-  void _cancel(String uid, String gameId, Night current) {
+  void _cancel(String uid, String gameId, NightLimits limits, Night current) {
     final previous = _undo.removeLast();
     setState(() {});
-    _save(uid, gameId, undoTo(current, previous));
+    _save(uid, gameId, limits, undoTo(current, previous));
   }
 
-  void _addNote(String uid, String gameId, Night current) {
+  void _addNote(String uid, String gameId, NightLimits limits, Night current) {
     final next = addNote(current, _note.text, _now);
     if (next == null) return;
     _note.clear();
-    _save(uid, gameId, next);
+    _save(uid, gameId, limits, next);
   }
 
   /// Première ouverture avec réseau : l'appareil note la partie préparée (« Copie hors ligne » dans Mon compte).
@@ -154,7 +158,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
               key: Key('${track.name}-$i'),
               label: '$label $i',
               filled: i <= v,
-              onTap: uid == null ? null : () => _play(uid, game.id, night, toggle(night, track, i, limits)),
+              onTap: uid == null ? null : () => _play(uid, game.id, limits, night, toggle(night, track, i, limits)),
             ),
         ]);
       }
@@ -185,7 +189,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
           Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 12, runSpacing: 8, children: [
             const SectionTitle('Suivi de la soirée'),
             OutlinedButton(
-              onPressed: _undo.isEmpty || uid == null ? null : () => _cancel(uid, game.id, night),
+              onPressed: _undo.isEmpty || uid == null ? null : () => _cancel(uid, game.id, limits, night),
               child: const Text('Annuler le dernier coup'),
             ),
           ]),
@@ -249,8 +253,9 @@ class _NightScreenState extends ConsumerState<NightScreen> {
             ),
             const SizedBox(height: 10),
             Wrap(spacing: 10, runSpacing: 10, children: [
-              OutlinedButton(onPressed: uid == null ? null : () => _addNote(uid, game.id, night), child: const Text('Ajouter la note')),
-              OutlinedButton(onPressed: () => context.go('$_base/xp'), child: const Text('Brouillon de demande')),
+              OutlinedButton(onPressed: uid == null ? null : () => _addNote(uid, game.id, limits, night), child: const Text('Ajouter la note')),
+              // Pas de demande d'XP côté conteur : le conte ne peut pas faire de demande à lui-même.
+              if (_base.startsWith('/joueur/')) OutlinedButton(onPressed: () => context.go('$_base/xp'), child: const Text('Brouillon de demande')),
             ]),
             for (final n in night.notes.reversed) Padding(padding: const EdgeInsets.only(top: 8), child: Text(noteLine(n), style: t.bodyMedium)),
           ]),
