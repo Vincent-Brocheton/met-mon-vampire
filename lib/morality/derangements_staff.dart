@@ -8,6 +8,7 @@ import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../offline/offline.dart';
 import '../rulebook/rulebook.dart';
 import 'derangement_form.dart';
 import 'derangement_rules.dart';
@@ -46,10 +47,10 @@ class _StaffDerangementsState extends ConsumerState<StaffDerangements> {
       await ref.read(characterRepositoryProvider).saveEdit(c, after, reason, by);
       messenger.showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
       return true;
-    } catch (_) {
+    } catch (e) {
       final latest = ref.read(characterProvider(c.id)).value;
       final moved = latest != null && latest.version != c.version;
-      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.'))));
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);

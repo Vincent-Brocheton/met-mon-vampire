@@ -8,6 +8,7 @@ import '../characters/character_repository.dart';
 import '../characters/describe_changes.dart';
 import '../core/theme.dart';
 import '../npcs/loan_rules.dart' show parseDay;
+import '../offline/offline.dart';
 import '../rulebook/rule_entry.dart' show nameKey;
 import '../rulebook/rulebook.dart';
 import 'court_entry.dart';
@@ -62,11 +63,11 @@ class _TitleHoldersSectionState extends ConsumerState<TitleHoldersSection> {
       await ref.read(titlesRepositoryProvider).assign(c, title, since, reason, by, widget.rb);
       messenger.showSnackBar(const SnackBar(content: Text('Fiche enregistrée.')));
       if (mounted && title != null) setState(() => _sheetId = null);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       final latest = ref.read(characterProvider(c.id)).value;
       final moved = latest != null && latest.version != c.version;
-      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -21,6 +21,7 @@ import '../items/character_items_screen.dart';
 import '../items/items_repository.dart';
 import '../morality/morality_rules.dart' show moralityName;
 import '../npcs/my_npc_loans_screen.dart';
+import '../offline/offline.dart';
 import '../places/character_places_screen.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
@@ -152,8 +153,8 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
     try {
       await ref.read(characterRepositoryProvider).saveEdit(latest, r.after!, choice.reason, by, kind: 'embrace', extra: {'ghoul': FieldValue.delete()}, events: [embraceEvent(r.after!, DateTime.now())]);
       messenger.showSnackBar(const SnackBar(content: Text('Étreinte enregistrée.')));
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Modifié entre-temps : rechargez la page.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, 'Modifié entre-temps : rechargez la page.'))));
     }
   }
 
@@ -223,10 +224,10 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               : failed.join(' ')),
         ));
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Enregistrement refusé : la fiche a peut-être été modifiée entre-temps. Vos changements sont conservés.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(refusalText(e, 'Enregistrement refusé : la fiche a peut-être été modifiée entre-temps. Vos changements sont conservés.')),
         ));
       }
     } finally {
@@ -702,8 +703,8 @@ class _BonusPanelState extends ConsumerState<_BonusPanel> {
     try {
       await ref.read(characterRepositoryProvider).setBonus(widget.c, _bonus, by);
       messenger.showSnackBar(SnackBar(content: Text('Bonus du conte : $_bonus XP.')));
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, 'Enregistrement refusé : réessayez.'))));
     }
   }
 
