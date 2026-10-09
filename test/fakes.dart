@@ -667,6 +667,9 @@ class FakeDevicesRepository implements DevicesRepository {
   Future<void> prepared(String uid, String id, String gameId) => _record('prepared:$uid/$id/$gameId');
 
   @override
+  Future<void> clearPrepared(String uid, String id) => _record('clearPrepared:$uid/$id');
+
+  @override
   Future<void> revoke(String uid, String id) => _record('revoke:$uid/$id');
 
   @override

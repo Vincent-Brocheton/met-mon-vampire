@@ -26,6 +26,7 @@ import 'creation/validation_screen.dart';
 import 'events/events_screen.dart';
 import 'events/story_screen.dart';
 import 'games/freeze_screen.dart';
+import 'games/games_repository.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
@@ -34,6 +35,7 @@ import 'npcs/npc_loans_screen.dart';
 import 'offline/device_session.dart';
 import 'offline/devices_repository.dart';
 import 'offline/night_screen.dart';
+import 'offline/offline.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'print/print_screen.dart';
@@ -68,12 +70,25 @@ GoRouter router(Ref ref) {
     if (next.value?.role == Role.disabled) ref.read(authRepositoryProvider).signOut();
   });
   // Appareil déconnecté depuis un autre appareil (8c) : il vide son cache et se déconnecte lui-même.
+  // Effacement programmé (8d) : la partie préparée sur l'appareil est finie depuis le délai choisi.
   ref.listen(thisDeviceProvider, (_, next) {
     final d = next.value;
-    if (d != null && d.revokedAt != null) {
-      ref.read(deviceSessionProvider).signOut(ref.read(authStateProvider).value?.uid, d.id, revoked: true);
+    if (d == null) return;
+    final uid = ref.read(authStateProvider).value?.uid;
+    if (d.revokedAt != null) {
+      ref.read(deviceSessionProvider).signOut(uid, d.id, revoked: true);
+      return;
     }
+    if (d.gameId == null) return;
+    ref
+        .read(gamesRepositoryProvider)
+        .watchAll()
+        .first
+        .then((games) => ref.read(deviceSessionProvider).wipeIfDue(uid, d, games, DateTime.now(), '/'))
+        .catchError((Object e) => debugPrint('Effacement programmé impossible ($e)'));
   });
+  // État hors ligne (8d), lu par la garde des dépôts : écouté dès le démarrage pour être connu à la première écriture.
+  ref.listen(offlineProvider, (_, _) {});
 
   GoRoute page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
   Widget soon(String feature) => EmptyState.comingSoon(feature);

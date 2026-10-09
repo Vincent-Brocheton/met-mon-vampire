@@ -37,6 +37,9 @@ class DevicesRepository {
   Future<void> prepared(String uid, String id, String gameId) =>
       _col(uid).doc(id).update({'gameId': gameId, 'preparedAt': FieldValue.serverTimestamp()});
 
+  /// Partie préparée oubliée, avant l'effacement des données de l'appareil (sous-projet 8d).
+  Future<void> clearPrepared(String uid, String id) => _col(uid).doc(id).update({'gameId': null, 'preparedAt': null});
+
   /// Demande de déconnexion : l'appareil visé l'applique à son prochain passage en ligne.
   Future<void> revoke(String uid, String id) => _col(uid).doc(id).update({'revokedAt': FieldValue.serverTimestamp()});
 

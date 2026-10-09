@@ -48,4 +48,4 @@ final class DeviceSessionProvider
   }
 }
 
-String _$deviceSessionHash() => r'b0e96964c389222f24ad1f39005b601d59d354c2';
+String _$deviceSessionHash() => r'9f27d19b682165cfde19a09417704a55cc0a775d';
