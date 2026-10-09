@@ -219,13 +219,13 @@ void main() {
       ),
     });
     await pump(tester, games: [g1, g2], nights: nights);
-    await tester.tap(find.text('Isaure de Valcourt').first);
+    await tester.tap(find.byKey(const Key('freeze-row-x')));
     await tester.pumpAndSettle();
     expect(find.text('SUIVI DE LA SOIRÉE'), findsOneWidget);
     // La version figée d'Isaure n'a ni sang ni volonté (fiche `sample()`).
     expect(find.text('Sang 3 / 0 · Volonté 1 / 0 · Santé 2 · 0 · 0'), findsOneWidget);
     expect(find.text('22h15 · Inès Morel, galeriste'), findsOneWidget);
-    await tester.tap(find.text('Bastien Roche').first);
+    await tester.tap(find.byKey(const Key('freeze-row-y')));
     await tester.pumpAndSettle();
     expect(find.text('Aucun suivi pour cette partie'), findsOneWidget);
     expect(nights.saved, isEmpty);
