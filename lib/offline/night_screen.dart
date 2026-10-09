@@ -42,6 +42,9 @@ class _NightScreenState extends ConsumerState<NightScreen> {
   final _note = TextEditingController();
   bool _preparing = false;
 
+  /// Dernier gel connu : si le gel est levé pendant que l'écran est ouvert, il reste lisible.
+  Game? _game;
+
   String get _base => '/joueur/personnages/${widget.characterId}';
   DateTime get _now => (widget.now ?? DateTime.now)();
 
@@ -102,7 +105,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
         return const EmptyState(kind: EmptyKind.notFound, title: 'Cette fiche n’existe pas', message: 'Elle a pu être retirée.');
       }
       final now = _now;
-      final game = frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], live.id, now);
+      final game = _game = frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], live.id, now) ?? _game;
       if (game == null) {
         return EmptyState(
           kind: EmptyKind.empty,

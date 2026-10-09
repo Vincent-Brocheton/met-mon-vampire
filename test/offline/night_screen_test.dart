@@ -40,6 +40,7 @@ void main() {
   Future<(FakeNightRepository, FakeDevicesRepository)> pump(
     WidgetTester tester, {
     List<Game>? games,
+    Stream<List<Game>>? gamesStream,
     NightView? view,
     Stream<FrozenSheet?>? frozen,
     List<Sin> sins = const [],
@@ -57,7 +58,7 @@ void main() {
         currentUserProvider.overrideWith((ref) => Stream.value(camille)),
         characterProvider('x').overrideWith((ref) => Stream.value(isaure())),
         rulebookProvider.overrideWith((ref) => rbTitles),
-        gamesProvider.overrideWith((ref) => Stream.value(games ?? [game])),
+        gamesProvider.overrideWith((ref) => gamesStream ?? Stream.value(games ?? [game])),
         frozenSheetProvider('x', game.id).overrideWith((ref) => frozen ?? Stream.value(snapshot())),
         nightRepositoryProvider.overrideWith((ref) => nights),
         devicesRepositoryProvider.overrideWith((ref) => devices),
@@ -164,6 +165,18 @@ void main() {
   testWidgets('fiche non figée : message', (tester) async {
     await pump(tester, games: const []);
     expect(find.text(notFrozenText), findsOneWidget);
+  });
+
+  testWidgets('gel levé pendant que l’écran est ouvert : il reste lisible', (tester) async {
+    final games = StreamController<List<Game>>();
+    addTearDown(games.close);
+    games.add([game]);
+    await pump(tester, gamesStream: games.stream);
+    expect(find.text('Isaure en partie'), findsOneWidget);
+    games.add([frozenGame(year: 2099, liftedAt: DateTime(2099, 10, 3, 20))]);
+    await tester.pumpAndSettle();
+    expect(find.text('Isaure en partie'), findsOneWidget);
+    expect(find.text(notFrozenText), findsNothing);
   });
 
   testWidgets('version figée absente du cache : message de préparation', (tester) async {
