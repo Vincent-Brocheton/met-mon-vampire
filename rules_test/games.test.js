@@ -165,6 +165,14 @@ test('versions figées : écrites par le conte, corrigées avec un motif, jamais
   await assertFails(setDoc(doc(as('lea'), 'characters/zoe-pj/frozen/g5'), snap('lea')));
 });
 
+test('versions figées : la date de partie ne change pas à la correction', async () => {
+  await seed();
+  const ref = doc(as('lea'), 'characters/zoe-pj/frozen/g0');
+  const other = Timestamp.fromDate(new Date(2030, 9, 4));
+  await assertFails(setDoc(ref, snap('lea', { reason: 'Erreur', gameDate: other })));
+  await assertSucceeds(setDoc(ref, snap('lea', { reason: 'Erreur' })));
+});
+
 test('versions figées : création liée au lot du gel, fiche listée', async () => {
   const db = as('lea');
   const b = writeBatch(db);

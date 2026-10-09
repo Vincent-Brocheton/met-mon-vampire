@@ -102,14 +102,16 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
     });
     try {
       await ref.read(gamesRepositoryProvider).freeze(plan.date!, plan.until!, sheets, by);
+      if (!mounted) return;
       _date.clear();
       _untilDay.clear();
       _untilTime.clear();
       messenger.showSnackBar(const SnackBar(content: Text('Fiches figées.')));
     } catch (_) {
+      if (!mounted) return;
       // Un autre membre du conte a pu figer entre-temps : les règles refusent un second gel.
       final other = runningGame(ref.read(gamesProvider).value ?? const <Game>[], widget.now());
-      if (mounted) setState(() => _error = other != null ? 'Un gel est déjà en cours.' : 'Enregistrement refusé : réessayez.');
+      setState(() => _error = other != null ? 'Un gel est déjà en cours.' : 'Enregistrement refusé : réessayez.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -129,6 +131,7 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
     setState(() => _busy = true);
     try {
       await ref.read(gamesRepositoryProvider).lift(g, by);
+      if (mounted) setState(() => _error = null);
       messenger.showSnackBar(const SnackBar(content: Text('Gel levé.')));
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
@@ -259,9 +262,13 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
   Widget _running(BuildContext context, AppUser me, Game g, List<Game> games, List<Character> chars) {
     final t = Theme.of(context).textTheme;
     final prev = previousGame(games, g);
-    final current = ref.watch(gameSnapshotsProvider(g.id, g.date)).value ?? const <FrozenSheet>[];
-    final before = prev == null ? const <FrozenSheet>[] : ref.watch(gameSnapshotsProvider(prev.id, prev.date)).value ?? const <FrozenSheet>[];
-    final requests = ref.watch(openRequestsProvider).value ?? const <XpRequest>[];
+    final currentAsync = ref.watch(gameSnapshotsProvider(g.id, g.date));
+    final beforeAsync = prev == null ? null : ref.watch(gameSnapshotsProvider(prev.id, prev.date));
+    final requestsAsync = ref.watch(openRequestsProvider);
+    final readError = currentAsync.hasError || (beforeAsync?.hasError ?? false) || requestsAsync.hasError;
+    final current = currentAsync.value ?? const <FrozenSheet>[];
+    final before = beforeAsync?.value ?? const <FrozenSheet>[];
+    final requests = requestsAsync.value ?? const <XpRequest>[];
     final live = {for (final c in chars) c.id: c};
     final snaps = {for (final s in current) s.characterId: s};
     final olds = {for (final s in before) s.characterId: s};
@@ -300,6 +307,11 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
     final table = Panel(
       padding: EdgeInsets.zero,
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (readError)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+            child: Text('Lecture des versions figées impossible : réessayez plus tard.', style: t.bodySmall?.copyWith(color: AppColors.linkHover)),
+          ),
         Padding(
           padding: const EdgeInsets.all(18),
           child: Wrap(spacing: 10, runSpacing: 10, crossAxisAlignment: WrapCrossAlignment.center, children: [

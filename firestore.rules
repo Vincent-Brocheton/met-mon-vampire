@@ -239,6 +239,7 @@ service cloud.firestore {
         allow create: if managesAccounts() && snapshotValid() && request.resource.data.reason == null
           && !exists(gamePath(gid)) && existsAfter(gamePath(gid)) && id in getAfter(gamePath(gid)).data.sheetIds;
         allow update: if managesAccounts() && snapshotValid()
+          && request.resource.data.gameDate == resource.data.gameDate
           && get(charPath(id)).data.get('playerUid', null) != request.auth.uid
           && request.resource.data.reason is string && request.resource.data.reason.size() > 0;
       }

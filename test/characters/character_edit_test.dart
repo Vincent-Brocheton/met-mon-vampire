@@ -254,6 +254,16 @@ void main() {
     expect(tester.widget<OutlinedButton>(find.byKey(const Key('c3-embrace'))).onPressed, isNull);
   });
 
+  testWidgets('C3 : étreindre une goule figée, message et aucune écriture (revue finale)', (tester) async {
+    final repo = await pump(tester, ghoulSheet(), games: [frozenGame(year: 2099)]);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('c3-embrace')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('l’XP ne peut pas changer.'), findsOneWidget);
+    expect(find.byKey(const Key('em-gen')), findsNothing);
+    expect(repo.calls, isEmpty);
+  });
+
   testWidgets('C3 : étreindre une goule, clé ghoul supprimée (Review Focus 1)', (tester) async {
     final repo = await pump(tester, ghoulSheet());
     await tester.pumpAndSettle();

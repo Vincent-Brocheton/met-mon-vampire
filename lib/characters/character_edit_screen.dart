@@ -126,6 +126,12 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
 
   /// Étreinte d'une goule jouée : une seule écriture tracée « embrace », clé `ghoul` supprimée.
   Future<void> _embraceGhoul(Character latest) async {
+    // L'étreinte ajoute son coût à l'XP dépensée : refusé par les règles tant que la fiche est figée.
+    final frozen = frozenBy(ref.read(gamesProvider).value ?? const <Game>[], latest.id, DateTime.now());
+    if (frozen != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${frozenUntilText(frozen)} : l’XP ne peut pas changer.')));
+      return;
+    }
     final rb = ref.read(rulebookProvider) ?? const Rulebook();
     final choice = await showDialog<EmbraceChoice>(
       context: context,

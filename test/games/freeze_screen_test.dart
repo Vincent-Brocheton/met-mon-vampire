@@ -53,6 +53,7 @@ void main() {
     List<NpcLoan> loans = const [],
     List<XpRequest> requests = const [],
     Size size = const Size(1440, 2400),
+    Stream<List<FrozenSheet>>? currentStream,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -68,7 +69,7 @@ void main() {
         allCharactersProvider.overrideWith((ref) => Stream.value(chars ?? [sample()..version = 5, bastien(), npc('n1')])),
         allNpcLoansProvider.overrideWith((ref) => Stream.value(loans)),
         openRequestsProvider.overrideWith((ref) => Stream.value(requests)),
-        gameSnapshotsProvider('g2', g2.date).overrideWith((ref) => Stream.value(current)),
+        gameSnapshotsProvider('g2', g2.date).overrideWith((ref) => currentStream ?? Stream.value(current)),
         gameSnapshotsProvider('g1', g1.date).overrideWith((ref) => Stream.value(before)),
       ],
       child: MaterialApp(theme: buildTheme(withFonts: false), home: Scaffold(body: FreezeScreen(now: () => now))),
@@ -140,6 +141,11 @@ void main() {
     expect(find.text('Bastien Roche · PJ'), findsNothing);
     expect(find.text('Isaure de Valcourt · PJ'), findsOneWidget);
     expect(find.text('Octave Marchetti · PNJ'), findsOneWidget);
+  });
+
+  testWidgets('gel en cours : lecture des versions figées impossible, une ligne le dit (revue finale)', (tester) async {
+    await pump(tester, games: [g1, g2], currentStream: Stream.error(Exception('refus')));
+    expect(find.text('Lecture des versions figées impossible : réessayez plus tard.'), findsOneWidget);
   });
 
   testWidgets('correction urgente : motif obligatoire, puis version figée mise à jour', (tester) async {
