@@ -169,3 +169,78 @@ final class GameSnapshotsFamily extends $Family
   @override
   String toString() => r'gameSnapshotsProvider';
 }
+
+@ProviderFor(frozenSheet)
+final frozenSheetProvider = FrozenSheetFamily._();
+
+final class FrozenSheetProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<FrozenSheet?>,
+          FrozenSheet?,
+          Stream<FrozenSheet?>
+        >
+    with $FutureModifier<FrozenSheet?>, $StreamProvider<FrozenSheet?> {
+  FrozenSheetProvider._({
+    required FrozenSheetFamily super.from,
+    required (String, String) super.argument,
+  }) : super(
+         retry: null,
+         name: r'frozenSheetProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$frozenSheetHash();
+
+  @override
+  String toString() {
+    return r'frozenSheetProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<FrozenSheet?> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<FrozenSheet?> create(Ref ref) {
+    final argument = this.argument as (String, String);
+    return frozenSheet(ref, argument.$1, argument.$2);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FrozenSheetProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$frozenSheetHash() => r'8b33cc5b244d5fc823064cc62cd4918bb44dc4f1';
+
+final class FrozenSheetFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<FrozenSheet?>, (String, String)> {
+  FrozenSheetFamily._()
+    : super(
+        retry: null,
+        name: r'frozenSheetProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  FrozenSheetProvider call(String characterId, String gameId) =>
+      FrozenSheetProvider._(argument: (characterId, gameId), from: this);
+
+  @override
+  String toString() => r'frozenSheetProvider';
+}

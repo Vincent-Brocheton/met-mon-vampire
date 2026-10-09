@@ -34,6 +34,11 @@ class GamesRepository {
               if (d.id == gameId) FrozenSheet.fromMap(d.reference.parent.parent!.id, d.id, d.data()),
           ]);
 
+  /// Version figée d'une fiche pour une partie ; null si elle manque (fiche validée pendant le gel).
+  Stream<FrozenSheet?> watchSnapshot(String characterId, String gameId) => _snapshot(characterId, gameId)
+      .snapshots()
+      .map((d) => d.exists ? FrozenSheet.fromMap(characterId, gameId, d.data()!) : null);
+
   /// Fige [sheets] en un lot : la partie, le pointeur et une version figée par fiche.
   // ponytail: un seul lot, plafond de 500 écritures (environ 497 fiches) ; découper le lot si la chronique grossit à ce point.
   Future<void> freeze(DateTime date, DateTime until, List<Character> sheets, Actor by) {
@@ -81,3 +86,7 @@ Stream<List<Game>> games(Ref ref) => ref.watch(gamesRepositoryProvider).watchAll
 @riverpod
 Stream<List<FrozenSheet>> gameSnapshots(Ref ref, String gameId, DateTime gameDate) =>
     ref.watch(gamesRepositoryProvider).watchSnapshots(gameId, gameDate);
+
+@riverpod
+Stream<FrozenSheet?> frozenSheet(Ref ref, String characterId, String gameId) =>
+    ref.watch(gamesRepositoryProvider).watchSnapshot(characterId, gameId);
