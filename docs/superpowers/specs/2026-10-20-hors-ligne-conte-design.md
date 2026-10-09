@@ -16,7 +16,8 @@ Maquette : `C-HorsLigne` (canvas Claude Design https://claude.ai/artifact/RMXAnP
 
 - **Le cache de Firestore fait toujours le hors ligne**, comme au 8c. Pas de base locale, pas de nouveau paquet.
 - **La file est déduite des données.**
-  - On ne tient pas de journal à part. Les péchés, événements et liens de la partie sont suivis avec `includeMetadataChanges` : un document avec `hasPendingWrites` est « En attente », les autres sont « Envoyé ».
+  - On ne tient pas de journal à part. Les péchés et événements de la partie sont suivis avec `includeMetadataChanges` : un document avec `hasPendingWrites` est « En attente », les autres sont « Envoyé ».
+  - Une gorgée écrit aussi un événement « Lien de sang » : la file la montre par lui, sans suivre les liens.
   - La file survit à un rechargement, puisque les écritures en attente restent dans le cache. Une fois les appareils synchronisés, elle montre aussi les saisies des autres conteurs.
 - **Hors ligne, on ne modifie pas la fiche.**
   - Toute écriture qui passe par la version de la fiche est refusée tout de suite, avec un message : perte de la soirée, titre, XP, validation, gel, correction urgente.
@@ -36,14 +37,16 @@ Le badge, le bloc « Hors ligne, on peut » et la garde s’en servent.
 ## Garde hors ligne
 
 - **Où :**
-  - `CharacterRepository` reçoit une fonction `bool Function() offline`, lue par son provider dans `offlineProvider`. `stageEdit` et `_commit` lèvent `OfflineError` quand elle vaut `true` et que l’auteur est de l’équipe.
+  - `CharacterRepository` reçoit une fonction `bool Function() offline`, lue par son provider dans `offlineProvider`. `stageEdit` et `_commit` lèvent `OfflineError` quand elle vaut `true` et que l’auteur n’est pas le joueur de la fiche (`by.uid != c.playerUid`).
   - `GamesRepository` fait de même dans `freeze`, `lift` et `correct`.
 - **Ce que ça couvre :** passent par `stageEdit` / `_commit` les modifs de fiche du conte, l’XP (dépense, gain, bonus), les titres, la perte de la soirée et la validation de fiche.
-- **Message :** `OfflineError.toString()` donne « Pas de réseau : les modifications de la fiche attendent le réseau. ». Les écrans l’affichent dans leur zone d’erreur habituelle.
+- **Message :** `OfflineError.toString()` donne « Pas de réseau : les modifications de la fiche attendent le réseau. ». Les écrans ont leur propre texte d’erreur.
+  - Dans leurs blocs `catch`, `refusalText(e, <texte actuel>)` affiche ce message pour une `OfflineError`, et le texte actuel sinon.
+  - Le gain mensuel et les bonus groupés (`_eachSheet`) rangent la fiche refusée parmi les fiches refusées.
 - **Ce qui ne passe pas par la garde :**
   - le suivi de soirée du joueur (8c) ;
   - les péchés, événements et gorgées ;
-  - les brouillons et les demandes du joueur, qui restent en file comme avant. Le provider renvoie `false` pour un compte qui n’est pas de l’équipe.
+  - les brouillons et les demandes du joueur, qui restent en file comme avant. Un membre de l’équipe sur sa propre fiche agit en joueur : il n’est pas bloqué.
 
 ## Écran « Partie hors ligne », `/conteur/gel/hors-ligne` (C-HorsLigne)
 
@@ -51,7 +54,7 @@ Le badge, le bloc « Hors ligne, on peut » et la garde s’en servent.
 
 - Un bouton « Partie hors ligne » sur l’écran du gel (C-Figer), visible pendant un gel en cours.
 - Sans gel en cours, la route affiche « Aucune partie en cours ».
-- La route est réservée à l’équipe. Le narrateur voit tout, mais les boutons d’écriture (conflits, préparation, effacement) sont cachés pour lui.
+- La route est réservée à l’équipe. Le narrateur voit tout et peut préparer ou effacer son appareil ; les boutons de conflit sont cachés pour lui.
 
 ### En-tête
 
@@ -90,8 +93,11 @@ Un bloc par conflit, au-dessus de la file :
 - **Libellés :**
   - « Péché niveau <n> · <remords> », par exemple « Péché niveau 2 · remords réussi » ;
   - « Événement · <titre> » ;
-  - « Gorgée · <nom du régnant> → <nom du lié> ».
-- **Heure :** elle se lit avec `ServerTimestampBehavior.estimate`. C’est l’heure de l’appareil tant que la saisie attend, puis celle du serveur, donc celle de l’envoi.
+  - une gorgée apparaît par son événement « Lien de sang ».
+- **Heure :** `createdAt`, soit l’heure du serveur, donc celle de l’envoi.
+  - Tant que la création attend, l’heure est inconnue et la ligne affiche « — ».
+  - L’API Flutter de Firestore ne permet pas d’estimer, dans un flux, l’heure d’une écriture en attente.
+  - Les saisies en attente passent en tête de la file.
 - **Lien :** une ligne mène à la fiche, sur l’onglet où la saisie se fait (moralité, histoire, liens).
 - **File vide :** « Aucune saisie depuis le gel. ».
 
@@ -159,8 +165,8 @@ Une colonne, dans l’ordre : en-tête, compteurs, conflits, file, « Sur cet ap
 ### `lib/offline/wipe.dart`
 
 - **`WipePolicy` :** `week`, `lift` ou `never`, avec le libellé de la liste ; `parse` donne `week` par défaut.
-- **`shouldWipe(policy, game, now, pending)` :**
-  - faux si `pending`, si `game` est nul ou si la politique est `never` ;
+- **`shouldWipe(policy, game, now)` :** les écritures en attente sont vérifiées à part, par `DeviceSession.pendingWrites`.
+  - faux si `game` est nul ou si la politique est `never` ;
   - sinon, la fin est `liftedAt`, ou `until` s’il est passé ; sans fin, faux ;
   - `lift` : vrai dès la fin ;
   - `week` : vrai à partir de fin + 7 jours.
@@ -168,11 +174,11 @@ Une colonne, dans l’ordre : en-tête, compteurs, conflits, file, « Sur cet ap
 ## Données et effacement
 
 - **Ce qu’on garde sur l’appareil :** dans `shared_preferences`, les clés `wipePolicy` et `prepare.rulebook`, `prepare.bonds`, `prepare.notes`. Rien ne change dans Firestore.
-- **Vérification :** le provider de surveillance de l’appareil (`device_session.dart`, 8c) vérifie `shouldWipe` au démarrage et à chaque changement des parties ou du document de l’appareil, pour la partie `device.gameId`.
+- **Vérification :** l’écoute du document de l’appareil dans `router.dart` (8c) vérifie `shouldWipe` pour la partie `device.gameId`. Elle le fait au démarrage et à chaque changement de ce document ; les parties sont lues une fois à ce moment-là.
 - **Effacement :** quand `shouldWipe` est vrai, ou sur « Effacer maintenant » :
   1. le document de l’appareil reçoit `gameId: null`, `preparedAt: null`. On n’attend pas plus de 3 secondes, comme au 8c ;
   2. le cache est vidé (`wipeCache` : `terminate` puis `clearPersistence`) ;
-  3. l’app repart sur la page en cours (`restart`). Le compte reste connecté.
+  3. l’app repart (`restart`) : sur `/` pour l’effacement programmé, sur l’écran pour « Effacer maintenant ». Le compte reste connecté.
 
   Un échec est journalisé, et on réessaie au prochain démarrage.
 - **Joueurs :** la même vérification tourne sur leurs appareils, avec la politique par défaut.
@@ -180,9 +186,9 @@ Une colonne, dans l’ordre : en-tête, compteurs, conflits, file, « Sur cet ap
 ## Règles Firestore
 
 - **`characters/{id}/sins/{s}` :** la liste des clés accepte `distinct`, et `sinValid` vérifie `d.get('distinct', false) is bool`.
+- **`users/{uid}/devices/{d}` :** `preparedAt` peut aussi revenir à nul. C’est le cas quand la partie préparée est oubliée avant l’effacement.
 - **Aucune autre règle ne change :**
   - la file lit avec les droits actuels de l’équipe ;
-  - la remise à nul de `gameId` / `preparedAt` passe déjà la règle des appareils ;
   - l’effacement est local.
 
 ## Erreurs et cas limites
