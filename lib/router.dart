@@ -31,6 +31,7 @@ import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
+import 'offline/night_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'print/print_screen.dart';
@@ -122,6 +123,10 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/imprimer',
             builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']}'),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/partie',
+            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
