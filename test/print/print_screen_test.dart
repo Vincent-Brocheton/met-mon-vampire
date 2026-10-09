@@ -10,6 +10,8 @@ import 'package:portail_met/bonds/bond.dart';
 import 'package:portail_met/bonds/bonds_repository.dart';
 import 'package:portail_met/characters/character.dart';
 import 'package:portail_met/characters/character_repository.dart';
+import 'package:portail_met/items/item.dart';
+import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/games/game.dart';
 import 'package:portail_met/games/games_repository.dart';
@@ -34,6 +36,7 @@ void main() {
     Stream<Character?>? sheet,
     List<Game> games = const [],
     Stream<FrozenSheet?>? frozen,
+    Stream<List<Item>>? items,
     Size size = const Size(1440, 1600),
   }) async {
     tester.view.physicalSize = size;
@@ -47,7 +50,7 @@ void main() {
         rulebookProvider.overrideWith((ref) => rbTitles),
         gamesProvider.overrideWith((ref) => Stream.value(games)),
         frozenSheetProvider('x', game.id).overrideWith((ref) => frozen ?? Stream.value(null)),
-        noItems,
+        items == null ? noItems : characterItemsProvider('x').overrideWith((ref) => items),
         noPlaces,
         characterBondsProvider('x').overrideWith((ref) async => const <Bond>[]),
         myRequestsProvider.overrideWith((ref) => Stream.value(const <XpRequest>[])),
@@ -59,7 +62,7 @@ void main() {
           body: PrintScreen(
             characterId: 'x',
             basePath: '/joueur/personnages/x',
-            preview: (s) => Text('aperçu ${s.stamp.first}', key: const Key('preview')),
+            preview: (s) => Text('aperçu ${s.stamp.join(' / ')}', key: const Key('preview')),
           ),
         ),
       ),
@@ -81,16 +84,35 @@ void main() {
   testWidgets('pendant un gel : version figée par défaut, puis version actuelle', (tester) async {
     await pump(tester, games: [game], frozen: Stream.value(snapshot()));
     expect(find.text('Version figée · partie du samedi 3 oct.'), findsOneWidget);
-    expect(find.text('aperçu Version figée'), findsOneWidget);
+    expect(find.textContaining('aperçu Version figée'), findsOneWidget);
     await tester.tap(find.byKey(const Key('print-current')));
     await tester.pump();
-    expect(find.text('aperçu Version actuelle'), findsOneWidget);
+    expect(find.textContaining('aperçu Version actuelle'), findsOneWidget);
   });
 
-  testWidgets('pendant un gel, version figée absente : version actuelle seule (Review Focus 3)', (tester) async {
+  testWidgets('pendant un gel, version figée absente : version actuelle, non valable en jeu (Review Focus 3)', (tester) async {
     await pump(tester, games: [game]);
     expect(find.byKey(const Key('print-frozen')), findsNothing);
-    expect(find.text('aperçu Version actuelle'), findsOneWidget);
+    expect(find.text('aperçu Version actuelle / Non valable en jeu'), findsOneWidget);
+  });
+
+  testWidgets('pendant un gel, version figée illisible : avis et version actuelle seule', (tester) async {
+    await pump(tester, games: [game], frozen: Stream.error(StateError('illisible')));
+    expect(find.text('Version figée illisible : seule la version actuelle peut être imprimée.'), findsOneWidget);
+    expect(find.text('aperçu Version actuelle / Non valable en jeu'), findsOneWidget);
+  });
+
+  testWidgets('données de la fiche en cours de lecture : pas d’aperçu avant leur arrivée', (tester) async {
+    final pending = StreamController<List<Item>>();
+    addTearDown(pending.close);
+    await pump(tester, items: pending.stream);
+    expect(find.text('Chargement de la fiche…'), findsOneWidget);
+    expect(find.byKey(const Key('preview')), findsNothing);
+    pending.add(const <Item>[]);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Chargement de la fiche…'), findsNothing);
+    expect(find.byKey(const Key('preview')), findsOneWidget);
   });
 
   testWidgets('pendant un gel, version figée en cours de lecture', (tester) async {

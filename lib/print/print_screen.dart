@@ -79,12 +79,19 @@ class _PrintScreenState extends ConsumerState<PrintScreen> {
       final game = frozenBy(ref.watch(gamesProvider).value ?? const <Game>[], live.id, now);
       final frozenAsync = game == null ? null : ref.watch(frozenSheetProvider(live.id, game.id));
       final frozen = frozenAsync?.value;
+      final frozenBroken = frozenAsync != null && frozenAsync.hasError && !frozenAsync.hasValue;
       final loadingFrozen = frozenAsync != null && frozenAsync.isLoading && !frozenAsync.hasValue;
       final version = frozen != null ? (_choice ?? PrintVersion.frozen) : PrintVersion.current;
       final staff = widget.basePath.startsWith('/conteur');
-      final requests = staff ? ref.watch(characterRequestsProvider(live.id)).value : ref.watch(myRequestsProvider).value;
+      final itemsAsync = ref.watch(characterItemsProvider(live.id));
+      final placesAsync = ref.watch(characterPlacesProvider(live.id));
+      final bondsAsync = ref.watch(characterBondsProvider(live.id));
+      final requestsAsync = staff ? ref.watch(characterRequestsProvider(live.id)) : ref.watch(myRequestsProvider);
+      final chronicleAsync = ref.watch(chronicleProvider);
+      // Tant qu’une de ces données n’est pas arrivée, l’aperçu serait incomplet (et régénéré à chaque arrivée) ; une erreur ne bloque pas : valeur vide.
+      final loadingData = [itemsAsync, placesAsync, bondsAsync, requestsAsync, chronicleAsync].any((a) => !a.hasValue && !a.hasError);
       final reserved = [
-        for (final r in requests ?? const <XpRequest>[])
+        for (final r in requestsAsync.value ?? const <XpRequest>[])
           if (r.characterId == live.id && r.status.open) r,
       ].fold<int>(0, (s, r) => s + r.total);
       final sheet = printSheet(
@@ -93,11 +100,11 @@ class _PrintScreenState extends ConsumerState<PrintScreen> {
         game: game,
         now: now,
         rb: rb,
-        items: ref.watch(characterItemsProvider(live.id)).value ?? const [],
-        places: ref.watch(characterPlacesProvider(live.id)).value ?? const [],
-        bonds: ref.watch(characterBondsProvider(live.id)).value ?? const [],
+        items: itemsAsync.value ?? const [],
+        places: placesAsync.value ?? const [],
+        bonds: bondsAsync.value ?? const [],
         reserved: reserved,
-        chronicle: ref.watch(chronicleProvider).value?.name ?? '',
+        chronicle: chronicleAsync.value?.name ?? '',
       );
       final t = Theme.of(context).textTheme;
       return Padding(
@@ -126,9 +133,13 @@ class _PrintScreenState extends ConsumerState<PrintScreen> {
             ]),
             const SizedBox(height: 12),
           ],
+          if (frozenBroken) ...[
+            Text('Version figée illisible : seule la version actuelle peut être imprimée.', style: t.bodySmall?.copyWith(color: AppColors.linkHover)),
+            const SizedBox(height: 12),
+          ],
           Expanded(
-            child: loadingFrozen
-                ? Center(child: Text('Chargement de la version figée…', style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)))
+            child: loadingFrozen || loadingData
+                ? Center(child: Text(loadingFrozen ? 'Chargement de la version figée…' : 'Chargement de la fiche…', style: t.bodyMedium?.copyWith(color: AppColors.textSecondary)))
                 : (widget.preview ?? _pdfPreview)(sheet),
           ),
         ]),
