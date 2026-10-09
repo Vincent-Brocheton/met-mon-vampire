@@ -145,7 +145,9 @@ service cloud.firestore {
         && validName(request.resource.data.name)
         && request.resource.data.web is bool
         && request.resource.data.lastSeen is timestamp
-        && sameOrNow('lastSeen') && sameOrNow('preparedAt') && sameOrNow('revokedAt')
+        && sameOrNow('lastSeen') && sameOrNow('revokedAt')
+        // Partie préparée oubliée avant l'effacement des données de l'appareil (sous-projet 8d).
+        && (sameOrNow('preparedAt') || request.resource.data.get('preparedAt', null) == null)
         && (request.resource.data.get('gameId', null) == null || request.resource.data.gameId is string);
     }
 
@@ -327,12 +329,13 @@ service cloud.firestore {
       match /sins/{s} {
         function sinValid() {
           let d = request.resource.data;
-          return d.keys().hasOnly(['date', 'level', 'what', 'remorse', 'lossApplied', 'byUid', 'byName', 'createdAt', 'updatedAt'])
+          return d.keys().hasOnly(['date', 'level', 'what', 'remorse', 'lossApplied', 'distinct', 'byUid', 'byName', 'createdAt', 'updatedAt'])
             && d.date is timestamp
             && d.level is int && d.level >= 1 && d.level <= 10
             && d.what is string && d.what.size() <= 500
             && d.remorse in ['success', 'failed', 'none']
             && d.lossApplied is bool
+            && d.get('distinct', false) is bool
             && d.byUid == request.auth.uid;
         }
         function sinNotOwnSheet(cid) {
