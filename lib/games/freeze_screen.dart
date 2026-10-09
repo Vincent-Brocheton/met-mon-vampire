@@ -14,6 +14,8 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../npcs/loan_rules.dart' show parseDay;
 import '../npcs/npc_loans_repository.dart';
+import '../offline/night.dart';
+import '../offline/night_repository.dart';
 import '../xp/xp_repository.dart';
 import '../xp/xp_request.dart';
 import 'game.dart';
@@ -411,6 +413,8 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
           const SizedBox(height: 10),
           Text('Corrigée le ${formatDay(snap!.at)} : $reason', style: t.bodySmall?.copyWith(color: AppColors.goldLight)),
         ],
+        const SizedBox(height: 16),
+        _NightBlock(characterId: r.live.id, gameId: g.id, sheet: snap?.character ?? r.live),
         if (me.role.managesAccounts) ...[
           const SizedBox(height: 16),
           if (r.live.playerUid == me.uid)
@@ -482,4 +486,32 @@ class _CorrectionDialogState extends State<_CorrectionDialog> {
           ),
         ],
       );
+}
+
+/// Suivi de la soirée saisi par le joueur (sous-projet 8c), en lecture pour tout le conte.
+class _NightBlock extends ConsumerWidget {
+  const _NightBlock({required this.characterId, required this.gameId, required this.sheet});
+  final String characterId;
+  final String gameId;
+
+  /// Version figée : elle donne les maxima.
+  final Character sheet;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Theme.of(context).textTheme;
+    final view = ref.watch(nightProvider(characterId, gameId)).value;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SectionTitle('Suivi de la soirée'),
+      const SizedBox(height: 8),
+      if (view == null)
+        Text('Chargement du suivi…', style: t.bodySmall)
+      else if (!view.exists)
+        Text('Aucun suivi pour cette partie', style: t.bodyMedium)
+      else ...[
+        Text(nightSummary(view.night, NightLimits.of(sheet)), style: t.bodyMedium),
+        for (final n in view.night.notes.reversed) Padding(padding: const EdgeInsets.only(top: 6), child: Text(noteLine(n), style: t.bodySmall)),
+      ],
+    ]);
+  }
 }
