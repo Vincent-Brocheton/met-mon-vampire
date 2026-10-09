@@ -11,6 +11,8 @@ import 'package:portail_met/games/game.dart';
 import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
 import 'package:portail_met/npcs/npc_loans_repository.dart';
+import 'package:portail_met/offline/night.dart';
+import 'package:portail_met/offline/night_repository.dart';
 import 'package:portail_met/xp/xp_repository.dart';
 import 'package:portail_met/xp/xp_request.dart';
 
@@ -52,6 +54,7 @@ void main() {
     List<Character>? chars,
     List<NpcLoan> loans = const [],
     List<XpRequest> requests = const [],
+    FakeNightRepository? nights,
     Size size = const Size(1440, 2400),
     Stream<List<FrozenSheet>>? currentStream,
   }) async {
@@ -69,6 +72,7 @@ void main() {
         allCharactersProvider.overrideWith((ref) => Stream.value(chars ?? [sample()..version = 5, bastien(), npc('n1')])),
         allNpcLoansProvider.overrideWith((ref) => Stream.value(loans)),
         openRequestsProvider.overrideWith((ref) => Stream.value(requests)),
+        nightRepositoryProvider.overrideWith((ref) => nights ?? FakeNightRepository()),
         gameSnapshotsProvider('g2', g2.date).overrideWith((ref) => currentStream ?? Stream.value(current)),
         gameSnapshotsProvider('g1', g1.date).overrideWith((ref) => Stream.value(before)),
       ],
@@ -205,5 +209,30 @@ void main() {
     expect(tester.takeException(), isNull);
     await pump(tester, games: [g1, g2], requests: [auspex()], size: const Size(390, 3000));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('gel en cours : suivi de la soirée de la fiche choisie, en lecture (sous-projet 8c)', (tester) async {
+    final nights = FakeNightRepository({
+      'x/g2': NightView(
+        Night(blood: 3, willpower: 1, health: const [2, 0, 0], notes: [NightNote('Inès Morel, galeriste', DateTime(2026, 10, 3, 22, 15))]),
+        exists: true,
+      ),
+    });
+    await pump(tester, games: [g1, g2], nights: nights);
+    await tester.tap(find.byKey(const Key('freeze-row-x')));
+    await tester.pumpAndSettle();
+    expect(find.text('SUIVI DE LA SOIRÉE'), findsOneWidget);
+    // La version figée d'Isaure n'a ni sang ni volonté (fiche `sample()`).
+    expect(find.text('Sang 3 / 0 · Volonté 1 / 0 · Santé 2 · 0 · 0'), findsOneWidget);
+    expect(find.text('22h15 · Inès Morel, galeriste'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('freeze-row-y')));
+    await tester.pumpAndSettle();
+    expect(find.text('Aucun suivi pour cette partie'), findsOneWidget);
+    expect(nights.saved, isEmpty);
+  });
+
+  testWidgets('gel en cours : le narrateur voit aussi le suivi (sous-projet 8c)', (tester) async {
+    await pump(tester, me: julien, games: [g1, g2]);
+    expect(find.text('SUIVI DE LA SOIRÉE'), findsOneWidget);
   });
 }

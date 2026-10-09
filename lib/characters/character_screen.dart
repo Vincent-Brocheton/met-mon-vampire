@@ -58,7 +58,10 @@ class CharacterScreen extends ConsumerWidget {
         if (frozen != null) ...[
           FreezeBanner(
             playerFreezeText(frozen),
-            action: TextButton(onPressed: () => context.go('$basePath/imprimer'), child: const Text('Imprimer')),
+            action: Wrap(spacing: 4, children: [
+              TextButton(onPressed: () => context.go('$basePath/partie'), child: const Text('En partie')),
+              TextButton(onPressed: () => context.go('$basePath/imprimer'), child: const Text('Imprimer')),
+            ]),
           ),
           const SizedBox(height: 22),
         ],

@@ -95,4 +95,11 @@ void main() {
     await pump(tester, Stream.value(sample()), games: [frozenGame(year: 2099)]);
     expect(find.text('Imprimer'), findsNWidgets(2));
   });
+
+  testWidgets('J2 : bouton « En partie » dans le bandeau du gel seulement (sous-projet 8c)', (tester) async {
+    await pump(tester, Stream.value(sample()));
+    expect(find.text('En partie'), findsNothing);
+    await pump(tester, Stream.value(sample()), games: [frozenGame(year: 2099)]);
+    expect(find.text('En partie'), findsOneWidget);
+  });
 }

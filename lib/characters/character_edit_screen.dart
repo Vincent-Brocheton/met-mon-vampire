@@ -267,7 +267,13 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
           _Banner(readOnlyReason),
           if (frozen != null) ...[
             const SizedBox(height: 12),
-            FreezeBanner(staffFreezeText(frozen)),
+            // Sa propre fiche : le conte la suit en partie comme un joueur (sous-projet 8c).
+            FreezeBanner(
+              staffFreezeText(frozen),
+              action: latest.playerUid == me?.uid
+                  ? TextButton(key: const Key('c3-night'), onPressed: () => context.go('/conteur/fiches/${latest.id}/partie'), child: const Text('En partie'))
+                  : null,
+            ),
           ],
           const SizedBox(height: 12),
           Align(

@@ -7,6 +7,10 @@ import '../auth/forms.dart';
 import '../auth/session_providers.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../offline/device.dart' show pendingLossText;
+import '../offline/device_session.dart';
+import '../offline/devices_repository.dart' show deviceIdProvider;
+import '../offline/devices_section.dart';
 
 /// Mon compte : profil, e-mail, mot de passe. Même écran pour joueurs et conteurs.
 class AccountScreen extends ConsumerStatefulWidget {
@@ -62,6 +66,31 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
   }
 
+  /// « Se déconnecter » : le cache de l'appareil est vidé ; des saisies pas encore envoyées seraient perdues.
+  Future<void> _signOut() async {
+    final session = ref.read(deviceSessionProvider);
+    // Lu avant toute attente : l'écran peut être démonté pendant le dialogue.
+    final uid = ref.read(currentUserProvider).value?.uid;
+    // Sans identifiant d'appareil (préférences illisibles), la déconnexion a lieu quand même.
+    final deviceId = ref.read(deviceIdProvider.future).then<String?>((id) => id, onError: (Object _) => null);
+    if (await session.pendingWrites()) {
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Se déconnecter ?'),
+          content: const Text(pendingLossText),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Se déconnecter')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
+    await session.signOut(uid, await deviceId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final repo = ref.read(authRepositoryProvider);
@@ -112,14 +141,15 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       child: const Text('Changer le mot de passe'),
     ));
 
+    final devices = DevicesSection(onSignOut: _signOut);
     return PageBody(children: [
-      PageTitle('Mon compte', action: TextButton(onPressed: repo.signOut, child: const Text('Se déconnecter'))),
+      PageTitle('Mon compte', action: TextButton(onPressed: _signOut, child: const Text('Se déconnecter'))),
       const SizedBox(height: 22),
       if (isWide(context))
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Column(children: [profile, const SizedBox(height: 20), email])),
           const SizedBox(width: 20),
-          Expanded(child: password),
+          Expanded(child: Column(children: [password, const SizedBox(height: 20), devices])),
         ])
       else ...[
         profile,
@@ -127,9 +157,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         email,
         const SizedBox(height: 20),
         password,
+        const SizedBox(height: 20),
+        devices,
       ],
       const SizedBox(height: 16),
-      Text('Bientôt ici : notifications par e-mail, appareils connectés, export de vos données.',
+      Text('Bientôt ici : notifications par e-mail, export de vos données.',
           style: muted?.copyWith(color: AppColors.textMuted)),
     ]);
   }

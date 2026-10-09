@@ -31,6 +31,9 @@ import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
+import 'offline/device_session.dart';
+import 'offline/devices_repository.dart';
+import 'offline/night_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
 import 'print/print_screen.dart';
@@ -64,6 +67,13 @@ GoRouter router(Ref ref) {
   ref.listen(currentUserProvider, (_, next) {
     if (next.value?.role == Role.disabled) ref.read(authRepositoryProvider).signOut();
   });
+  // Appareil déconnecté depuis un autre appareil (8c) : il vide son cache et se déconnecte lui-même.
+  ref.listen(thisDeviceProvider, (_, next) {
+    final d = next.value;
+    if (d != null && d.revokedAt != null) {
+      ref.read(deviceSessionProvider).signOut(ref.read(authStateProvider).value?.uid, d.id, revoked: true);
+    }
+  });
 
   GoRoute page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
   Widget soon(String feature) => EmptyState.comingSoon(feature);
@@ -88,6 +98,7 @@ GoRouter router(Ref ref) {
         path: '/connexion',
         builder: (_, state) => LoginScreen(
           disabled: state.uri.queryParameters['desactive'] == '1',
+          revoked: state.uri.queryParameters['retire'] == '1',
           emailLink: state.uri.queryParameters.containsKey('oobCode') ? Uri.base.toString() : null,
         ),
       ),
@@ -122,6 +133,10 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/joueur/personnages/:id/imprimer',
             builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']}'),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/partie',
+            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']!}'),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
@@ -215,6 +230,11 @@ GoRouter router(Ref ref) {
           GoRoute(
             path: '/conteur/fiches/:id/imprimer',
             builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/conteur/fiches/${s.pathParameters['id']}'),
+          ),
+          // Le conte sur sa propre fiche : « En partie », comme un joueur.
+          GoRoute(
+            path: '/conteur/fiches/:id/partie',
+            builder: (_, s) => NightScreen(characterId: s.pathParameters['id']!, basePath: '/conteur/fiches/${s.pathParameters['id']}'),
           ),
           page('/conteur/demandes', const ValidationScreen()),
           page('/conteur/pnj', const NpcLoansScreen()),

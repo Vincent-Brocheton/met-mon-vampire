@@ -9,7 +9,7 @@ import 'package:portail_met/core/theme.dart';
 import 'fakes.dart';
 
 void main() {
-  Future<FakeAuthRepository> pumpLogin(WidgetTester tester, {bool disabled = false, String? emailLink}) async {
+  Future<FakeAuthRepository> pumpLogin(WidgetTester tester, {bool disabled = false, String? emailLink, bool revoked = false}) async {
     tester.view.physicalSize = const Size(1440, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -19,7 +19,7 @@ void main() {
         authRepositoryProvider.overrideWith((ref) => fake),
         chronicleProvider.overrideWith((ref) => Stream.value(null)),
       ],
-      child: MaterialApp(theme: buildTheme(withFonts: false), home: LoginScreen(disabled: disabled, emailLink: emailLink)),
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: LoginScreen(disabled: disabled, emailLink: emailLink, revoked: revoked)),
     ));
     return fake;
   }
@@ -47,6 +47,11 @@ void main() {
   testWidgets('compte désactivé : message affiché', (tester) async {
     await pumpLogin(tester, disabled: true);
     expect(find.textContaining('Ce compte est désactivé'), findsOneWidget);
+  });
+
+  testWidgets('appareil déconnecté à distance : message (sous-projet 8c)', (tester) async {
+    await pumpLogin(tester, revoked: true);
+    expect(find.text('Cet appareil a été déconnecté depuis un autre appareil.'), findsOneWidget);
   });
 
   testWidgets('retour d’un lien e-mail : on termine la connexion', (tester) async {
