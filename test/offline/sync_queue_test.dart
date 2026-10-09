@@ -88,6 +88,8 @@ void main() {
     final a = Sin(id: 'a', date: DateTime(2026, 10, 3), level: 2, byUid: 'lea', byName: 'Léa G.', createdAt: DateTime(2026, 10, 3, 22, 44));
     final b = Sin(id: 'b', date: DateTime(2026, 10, 3), level: 2, byUid: 'marc', byName: 'Marc');
     expect(conflictText(a, b), 'Léa G. et Marc ont saisi chacun un péché de niveau 2 le 3 oct. S’agit-il du même péché ?');
+    final m = Sin(id: 'm', date: DateTime(2026, 3, 3), level: 2, byUid: 'lea', byName: 'Léa G.');
+    expect(conflictText(m, b), 'Léa G. et Marc ont saisi chacun un péché de niveau 2 le 3 mars. S’agit-il du même péché ?');
     expect(conflictHead(a), 'Léa G. · 22h44');
     expect(conflictHead(b), 'Marc · en attente');
     expect(keepText(a), 'Même péché : garder celui de Léa G.');

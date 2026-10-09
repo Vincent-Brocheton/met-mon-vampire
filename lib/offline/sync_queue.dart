@@ -122,8 +122,10 @@ String headerLine(Game g, DateTime? preparedAt, DateTime? lastSync) => [
       if (lastSync != null) 'dernière synchronisation à ${hourText(lastSync)}',
     ].join(' · ');
 
-String conflictText(Sin a, Sin b) =>
-    '${a.byName} et ${b.byName} ont saisi chacun un péché de niveau ${a.level} le ${formatDay(a.date)} S’agit-il du même péché ?';
+String conflictText(Sin a, Sin b) {
+  final d = formatDay(a.date);
+  return '${a.byName} et ${b.byName} ont saisi chacun un péché de niveau ${a.level} le ${d.endsWith('.') ? d : '$d.'} S’agit-il du même péché ?';
+}
 
 String conflictHead(Sin s) => s.createdAt == null ? '${s.byName} · en attente' : '${s.byName} · ${hourText(s.createdAt!)}';
 
