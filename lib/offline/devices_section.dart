@@ -58,22 +58,15 @@ class DevicesSection extends ConsumerWidget {
                   Text(deviceLine(d, games, today), style: t.bodySmall),
                 ]),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton(
-                key: Key('device-${d.id}'),
-                onPressed: uid == null
-                    ? null
-                    : () {
-                        if (d.id == mine) {
-                          onSignOut();
-                        } else if (d.revokedAt != null) {
-                          ref.read(devicesRepositoryProvider).remove(uid, d.id);
-                        } else {
-                          _revoke(context, ref, uid, d);
-                        }
-                      },
-                child: Text(d.revokedAt != null && d.id != mine ? 'Retirer' : 'Déconnecter'),
-              ),
+              // Appareil marqué : il reste listé jusqu'à ce qu'il supprime lui-même son document.
+              if (d.id == mine || d.revokedAt == null) ...[
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  key: Key('device-${d.id}'),
+                  onPressed: uid == null ? null : () => d.id == mine ? onSignOut() : _revoke(context, ref, uid, d),
+                  child: const Text('Déconnecter'),
+                ),
+              ],
             ]),
           ),
         const SizedBox(height: 8),

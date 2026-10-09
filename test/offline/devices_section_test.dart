@@ -54,7 +54,8 @@ void main() {
     expect(find.text('Connexion web · aujourd’hui'), findsOneWidget);
     expect(find.text('Copie hors ligne · partie du 3 oct. · hier'), findsOneWidget);
     expect(find.text('Déconnexion en attente'), findsOneWidget);
-    expect(find.text('Retirer'), findsOneWidget);
+    expect(find.text('Retirer'), findsNothing);
+    expect(find.byKey(const Key('device-d3')), findsNothing);
     expect(find.text('Déconnecter un appareil efface aussi sa copie hors ligne.'), findsOneWidget);
     expect(find.text('Un appareil hors ligne est déconnecté à son prochain passage en ligne.'), findsOneWidget);
   });
@@ -78,14 +79,12 @@ void main() {
     expect(repo.calls, isEmpty);
   });
 
-  testWidgets('cet appareil : même effet que « Se déconnecter » ; appareil marqué : retiré de la liste', (tester) async {
+  testWidgets('cet appareil : même effet que « Se déconnecter »', (tester) async {
     final (repo, signedOut) = await pump(tester);
     await tester.tap(find.byKey(const Key('device-d1')));
     await tester.pumpAndSettle();
     expect(signedOut, ['moi']);
-    await tester.tap(find.byKey(const Key('device-d3')));
-    await tester.pumpAndSettle();
-    expect(repo.calls, ['remove:u1/d3']);
+    expect(repo.calls, isEmpty);
   });
 
   testWidgets('mobile, 390 px', (tester) async {

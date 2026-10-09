@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,13 +50,15 @@ class DeviceSession {
         try {
           // Hors ligne, la suppression resterait en file et partirait avec le cache : on n'attend pas le réseau.
           await removeDevice(uid, deviceId).timeout(removeTimeout);
-        } catch (_) {
-          // Le document reste : la ligne s'affiche « Déconnexion en attente » et peut être retirée de la liste.
+        } catch (e) {
+          debugPrint('Déconnexion : suppression du document de l’appareil échouée ($e)');
+          // Le document reste : la ligne s'affiche « Déconnexion en attente » et reste listée.
         }
       }
       try {
         await wipeCache();
-      } catch (_) {
+      } catch (e) {
+        debugPrint('Déconnexion : effacement du cache Firestore échoué ($e)');
         // La déconnexion et le redémarrage doivent toujours avoir lieu.
       }
       await forgetDevice();
