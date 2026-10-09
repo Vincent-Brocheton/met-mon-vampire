@@ -47,4 +47,12 @@ void main() {
     final bytes = await sheetPdf(printed(), testFonts());
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');
   });
+
+  test('polices chargées depuis les assets de l’app', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final f = await loadPdfFonts();
+    expect([f.regular, f.bold, f.serif, f.serifItalic], everyElement(isNotNull));
+    final bytes = await sheetPdf(printed(), f);
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+  });
 }

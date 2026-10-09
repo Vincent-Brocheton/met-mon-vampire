@@ -71,6 +71,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/fonts/SourceSans3-Regular.ttf
+    - assets/fonts/SourceSans3-Bold.ttf
+    - assets/fonts/CormorantGaramond-Bold.ttf
+    - assets/fonts/CormorantGaramond-Italic.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
