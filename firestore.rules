@@ -20,6 +20,13 @@ service cloud.firestore {
     function isStaff() { return signedIn() && myRole() in ['narrateur', 'conteur', 'principal']; }
     function charPath(id) { return /databases/$(database)/documents/characters/$(id); }
     function histPath(id, h) { return /databases/$(database)/documents/characters/$(id)/history/$(h); }
+    function freezePath() { return /databases/$(database)/documents/chronicle/freeze; }
+    function gamePath(g) { return /databases/$(database)/documents/games/$(g); }
+    // Gel en cours (sous-projet 8a) : ni levé, ni dépassé.
+    function gameRunning(g) { return g.liftedAt == null && request.time < g.until; }
+    function noGameRunning() {
+      return !exists(freezePath()) || !gameRunning(get(gamePath(get(freezePath()).data.gameId)).data);
+    }
     // L'entrée d'historique désignée par la nouvelle version, créée dans le même lot par l'auteur.
     function historyOk(id, kinds) {
       let h = getAfter(histPath(id, request.resource.data.lastHistoryId)).data;
@@ -75,6 +82,41 @@ service cloud.firestore {
       allow write: if managesAccounts();
     }
 
+    // Parties (sous-projet 8a) : le gel fige les fiches jouées. Lues par tous ; le conte fige et lève.
+    match /games/{gid} {
+      allow read: if signedIn();
+      allow create: if managesAccounts()
+        && request.resource.data.keys().hasOnly(['date', 'frozenAt', 'until', 'liftedAt', 'liftedByUid', 'byUid', 'sheetIds'])
+        && request.resource.data.date is timestamp
+        && request.resource.data.frozenAt == request.time
+        && request.resource.data.until is timestamp && request.resource.data.until > request.time
+        && request.resource.data.liftedAt == null && request.resource.data.liftedByUid == null
+        && request.resource.data.byUid == request.auth.uid
+        && request.resource.data.sheetIds is list
+        && getAfter(freezePath()).data.gameId == gid
+        && noGameRunning();
+      allow update: if managesAccounts()
+        && changedOnly(['liftedAt', 'liftedByUid'])
+        && gameRunning(resource.data)
+        && request.resource.data.liftedAt == request.time
+        && request.resource.data.liftedByUid == request.auth.uid;
+    }
+
+    // Dernière partie figée : écrite seulement avec elle, dans le même lot.
+    match /chronicle/freeze {
+      allow read: if signedIn();
+      allow create, update: if managesAccounts()
+        && request.resource.data.keys().hasOnly(['gameId'])
+        && request.resource.data.gameId is string
+        && !exists(gamePath(request.resource.data.gameId))
+        && existsAfter(gamePath(request.resource.data.gameId));
+    }
+
+    // Versions figées de toutes les fiches (écran du gel) : l'équipe seulement.
+    match /{path=**}/frozen/{g} {
+      allow read: if isStaff();
+    }
+
     // Historiques de toutes les fiches (liste des corrections) : l'équipe seulement.
     match /{path=**}/history/{h} {
       allow read: if isStaff();
@@ -115,7 +157,17 @@ service cloud.firestore {
           && (request.resource.data.kind == 'pnj' || request.resource.data.status in ['active', 'retired', 'dead'])
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['kind', 'createdAt'])
           && historyOk(id, ['edit', 'status', 'xp', 'award', 'gain', 'correction', 'embrace'])
-          && getAfter(histPath(id, request.resource.data.lastHistoryId)).data.reason.size() > 0;
+          && getAfter(histPath(id, request.resource.data.lastHistoryId)).data.reason.size() > 0
+          && xpUnlocked(id);
+      }
+
+      // Fiche figée (sous-projet 8a) : pendant le gel, son XP ne change pas.
+      function xpUnlocked(id) {
+        return !exists(freezePath()) || xpUnlockedBy(get(gamePath(get(freezePath()).data.gameId)).data, id);
+      }
+      function xpUnlockedBy(g, id) {
+        return !(id in g.sheetIds && gameRunning(g))
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['xpEarned', 'xpSpent']);
       }
 
       function own() { return resource.data.get('playerUid', null) == request.auth.uid; }
@@ -172,6 +224,21 @@ service cloud.firestore {
           && request.resource.data.byUid == request.auth.uid
           && request.resource.data.at == request.time
           && getAfter(charPath(id)).data.lastHistoryId == h;
+      }
+
+      // Version figée de la fiche (sous-projet 8a) : lue comme la fiche ; écrite par le conte ; corrigée avec un motif.
+      match /frozen/{gid} {
+        function snapshotValid() {
+          let d = request.resource.data;
+          return d.keys().hasOnly(['sheet', 'version', 'gameDate', 'at', 'byUid', 'reason'])
+            && d.sheet is map && d.version is int && d.gameDate is timestamp
+            && d.at == request.time && d.byUid == request.auth.uid;
+        }
+        allow read: if signedIn()
+          && (get(charPath(id)).data.get('playerUid', null) == request.auth.uid || isStaff());
+        allow create: if managesAccounts() && snapshotValid() && request.resource.data.reason == null;
+        allow update: if managesAccounts() && snapshotValid()
+          && request.resource.data.reason is string && request.resource.data.reason.size() > 0;
       }
 
       match /private/{doc} {

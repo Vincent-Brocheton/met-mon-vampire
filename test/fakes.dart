@@ -11,6 +11,8 @@ import 'package:portail_met/characters/character_repository.dart';
 import 'package:portail_met/core/trace.dart';
 import 'package:portail_met/events/events_repository.dart';
 import 'package:portail_met/events/story_event.dart';
+import 'package:portail_met/games/game.dart';
+import 'package:portail_met/games/games_repository.dart';
 import 'package:portail_met/items/item.dart';
 import 'package:portail_met/items/items_repository.dart';
 import 'package:portail_met/morality/sin.dart';
@@ -572,3 +574,40 @@ class FakeTitlesRepository implements TitlesRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+class FakeGamesRepository implements GamesRepository {
+  final calls = <String>[];
+  Object? error;
+  DateTime? lastDate;
+  DateTime? lastUntil;
+  List<String> lastSheetIds = const [];
+  String? lastReason;
+
+  @override
+  Future<void> freeze(DateTime date, DateTime until, List<Character> sheets, Actor by) async {
+    calls.add('freeze');
+    if (error != null) throw error!;
+    lastDate = date;
+    lastUntil = until;
+    lastSheetIds = [for (final c in sheets) c.id];
+  }
+
+  @override
+  Future<void> lift(Game g, Actor by) async {
+    calls.add('lift:${g.id}');
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> correct(Game g, Character c, String reason, Actor by) async {
+    calls.add('correct:${g.id}:${c.id}');
+    if (error != null) throw error!;
+    lastReason = reason;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Aucune partie : pas de gel.
+final noGames = gamesProvider.overrideWith((ref) => Stream.value(const <Game>[]));
