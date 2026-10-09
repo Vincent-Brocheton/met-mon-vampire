@@ -54,7 +54,11 @@ class DeviceSession {
           // Le document reste : la ligne s'affiche « Déconnexion en attente » et peut être retirée de la liste.
         }
       }
-      await wipeCache();
+      try {
+        await wipeCache();
+      } catch (_) {
+        // La déconnexion et le redémarrage doivent toujours avoir lieu.
+      }
       await forgetDevice();
       await signOutAccount();
       await restart(revoked ? '/connexion?retire=1' : '/connexion');

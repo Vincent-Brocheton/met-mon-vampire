@@ -50,4 +50,18 @@ void main() {
     await Future.wait([s.signOut('u1', 'd1', revoked: true), s.signOut('u1', 'd1', revoked: true)]);
     expect(calls.where((c) => c == 'wipe'), hasLength(1));
   });
+
+  test('cache impossible à vider : la déconnexion va au bout', () async {
+    final calls = <String>[];
+    final s = DeviceSession(
+      removeDevice: (_, _) async {},
+      pendingWrites: () async => false,
+      wipeCache: () async => throw Exception('échec'),
+      forgetDevice: () async => calls.add('forget'),
+      signOutAccount: () async => calls.add('signOut'),
+      restart: (l) async => calls.add('restart:$l'),
+    );
+    await s.signOut('u1', 'd1');
+    expect(calls, ['forget', 'signOut', 'restart:/connexion']);
+  });
 }

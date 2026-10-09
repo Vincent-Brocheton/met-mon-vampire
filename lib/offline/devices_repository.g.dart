@@ -172,4 +172,4 @@ final class ThisDeviceProvider
   }
 }
 
-String _$thisDeviceHash() => r'5a70ab386f281ef6ce48ac27c15cc228641a5a41';
+String _$thisDeviceHash() => r'50aa6aad0a6c48aa71d2a83b10dee37a76bcb6d2';

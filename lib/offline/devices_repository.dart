@@ -79,9 +79,10 @@ Stream<Device?> thisDevice(Ref ref) async* {
   final deviceId = await id;
   var touched = false;
   await for (final d in repo.watch(uid, deviceId)) {
-    if (!touched && d?.revokedAt == null) {
+    if (!touched) {
+      // Décidé une seule fois, sur le premier instantané : un document marqué puis retiré ne doit pas être recréé.
       touched = true;
-      repo.touch(uid, deviceId, name: deviceName(web: kIsWeb, platform: defaultTargetPlatform), web: kIsWeb).catchError((Object _) {});
+      if (d?.revokedAt == null) repo.touch(uid, deviceId, name: deviceName(web: kIsWeb, platform: defaultTargetPlatform), web: kIsWeb).catchError((Object _) {});
     }
     yield d;
   }
