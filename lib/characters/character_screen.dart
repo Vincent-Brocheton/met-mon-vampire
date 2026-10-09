@@ -56,14 +56,21 @@ class CharacterScreen extends ConsumerWidget {
         CharacterHeader(c, basePath: basePath, tab: history ? CharacterTab.history : CharacterTab.sheet),
         const SizedBox(height: 22),
         if (frozen != null) ...[
-          FreezeBanner(playerFreezeText(frozen)),
+          FreezeBanner(
+            playerFreezeText(frozen),
+            action: TextButton(onPressed: () => context.go('$basePath/imprimer'), child: const Text('Imprimer')),
+          ),
           const SizedBox(height: 22),
         ],
         if (!history && basePath.startsWith('/joueur') && c.kind == CharacterKind.pj && c.status == CharacterStatus.active) ...[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton(onPressed: () => context.go('$basePath/xp'), child: const Text('Dépenser de l’XP')),
-          ),
+          Wrap(spacing: 12, runSpacing: 12, children: [
+            FilledButton(onPressed: () => context.go('$basePath/xp'), child: const Text('Dépenser de l’XP')),
+            OutlinedButton.icon(
+              onPressed: () => context.go('$basePath/imprimer'),
+              icon: const Icon(Icons.print_outlined, size: 18),
+              label: const Text('Imprimer'),
+            ),
+          ]),
           const SizedBox(height: 22),
         ],
         if (history) HistoryView(id: id, c: c) else ...[

@@ -44,6 +44,8 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   collection: ^1.19.1
+  pdf: 3.13.1
+  printing: 5.15.1
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +70,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/fonts/SourceSans3-Regular.ttf
+    - assets/fonts/SourceSans3-Bold.ttf
+    - assets/fonts/CormorantGaramond-Bold.ttf
+    - assets/fonts/CormorantGaramond-Italic.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

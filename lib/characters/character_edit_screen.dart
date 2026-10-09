@@ -269,6 +269,16 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
             const SizedBox(height: 12),
             FreezeBanner(staffFreezeText(frozen)),
           ],
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const Key('c3-print'),
+              onPressed: () => context.go('/conteur/fiches/${latest.id}/imprimer'),
+              icon: const Icon(Icons.print_outlined, size: 18),
+              label: const Text('Imprimer'),
+            ),
+          ),
           if (latest.kind == CharacterKind.pj &&
               latest.status == CharacterStatus.draft &&
               me != null &&
@@ -294,6 +304,16 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
                 const SizedBox(height: 12),
                 FreezeBanner(staffFreezeText(frozen)),
               ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const Key('c3-print'),
+                  onPressed: changes.isNotEmpty ? null : () => context.go('/conteur/fiches/${latest.id}/imprimer'),
+                  icon: const Icon(Icons.print_outlined, size: 18),
+                  label: const Text('Imprimer'),
+                ),
+              ),
               if (_incoming != null) ...[
                 const SizedBox(height: 12),
                 _Banner(

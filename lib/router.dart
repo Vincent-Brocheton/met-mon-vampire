@@ -33,6 +33,7 @@ import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
+import 'print/print_screen.dart';
 import 'redirect.dart';
 import 'rulebook/referential_screen.dart';
 import 'servants/servants_screen.dart';
@@ -117,6 +118,10 @@ GoRouter router(Ref ref) {
               characterId: s.pathParameters['id']!,
               requestId: s.uri.queryParameters['demande'],
             ),
+          ),
+          GoRoute(
+            path: '/joueur/personnages/:id/imprimer',
+            builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/joueur/personnages/${s.pathParameters['id']}'),
           ),
           GoRoute(
             path: '/joueur/personnages/:id/historique',
@@ -206,6 +211,10 @@ GoRouter router(Ref ref) {
               characterId: s.pathParameters['id']!,
               basePath: '/conteur/fiches/${s.pathParameters['id']}',
             ),
+          ),
+          GoRoute(
+            path: '/conteur/fiches/:id/imprimer',
+            builder: (_, s) => PrintScreen(characterId: s.pathParameters['id']!, basePath: '/conteur/fiches/${s.pathParameters['id']}'),
           ),
           page('/conteur/demandes', const ValidationScreen()),
           page('/conteur/pnj', const NpcLoansScreen()),
