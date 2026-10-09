@@ -162,7 +162,28 @@ test('versions figées : écrites par le conte, corrigées avec un motif, jamais
   await assertSucceeds(setDoc(ref('lea'), snap('lea', { reason: 'Erreur de saisie' })));
   await assertFails(deleteDoc(ref('lea')));
   await assertFails(setDoc(doc(as('lea'), 'characters/zoe-pj/frozen/g5'), snap('lea', { reason: 'x' })));
-  await assertSucceeds(setDoc(doc(as('lea'), 'characters/zoe-pj/frozen/g5'), snap('lea')));
+  await assertFails(setDoc(doc(as('lea'), 'characters/zoe-pj/frozen/g5'), snap('lea')));
+});
+
+test('versions figées : création liée au lot du gel, fiche listée', async () => {
+  const db = as('lea');
+  const b = writeBatch(db);
+  b.set(doc(db, 'games/g1'), game('lea', { sheetIds: ['zoe-pj'] }));
+  b.set(doc(db, 'chronicle/freeze'), { gameId: 'g1' });
+  b.set(doc(db, 'characters/zoe-pj/frozen/g1'), snap('lea'));
+  b.set(doc(db, 'characters/tom-pj/frozen/g1'), snap('lea'));
+  await assertFails(b.commit());
+});
+
+test('versions figées : pas de correction de sa propre fiche par le conteur', async () => {
+  await seed();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'characters/lea-pj'), char({ playerUid: 'lea' }));
+    await setDoc(doc(db, 'characters/lea-pj/frozen/g0'), { sheet: { name: 'lea' }, version: 1, gameDate, at: Timestamp.now(), byUid: 'lea', reason: null });
+  });
+  await assertFails(setDoc(doc(as('lea'), 'characters/lea-pj/frozen/g0'), snap('lea', { reason: 'Erreur' })));
+  await assertSucceeds(setDoc(doc(as('max'), 'characters/lea-pj/frozen/g0'), snap('max', { reason: 'Erreur' })));
 });
 
 test('verrou : l’XP d’une fiche figée ne change pas, le reste si (Review Focus 2)', async () => {
