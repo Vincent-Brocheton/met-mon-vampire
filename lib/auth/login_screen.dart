@@ -5,16 +5,20 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../offline/device.dart' show revokedNotice;
 import 'auth_card.dart';
 import 'forms.dart';
 import 'session_providers.dart';
 
 /// Maquettes Main.dc.html (Web) et Connexion-mobile.dc.html.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.disabled = false, this.emailLink});
+  const LoginScreen({super.key, this.disabled = false, this.revoked = false, this.emailLink});
 
   /// Arrivée après désactivation du compte (redirection `?desactive=1`).
   final bool disabled;
+
+  /// Arrivée après une déconnexion demandée depuis un autre appareil (`/connexion?retire=1`).
+  final bool revoked;
 
   /// URL complète de la page si l'on revient d'un lien de connexion reçu par e-mail.
   final String? emailLink;
@@ -153,6 +157,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
           if (widget.disabled) ...[
             const FormError('Ce compte est désactivé. Contactez l’équipe du conte.'),
+            const SizedBox(height: 18),
+          ],
+          if (widget.revoked) ...[
+            const FormError(revokedNotice),
             const SizedBox(height: 18),
           ],
           LabeledField(

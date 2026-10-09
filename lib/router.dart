@@ -31,6 +31,8 @@ import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
+import 'offline/device_session.dart';
+import 'offline/devices_repository.dart';
 import 'offline/night_screen.dart';
 import 'places/character_places_screen.dart';
 import 'places/places_screen.dart';
@@ -65,6 +67,13 @@ GoRouter router(Ref ref) {
   ref.listen(currentUserProvider, (_, next) {
     if (next.value?.role == Role.disabled) ref.read(authRepositoryProvider).signOut();
   });
+  // Appareil déconnecté depuis un autre appareil (8c) : il vide son cache et se déconnecte lui-même.
+  ref.listen(thisDeviceProvider, (_, next) {
+    final d = next.value;
+    if (d != null && d.revokedAt != null) {
+      ref.read(deviceSessionProvider).signOut(ref.read(authStateProvider).value?.uid, d.id, revoked: true);
+    }
+  });
 
   GoRoute page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
   Widget soon(String feature) => EmptyState.comingSoon(feature);
@@ -89,6 +98,7 @@ GoRouter router(Ref ref) {
         path: '/connexion',
         builder: (_, state) => LoginScreen(
           disabled: state.uri.queryParameters['desactive'] == '1',
+          revoked: state.uri.queryParameters['retire'] == '1',
           emailLink: state.uri.queryParameters.containsKey('oobCode') ? Uri.base.toString() : null,
         ),
       ),
