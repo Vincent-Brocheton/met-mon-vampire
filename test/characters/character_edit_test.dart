@@ -76,6 +76,16 @@ void main() {
     expect(repo.calls, ['saveEdit:Correction']);
   });
 
+  testWidgets('C3 : « Changer le titre » désactivé tant que des modifications ne sont pas enregistrées', (tester) async {
+    await pump(tester, withHumanity());
+    final btn = find.widgetWithText(TextButton, 'Changer le titre');
+    expect(tester.widget<TextButton>(btn).onPressed, isNotNull);
+    await tester.tap(find.byTooltip('Ajouter un point : Humanité'));
+    await tester.pump();
+    expect(tester.widget<TextButton>(btn).onPressed, isNull);
+    expect(find.text('Enregistrez d’abord vos modifications.'), findsOneWidget);
+  });
+
   testWidgets('fiche de PNJ : section « Prêts »', (tester) async {
     await pump(tester, sample()..kind = CharacterKind.pnj);
     await tester.pumpAndSettle();

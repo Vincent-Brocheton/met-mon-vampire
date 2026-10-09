@@ -19,6 +19,12 @@ import '../characters/character_test.dart' show sample;
 import '../fakes.dart';
 import 'loan_rules_test.dart' show octave;
 
+/// Jour du calendrier dans [n] jours (le changement d'heure ne décale pas le jour).
+DateTime _in(int n) {
+  final d = DateTime.now();
+  return DateTime(d.year, d.month, d.day + n);
+}
+
 void main() {
   const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
   const camille = AppUser(uid: 'u1', displayName: 'Camille R.', email: 'c@ex.fr', role: Role.joueur);
@@ -76,7 +82,7 @@ void main() {
   NpcLoan running({int version = 1}) => NpcLoan.fromMap('l1', {
         ...(octave()
               ..from = startOfDay(DateTime.now())
-              ..until = endOfDay(DateTime.now().add(const Duration(days: 3))))
+              ..until = endOfDay(_in(3)))
             .toMap(),
         'version': version,
       });
@@ -85,7 +91,7 @@ void main() {
     await pump(tester, loans: [running()]);
     await choose(tester, 'loan-npc', 'Isaure de Valcourt');
     await choose(tester, 'loan-player', 'Camille R.');
-    await tester.enterText(find.byKey(const Key('loan-until')), '${DateTime.now().add(const Duration(days: 2)).day.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 2)).month.toString().padLeft(2, '0')}/${DateTime.now().add(const Duration(days: 2)).year}');
+    await tester.enterText(find.byKey(const Key('loan-until')), '${_in(2).day.toString().padLeft(2, '0')}/${_in(2).month.toString().padLeft(2, '0')}/${_in(2).year}');
     await tester.pump();
     expect(find.byKey(const Key('loan-form-warnings')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const Key('loan-form-warnings')), matching: find.textContaining('Déjà confié à Camille R.')), findsOneWidget);
@@ -131,7 +137,7 @@ void main() {
     final repo = await pump(tester, loans: [
       octave()
         ..from = startOfDay(DateTime.now())
-        ..until = endOfDay(DateTime.now().add(const Duration(days: 3))),
+        ..until = endOfDay(_in(3)),
     ]);
     expect(find.textContaining('1 en cours'), findsOneWidget);
     await tester.tap(find.byKey(const Key('loan-extend-l1')));

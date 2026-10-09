@@ -133,7 +133,7 @@ service cloud.firestore {
       function playerDraftSave() {
         return own() && resource.data.status == 'draft' && request.resource.data.status == 'draft'
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace', 'allies', 'path', 'derangements', 'derangementTraits'])
+               .hasAny(['playerUid', 'playerName', 'kind', 'xpBonus', 'status', 'createdAt', 'lastHistoryId', 'gainedThrough', 'ghoul', 'embrace', 'allies', 'path', 'derangements', 'derangementTraits', 'title', 'titleSince'])
           && decisionUnchanged();
       }
 
@@ -389,6 +389,23 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/places/$(id)).data.lastHistoryId == h;
         allow delete: if managesAccounts();
       }
+    }
+
+    // Titres (sous-projet 7d) : copie publique des titres, lue par tous, écrite par le conte.
+    match /court/{id} {
+      // Jamais sa propre fiche (le conte qui joue un PJ ne s'attribue pas de titre).
+      function notOwnSheet() {
+        let p = /databases/$(database)/documents/characters/$(id);
+        return !exists(p) || get(p).data.get('playerUid', null) != request.auth.uid;
+      }
+      allow read: if signedIn();
+      allow create, update: if managesAccounts() && notOwnSheet()
+        && request.resource.data.keys().hasOnly(['name', 'title', 'sect', 'under', 'since'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 80
+        && request.resource.data.sect is string && request.resource.data.under is string
+        && (request.resource.data.since == null || request.resource.data.since is timestamp);
+      allow delete: if managesAccounts() && notOwnSheet();
     }
 
     match /publicPlaces/{id} {

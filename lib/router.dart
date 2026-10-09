@@ -37,6 +37,7 @@ import 'rulebook/referential_screen.dart';
 import 'servants/servants_screen.dart';
 import 'servants/servants_section.dart';
 import 'shell/app_shell.dart';
+import 'titles/court_screen.dart';
 import 'xp/corrections_screen.dart';
 import 'xp/my_requests_screen.dart';
 import 'xp/spend_screen.dart';
@@ -155,6 +156,7 @@ GoRouter router(Ref ref) {
             builder: (_, s) => ServantScreen(characterId: s.pathParameters['id']!, servantId: s.pathParameters['sid']!),
           ),
           page('/joueur/pnj', const MyNpcLoansScreen()),
+          page('/joueur/cour', const CourtScreen()),
           GoRoute(path: '/joueur/pnj/:id', builder: (_, s) => NpcLoanScreen(loanId: s.pathParameters['id']!)),
           GoRoute(
             path: '/joueur/demandes',
@@ -172,6 +174,7 @@ GoRouter router(Ref ref) {
           page('/conteur/objets', const ItemsScreen()),
           page('/conteur/allies', const AlliesAdminScreen()),
           page('/conteur/liens', const BondsScreen()),
+          page('/conteur/cour', const CourtScreen()),
           GoRoute(
             path: '/conteur/fiches/:id',
             builder: (_, s) => CharacterEditScreen(id: s.pathParameters['id']!),

@@ -35,6 +35,7 @@ List<String> describeChanges(Character a, Character b) {
   text('Génération', _gen(a), _gen(b));
   text('Sire', a.sire, b.sire);
   text('Titre', a.title, b.title);
+  if (a.titleSince != b.titleSince && b.titleSince != null) out.add('Titre depuis le ${formatDay(b.titleSince)}');
   for (final cat in AttrCategory.values) {
     final x = a.attributes[cat]!, y = b.attributes[cat]!;
     number(cat.label, x.value, y.value);

@@ -8,7 +8,9 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../items/character_items_screen.dart';
 import '../places/character_places_screen.dart';
+import '../rulebook/rulebook_provider.dart';
 import '../servants/servants_section.dart';
+import '../titles/title_rules.dart' show playerView;
 import 'character.dart';
 import 'character_repository.dart';
 import 'sheet_widgets.dart';
@@ -53,7 +55,7 @@ class CharacterScreen extends ConsumerWidget {
           const SizedBox(height: 22),
         ],
         if (history) HistoryView(id: id, c: c) else ...[
-          CharacterSheetView(c),
+          CharacterSheetView(basePath.startsWith('/joueur') ? playerView(c, ref.watch(rulebookProvider)) : c),
           const SizedBox(height: 20),
           PlacesSection(characterId: id, link: basePath.startsWith('/joueur') ? '$basePath/lieux' : '/conteur/lieux'),
           const SizedBox(height: 20),

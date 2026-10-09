@@ -334,7 +334,7 @@ String ghoulLine(GhoulState g) => 'Goule de ${g.domitorName}${g.domitorClan == n
 
 /// Clés ajoutées au sous-projet 5 : écrites seulement si non vides ou déjà présentes dans le document lu.
 /// Les règles à liste de clés fermée (soumission, bonus, décision) acceptent ainsi les fiches existantes.
-const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace', 'path', 'derangements', 'derangementTraits'];
+const _laterKeys = ['rituals', 'techniques', 'elderPowers', 'attributeBonus', 'servants', 'allies', 'ghoul', 'embrace', 'path', 'derangements', 'derangementTraits', 'titleSince'];
 
 /// Fiche de personnage. Mutable : l'édition travaille sur un [clone].
 class Character {
@@ -376,6 +376,7 @@ class Character {
       ..sect = m['sect'] as String?
       ..sire = m['sire'] as String?
       ..title = m['title'] as String?
+      ..titleSince = _date(m['titleSince'])
       ..story = m['story'] as String?
       ..inspirationBefore = insp['before'] as String?
       ..inspirationEmbrace = insp['embrace'] as String?
@@ -453,6 +454,7 @@ class Character {
 
   /// Traits de dérangement en jeu, de 0 à 3 (plancher 1 pour un Malkavien).
   int derangementTraits = 0;
+  DateTime? titleSince;
 
   /// Fiche de goule jouée (sous-projet 6c) ; null pour un vampire.
   GhoulState? ghoul;
@@ -504,6 +506,7 @@ class Character {
         'path': path,
         'derangements': [for (final d in derangements) d.toMap()],
         'derangementTraits': derangementTraits,
+        'titleSince': _ts(titleSince),
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
       };
@@ -547,6 +550,7 @@ class Character {
         if (path != null || storedKeys.contains('path')) 'path': path,
         if (derangements.isNotEmpty || storedKeys.contains('derangements')) 'derangements': [for (final d in derangements) d.toMap()],
         if (derangementTraits != 0 || storedKeys.contains('derangementTraits')) 'derangementTraits': derangementTraits,
+        if (titleSince != null || storedKeys.contains('titleSince')) 'titleSince': _ts(titleSince),
         if (ghoul != null) 'ghoul': ghoul!.toMap(),
         if (embrace != null) 'embrace': embrace!.toMap(),
         'blood': blood,

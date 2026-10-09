@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../allies/allies_repository.dart';
 import '../allies/ally_list_editor.dart';
@@ -284,7 +285,7 @@ class _CharacterEditScreenState extends ConsumerState<CharacterEditScreen> {
               ],
               const SizedBox(height: 22),
               // Reconstruit les champs texte après Annuler / Repartir ; les notes restent hors de ce sous-arbre.
-              KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch)),
+              KeyedSubtree(key: ValueKey(_generation), child: _Editor(c: _draft!, onChanged: _touch, dirty: changes.isNotEmpty)),
               const SizedBox(height: 22),
               NotesPanel(id: latest.id),
               const SizedBox(height: 20),
@@ -357,9 +358,10 @@ class _Banner extends StatelessWidget {
 
 /// Tous les champs éditables de la fiche (le brouillon est modifié en place).
 class _Editor extends ConsumerWidget {
-  const _Editor({required this.c, required this.onChanged});
+  const _Editor({required this.c, required this.onChanged, required this.dirty});
   final Character c;
   final VoidCallback onChanged;
+  final bool dirty;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -434,7 +436,12 @@ class _Editor extends ConsumerWidget {
       ChoiceField(label: 'Archétype', value: c.archetype, options: names('archetypes'), onChanged: (v) => set(() => c.archetype = v)),
       TextFieldRow(label: 'Concept', value: c.concept, onChanged: (v) => set(() => c.concept = v)),
       TextFieldRow(label: 'Sire', value: c.sire, onChanged: (v) => set(() => c.sire = v)),
-      TextFieldRow(label: 'Titre', value: c.title, onChanged: (v) => set(() => c.title = v)),
+      Row(children: [
+        Expanded(child: Text('Titre : ${(c.title ?? '').trim().isEmpty ? 'aucun' : c.title}')),
+        // Quitter l'éditeur perdrait les modifications non enregistrées.
+        if (dirty) const Flexible(child: Text('Enregistrez d’abord vos modifications.')),
+        TextButton(onPressed: dirty ? null : () => context.go('/conteur/fiches/${c.id}/moralite'), child: const Text('Changer le titre')),
+      ]),
     ]);
 
     final attributes = section('Attributs', [
