@@ -19,6 +19,9 @@ import 'package:portail_met/morality/sin.dart';
 import 'package:portail_met/morality/sins_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
 import 'package:portail_met/npcs/npc_loans_repository.dart';
+import 'package:portail_met/offline/devices_repository.dart';
+import 'package:portail_met/offline/night.dart';
+import 'package:portail_met/offline/night_repository.dart';
 import 'package:portail_met/places/place.dart';
 import 'package:portail_met/places/places_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
@@ -611,3 +614,58 @@ class FakeGamesRepository implements GamesRepository {
 
 /// Aucune partie : pas de gel.
 final noGames = gamesProvider.overrideWith((ref) => Stream.value(const <Game>[]));
+
+/// Suivi de la soirée : vues par `'<characterId>/<gameId>'` ; un enregistrement met la vue à jour.
+class FakeNightRepository implements NightRepository {
+  FakeNightRepository([Map<String, NightView>? views]) : views = views ?? {};
+
+  final Map<String, NightView> views;
+  final saved = <Night>[];
+  Object? error;
+  final _changes = StreamController<String>.broadcast();
+
+  @override
+  Stream<NightView> watch(String characterId, String gameId) async* {
+    final key = '$characterId/$gameId';
+    yield views[key] ?? const NightView(Night());
+    await for (final k in _changes.stream) {
+      if (k == key) yield views[key]!;
+    }
+  }
+
+  @override
+  Future<void> save(String characterId, String gameId, Night n, String uid) async {
+    saved.add(n);
+    if (error != null) throw error!;
+    views['$characterId/$gameId'] = NightView(n, exists: true);
+    _changes.add('$characterId/$gameId');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeDevicesRepository implements DevicesRepository {
+  final calls = <String>[];
+  Object? error;
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> touch(String uid, String id, {required String name, required bool web}) => _record('touch:$uid/$id');
+
+  @override
+  Future<void> prepared(String uid, String id, String gameId) => _record('prepared:$uid/$id/$gameId');
+
+  @override
+  Future<void> revoke(String uid, String id) => _record('revoke:$uid/$id');
+
+  @override
+  Future<void> remove(String uid, String id) => _record('remove:$uid/$id');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
