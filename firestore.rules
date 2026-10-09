@@ -132,6 +132,23 @@ service cloud.firestore {
       allow update: if signedIn() && (selfUpdate(uid) || accountManagerUpdate(uid));
     }
 
+    // Appareils connectés (sous-projet 8c) : chacun les siens, personne d'autre.
+    // Les heures sont celles du serveur quand elles changent.
+    match /users/{uid}/devices/{d} {
+      function sameOrNow(k) {
+        return request.resource.data.get(k, null) == (resource == null ? null : resource.data.get(k, null))
+          || request.resource.data.get(k, null) == request.time;
+      }
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'web', 'lastSeen', 'gameId', 'preparedAt', 'revokedAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.web is bool
+        && request.resource.data.lastSeen is timestamp
+        && sameOrNow('lastSeen') && sameOrNow('preparedAt') && sameOrNow('revokedAt')
+        && (request.resource.data.get('gameId', null) == null || request.resource.data.gameId is string);
+    }
+
     match /characters/{id} {
       allow read: if signedIn()
         && (resource.data.get('playerUid', null) == request.auth.uid || isStaff());
@@ -242,6 +259,32 @@ service cloud.firestore {
           && request.resource.data.gameDate == resource.data.gameDate
           && get(charPath(id)).data.get('playerUid', null) != request.auth.uid
           && request.resource.data.reason is string && request.resource.data.reason.size() > 0;
+      }
+
+      // Suivi de la soirée (sous-projet 8c) : écrit par le joueur seul, sur une fiche de la partie, borné par la version figée ;
+      // lu aussi par l'équipe. L'heure n'est pas vérifiée : une saisie hors ligne envoyée après la levée du gel reste acceptée.
+      match /night/{gid} {
+        function nightValid() {
+          let d = request.resource.data;
+          let s = get(/databases/$(database)/documents/characters/$(id)/frozen/$(gid)).data.sheet;
+          let maxBlood = s.get('ghoul', null) != null ? 5 : s.get('blood', 0);
+          return d.keys().hasOnly(['blood', 'willpower', 'health', 'notes', 'byUid', 'at'])
+            && d.blood is int && d.blood >= 0 && d.blood <= maxBlood
+            && d.willpower is int && d.willpower >= 0 && d.willpower <= s.get('willpower', 0)
+            && d.health is list && d.health.size() == 3
+            && d.health[0] is int && d.health[0] >= 0 && d.health[0] <= 20
+            && d.health[1] is int && d.health[1] >= 0 && d.health[1] <= 20
+            && d.health[2] is int && d.health[2] >= 0 && d.health[2] <= 20
+            && d.notes is list && d.notes.size() <= 100
+            && d.byUid == request.auth.uid
+            && d.at == request.time
+            && id in get(gamePath(gid)).data.sheetIds;
+        }
+        allow read: if signedIn()
+          && (get(charPath(id)).data.get('playerUid', null) == request.auth.uid || isStaff());
+        allow create, update: if signedIn()
+          && get(charPath(id)).data.get('playerUid', null) == request.auth.uid
+          && nightValid();
       }
 
       match /private/{doc} {
