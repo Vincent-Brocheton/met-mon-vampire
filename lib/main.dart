@@ -6,8 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'core/theme.dart';
 import 'firebase_options.dart';
+import 'offline/wipe.dart';
 import 'router.dart';
 
 /// `--dart-define=EMULATORS=true` pour travailler sur les émulateurs locaux.
@@ -17,6 +20,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Effacement raté lors de la session précédente (autre onglet ouvert, par exemple) : repris avant de démarrer l'instance.
+  final prefs = await SharedPreferences.getInstance();
+  if (prefs.containsKey(wipePendingKey)) {
+    try {
+      await FirebaseFirestore.instance.clearPersistence();
+      await prefs.remove(wipePendingKey);
+    } catch (e) {
+      debugPrint('Effacement du cache repris au démarrage : échec ($e)');
+    }
+  }
   // Hors ligne (8c) : cache persistant, partagé entre onglets sur le Web (IndexedDB), réglé avant toute lecture.
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,

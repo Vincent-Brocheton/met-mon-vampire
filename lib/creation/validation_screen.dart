@@ -9,6 +9,7 @@ import '../characters/sheet_widgets.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../offline/offline.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart';
 import '../xp/request_review.dart';
@@ -74,8 +75,8 @@ class _ValidationScreenState extends ConsumerState<ValidationScreen> {
           _ => '${c.name} est refusé.',
         })));
       }
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Décision impossible. Réessayez.');
+    } catch (e) {
+      if (mounted) setState(() => _error = refusalText(e, 'Décision impossible. Réessayez.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

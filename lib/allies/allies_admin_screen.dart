@@ -11,6 +11,7 @@ import '../core/theme.dart';
 import '../core/trace.dart';
 import '../core/widgets.dart';
 import '../npcs/loan_rules.dart' show parseDay, formatLoanDay;
+import '../offline/offline.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../xp/xp_repository.dart';
@@ -381,10 +382,10 @@ class _ConvertPanelState extends ConsumerState<_ConvertPanel> {
       await ref.read(characterRepositoryProvider).saveEdit(c, convertLegacy(c, widget.background.name, _a), 'Conversion des anciens historiques', by);
       messenger.showSnackBar(const SnackBar(content: Text('Allié créé.')));
       widget.onDone();
-    } catch (_) {
+    } catch (e) {
       final latest = ref.read(allCharactersProvider).value?.where((x) => x.id == c.id).firstOrNull;
       final moved = (latest?.version ?? c.version) != c.version;
-      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

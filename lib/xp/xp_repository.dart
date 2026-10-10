@@ -68,8 +68,8 @@ class XpRepository {
     final failed = <String>[];
     for (final item in items) {
       final batch = _db.batch();
-      stage(batch, item);
       try {
+        stage(batch, item);
         await batch.commit();
       } catch (_) {
         failed.add(sheetOf(item).name);

@@ -30,6 +30,9 @@ class Sin {
     this.remorse = Remorse.none,
     this.lossApplied = false,
     this.byName = '',
+    this.byUid = '',
+    this.createdAt,
+    this.distinct = false,
   });
 
   factory Sin.fromMap(String id, Map<String, dynamic> m) => Sin(
@@ -40,6 +43,9 @@ class Sin {
         remorse: Remorse.parse(m['remorse'] as String?),
         lossApplied: m['lossApplied'] == true,
         byName: m['byName'] as String? ?? '',
+        byUid: m['byUid'] as String? ?? '',
+        createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
+        distinct: m['distinct'] == true,
       );
 
   final String id;
@@ -52,15 +58,37 @@ class Sin {
   bool lossApplied;
   String byName;
 
+  /// Auteur de la dernière écriture.
+  String byUid;
+
+  /// Null tant que la création n'est pas confirmée par le serveur.
+  final DateTime? createdAt;
+
+  /// Tranché « distinct » d'un péché voisin (sous-projet 8d) : il ne fait plus conflit.
+  bool distinct;
+
+  /// `distinct` n'est écrit que s'il est vrai : les anciens documents ne changent pas.
   Map<String, dynamic> toMap() => {
         'date': Timestamp.fromDate(dayOf(date)),
         'level': level,
         'what': what,
         'remorse': remorse.name,
         'lossApplied': lossApplied,
+        if (distinct) 'distinct': true,
       };
 
-  Sin copy() => Sin(id: id, date: date, level: level, what: what, remorse: remorse, lossApplied: lossApplied, byName: byName);
+  Sin copy() => Sin(
+        id: id,
+        date: date,
+        level: level,
+        what: what,
+        remorse: remorse,
+        lossApplied: lossApplied,
+        byName: byName,
+        byUid: byUid,
+        createdAt: createdAt,
+        distinct: distinct,
+      );
 }
 
 /// Document d'un nouveau péché : exactement les clés permises par les règles.

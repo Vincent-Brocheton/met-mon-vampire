@@ -5,14 +5,24 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/session_providers.dart';
+import '../games/game.dart';
 import '../router.dart';
+import 'device.dart';
 import 'devices_repository.dart';
 import 'reload_stub.dart' if (dart.library.js_interop) 'reload_web.dart';
+import 'wipe.dart';
 
 part 'device_session.g.dart';
 
+Future<void> _keepPrepared(String uid, String deviceId) async {}
+
+Future<WipePolicy> _weekPolicy() async => WipePolicy.week;
+
+Future<void> _ignorePending(bool pending) async {}
+
 /// Déconnexion de cet appareil (« Se déconnecter », ou demandée depuis un autre appareil) :
 /// document retiré, cache Firestore vidé, identifiant oublié, compte déconnecté, app relancée.
+/// Effacement des données de l'appareil (sous-projet 8d) : partie préparée oubliée, cache vidé, app relancée, compte gardé.
 class DeviceSession {
   DeviceSession({
     required this.removeDevice,
@@ -21,6 +31,9 @@ class DeviceSession {
     required this.forgetDevice,
     required this.signOutAccount,
     required this.restart,
+    this.clearPrepared = _keepPrepared,
+    this.policy = _weekPolicy,
+    this.markWipePending = _ignorePending,
     this.removeTimeout = const Duration(seconds: 3),
   });
 
@@ -38,6 +51,15 @@ class DeviceSession {
 
   /// Repart sur [location] avec une instance Firestore neuve.
   final Future<void> Function(String location) restart;
+
+  /// `gameId` et `preparedAt` à nul : la copie hors ligne n'est plus annoncée dans « Mon compte ».
+  final Future<void> Function(String uid, String deviceId) clearPrepared;
+
+  /// Politique d'effacement choisie sur cet appareil.
+  final Future<WipePolicy> Function() policy;
+
+  /// Note qu'un effacement du cache est en cours ou raté (repris au démarrage), ou qu'il a abouti.
+  final Future<void> Function(bool pending) markWipePending;
   final Duration removeTimeout;
 
   bool _busy = false;
@@ -68,6 +90,44 @@ class DeviceSession {
       _busy = false;
     }
   }
+
+  /// « Effacer maintenant », effacement programmé : le compte reste connecté.
+  Future<void> wipe(String? uid, String? deviceId, String location) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      if (uid != null && deviceId != null) {
+        try {
+          await clearPrepared(uid, deviceId).timeout(removeTimeout);
+        } catch (e) {
+          // Le prochain démarrage en ligne refera l'effacement, puis oubliera la partie.
+          debugPrint('Effacement : partie préparée non oubliée ($e)');
+        }
+      }
+      try {
+        await markWipePending(true);
+        await wipeCache();
+        await markWipePending(false);
+      } catch (e) {
+        // Le drapeau reste : `main` réessaiera l'effacement au prochain démarrage.
+        debugPrint('Effacement : cache Firestore non vidé ($e)');
+      }
+      // L'instance arrêtée par `terminate` ne resservirait pas : on repart dans tous les cas.
+      await restart(location);
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// Effacement programmé : la partie préparée est finie depuis le délai choisi, et rien n'attend le réseau.
+  Future<void> wipeIfDue(String? uid, Device? d, List<Game> games, DateTime now, String location) async {
+    final gameId = d?.gameId;
+    if (_busy || d == null || gameId == null) return;
+    final g = games.where((g) => g.id == gameId).firstOrNull;
+    if (!shouldWipe(await policy(), g, now)) return;
+    if (await pendingWrites()) return;
+    await wipe(uid, d.id, location);
+  }
 }
 
 @Riverpod(keepAlive: true)
@@ -94,6 +154,16 @@ DeviceSession deviceSession(Ref ref) {
       ref.invalidate(deviceIdProvider);
       ref.invalidate(firestoreProvider);
       router.go(location);
+    },
+    clearPrepared: devices.clearPrepared,
+    policy: () async => (await OfflinePrefs.load()).policy,
+    markWipePending: (pending) async {
+      final p = await SharedPreferences.getInstance();
+      if (pending) {
+        await p.setBool(wipePendingKey, true);
+      } else {
+        await p.remove(wipePendingKey);
+      }
     },
   );
 }

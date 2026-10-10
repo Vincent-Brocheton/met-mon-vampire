@@ -16,6 +16,7 @@ import '../npcs/loan_rules.dart' show parseDay;
 import '../npcs/npc_loans_repository.dart';
 import '../offline/night.dart';
 import '../offline/night_repository.dart';
+import '../offline/offline.dart';
 import '../xp/xp_repository.dart';
 import '../xp/xp_request.dart';
 import 'game.dart';
@@ -109,11 +110,11 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
       _untilDay.clear();
       _untilTime.clear();
       messenger.showSnackBar(const SnackBar(content: Text('Fiches figées.')));
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       // Un autre membre du conte a pu figer entre-temps : les règles refusent un second gel.
       final other = runningGame(ref.read(gamesProvider).value ?? const <Game>[], widget.now());
-      setState(() => _error = other != null ? 'Un gel est déjà en cours.' : 'Enregistrement refusé : réessayez.');
+      setState(() => _error = refusalText(e, other != null ? 'Un gel est déjà en cours.' : 'Enregistrement refusé : réessayez.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -135,8 +136,8 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
       await ref.read(gamesRepositoryProvider).lift(g, by);
       if (mounted) setState(() => _error = null);
       messenger.showSnackBar(const SnackBar(content: Text('Gel levé.')));
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, 'Enregistrement refusé : réessayez.'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -155,8 +156,8 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
     try {
       await ref.read(gamesRepositoryProvider).correct(g, live, reason, by);
       messenger.showSnackBar(SnackBar(content: Text('Version figée mise à jour : ${live.name}.')));
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Enregistrement refusé : réessayez.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, 'Enregistrement refusé : réessayez.'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -191,9 +192,12 @@ class _FreezeScreenState extends ConsumerState<FreezeScreen> {
       PageTitle(
         'Gel des fiches',
         subtitle: 'Une version figée par fiche fait foi pendant la partie. C’est elle qu’on imprimera.',
-        action: running != null && me.role.managesAccounts
-            ? OutlinedButton(onPressed: _busy ? null : () => _lift(running), child: const Text('Lever le gel'))
-            : null,
+        action: running == null
+            ? null
+            : Wrap(spacing: 10, runSpacing: 10, children: [
+                OutlinedButton(onPressed: () => context.go('/conteur/gel/hors-ligne'), child: const Text('Partie hors ligne')),
+                if (me.role.managesAccounts) OutlinedButton(onPressed: _busy ? null : () => _lift(running), child: const Text('Lever le gel')),
+              ]),
       ),
       const SizedBox(height: 22),
       if (running == null) _newFreeze(context, me, chars) else _running(context, me, running, games, chars),

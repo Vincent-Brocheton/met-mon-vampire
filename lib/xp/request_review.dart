@@ -12,6 +12,7 @@ import '../games/game.dart';
 import '../games/game_rules.dart';
 import '../games/games_repository.dart';
 import '../morality/derangement_rules.dart' show derangementOfItem, derangementSummary;
+import '../offline/offline.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import '../rules/creation_rules.dart' show Check, CheckLevel;
@@ -94,8 +95,8 @@ class _RequestReviewState extends ConsumerState<RequestReview> {
         _ => 'Demande refusée.',
       })));
       widget.onDecided();
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Décision impossible : la demande ou la fiche a changé. Réessayez.');
+    } catch (e) {
+      if (mounted) setState(() => _error = refusalText(e, 'Décision impossible : la demande ou la fiche a changé. Réessayez.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

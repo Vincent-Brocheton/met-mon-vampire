@@ -22,6 +22,8 @@ import 'package:portail_met/npcs/npc_loans_repository.dart';
 import 'package:portail_met/offline/devices_repository.dart';
 import 'package:portail_met/offline/night.dart';
 import 'package:portail_met/offline/night_repository.dart';
+import 'package:portail_met/offline/offline_game_repository.dart';
+import 'package:portail_met/offline/wipe.dart';
 import 'package:portail_met/places/place.dart';
 import 'package:portail_met/places/places_repository.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
@@ -511,6 +513,12 @@ class FakeSinsRepository implements SinsRepository {
   }
 
   @override
+  Future<void> markDistinct(String characterId, List<Sin> sins, Actor by) async {
+    calls.add('distinct:$characterId:${[for (final s in sins) s.id].join(',')}');
+    if (error != null) throw error!;
+  }
+
+  @override
   Future<void> applyEveningLoss(Character before, List<Sin> evening, Actor by) async {
     calls.add('loss:${before.id}:${[for (final s in evening) s.id].join(',')}');
     if (error != null) throw error!;
@@ -661,10 +669,33 @@ class FakeDevicesRepository implements DevicesRepository {
   Future<void> prepared(String uid, String id, String gameId) => _record('prepared:$uid/$id/$gameId');
 
   @override
+  Future<void> clearPrepared(String uid, String id) => _record('clearPrepared:$uid/$id');
+
+  @override
   Future<void> revoke(String uid, String id) => _record('revoke:$uid/$id');
 
   @override
   Future<void> remove(String uid, String id) => _record('remove:$uid/$id');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeOfflineGameRepository implements OfflineGameRepository {
+  final calls = <String>[];
+  Object? error;
+
+  @override
+  Future<void> prepare(Game g, OfflinePrefs p) async {
+    calls.add('prepare:${g.id}:${p.rulebook}/${p.bonds}/${p.notes}');
+    if (error != null) throw error!;
+  }
+
+  @override
+  Future<void> sync() async {
+    calls.add('sync');
+    if (error != null) throw error!;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

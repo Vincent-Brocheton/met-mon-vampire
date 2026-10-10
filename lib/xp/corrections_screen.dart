@@ -11,6 +11,7 @@ import '../core/widgets.dart';
 import '../games/game.dart';
 import '../games/game_rules.dart';
 import '../games/games_repository.dart';
+import '../offline/offline.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import 'xp_corrections.dart';
@@ -57,8 +58,8 @@ class _CorrectionsScreenState extends ConsumerState<CorrectionsScreen> {
       await ref.read(xpRepositoryProvider).correct(before, after, _kind, _reason.text, by);
       messenger.showSnackBar(const SnackBar(content: Text('Correction enregistrée.')));
       if (mounted) setState(_reset);
-    } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text('Correction refusée : la fiche a changé entre-temps. Réessayez.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, 'Correction refusée : la fiche a changé entre-temps. Réessayez.'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

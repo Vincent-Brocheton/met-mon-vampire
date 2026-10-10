@@ -10,6 +10,7 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../events/story_event.dart';
 import '../npcs/loan_rules.dart' show formatLoanDay, parseDay;
+import '../offline/offline.dart';
 import '../rulebook/rulebook.dart';
 import 'morality_rules.dart';
 import 'sin.dart';
@@ -57,10 +58,10 @@ class _StaffMoralityState extends ConsumerState<StaffMorality> {
       await action(by);
       messenger.showSnackBar(SnackBar(content: Text(done)));
       return true;
-    } catch (_) {
+    } catch (e) {
       final latest = ref.read(characterProvider(c.id)).value;
       final moved = latest != null && latest.version != c.version;
-      messenger.showSnackBar(SnackBar(content: Text(moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.')));
+      messenger.showSnackBar(SnackBar(content: Text(refusalText(e, moved ? 'Modifié entre-temps : rechargez la page.' : 'Enregistrement refusé : réessayez.'))));
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);

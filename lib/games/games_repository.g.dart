@@ -49,7 +49,7 @@ final class GamesRepositoryProvider
   }
 }
 
-String _$gamesRepositoryHash() => r'e955a2b96c7c043d6a5044812f5f434f890a8c00';
+String _$gamesRepositoryHash() => r'baf36b7c6154ff128ed18a85a14101239d33ba1b';
 
 @ProviderFor(games)
 final gamesProvider = GamesProvider._();

@@ -6,6 +6,7 @@ import '../auth/session.dart';
 import '../auth/session_providers.dart';
 import '../events/event_rules.dart';
 import '../events/story_event.dart';
+import '../offline/offline.dart';
 import 'character.dart';
 import 'describe_changes.dart';
 
@@ -22,10 +23,20 @@ Actor? actorOf(AppUser? u) => u == null ? null : Actor(u.uid, u.displayName);
 
 int _byName(Character a, Character b) => a.name.toLowerCase().compareTo(b.name.toLowerCase());
 
+bool _online() => false;
+
 class CharacterRepository {
-  CharacterRepository(this._db);
+  CharacterRepository(this._db, {bool Function()? offline}) : _offline = offline ?? _online;
 
   final FirebaseFirestore _db;
+
+  /// Vrai sans réseau (sous-projet 8d).
+  final bool Function() _offline;
+
+  /// Hors ligne, l'équipe ne modifie pas la fiche d'un autre ; le joueur, lui, garde la file de Firestore.
+  void _guard(Character c, Actor by) {
+    if (_offline() && by.uid != c.playerUid) throw const OfflineError();
+  }
 
   CollectionReference<Map<String, dynamic>> get _col => _db.collection('characters');
 
@@ -206,6 +217,7 @@ class CharacterRepository {
     Map<String, Object?> extra = const {},
     List<StoryEvent> events = const [],
   }) {
+    _guard(c, by);
     final ref = _col.doc(c.id);
     final h = ref.collection('history').doc();
     batch
@@ -234,6 +246,7 @@ class CharacterRepository {
     Map<String, Object?> extra = const {},
     List<StoryEvent> events = const [],
   }) {
+    _guard(c, by);
     final batch = _db.batch();
     stageEdit(batch, c, fromVersion: fromVersion, by: by, kind: kind, summary: summary, reason: reason, delta: delta, extra: extra, events: events);
     return batch.commit();
@@ -258,7 +271,8 @@ class CharacterRepository {
 }
 
 @Riverpod(keepAlive: true)
-CharacterRepository characterRepository(Ref ref) => CharacterRepository(ref.watch(firestoreProvider));
+CharacterRepository characterRepository(Ref ref) =>
+    CharacterRepository(ref.watch(firestoreProvider), offline: () => ref.read(offlineProvider).value ?? false);
 
 @riverpod
 Stream<List<Character>> myCharacters(Ref ref) {

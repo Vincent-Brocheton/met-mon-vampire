@@ -4,15 +4,25 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/session_providers.dart';
 import '../characters/character.dart';
 import '../characters/character_repository.dart';
+import '../offline/offline.dart';
 import 'game.dart';
 
 part 'games_repository.g.dart';
 
 /// Parties (`games`), pointeur `chronicle/freeze` et versions figées `characters/{id}/frozen/{gameId}`.
+bool _online() => false;
+
 class GamesRepository {
-  GamesRepository(this._db);
+  GamesRepository(this._db, {bool Function()? offline}) : _offline = offline ?? _online;
 
   final FirebaseFirestore _db;
+
+  /// Vrai sans réseau : le gel et ses corrections attendent le réseau (sous-projet 8d).
+  final bool Function() _offline;
+
+  void _guard() {
+    if (_offline()) throw const OfflineError();
+  }
 
   CollectionReference<Map<String, dynamic>> get _col => _db.collection('games');
 
@@ -42,6 +52,7 @@ class GamesRepository {
   /// Fige [sheets] en un lot : la partie, le pointeur et une version figée par fiche.
   // ponytail: un seul lot, plafond de 500 écritures (environ 497 fiches) ; découper le lot si la chronique grossit à ce point.
   Future<void> freeze(DateTime date, DateTime until, List<Character> sheets, Actor by) {
+    _guard();
     final ref = _col.doc();
     final batch = _db.batch()
       ..set(ref, {
@@ -61,10 +72,16 @@ class GamesRepository {
   }
 
   /// Levée anticipée (les règles exigent l'heure du serveur).
-  Future<void> lift(Game g, Actor by) => _col.doc(g.id).update({'liftedAt': FieldValue.serverTimestamp(), 'liftedByUid': by.uid});
+  Future<void> lift(Game g, Actor by) {
+    _guard();
+    return _col.doc(g.id).update({'liftedAt': FieldValue.serverTimestamp(), 'liftedByUid': by.uid});
+  }
 
   /// Correction urgente : la fiche actuelle remplace la version figée, avec un motif.
-  Future<void> correct(Game g, Character c, String reason, Actor by) => _snapshot(c.id, g.id).set(snapshotData(c, g.date, by, reason.trim()));
+  Future<void> correct(Game g, Character c, String reason, Actor by) {
+    _guard();
+    return _snapshot(c.id, g.id).set(snapshotData(c, g.date, by, reason.trim()));
+  }
 }
 
 /// Données d'une version figée. Règles : clés fermées, heure du serveur, motif nul à la création et obligatoire ensuite.
@@ -78,7 +95,8 @@ Map<String, dynamic> snapshotData(Character c, DateTime gameDate, Actor by, Stri
     };
 
 @Riverpod(keepAlive: true)
-GamesRepository gamesRepository(Ref ref) => GamesRepository(ref.watch(firestoreProvider));
+GamesRepository gamesRepository(Ref ref) =>
+    GamesRepository(ref.watch(firestoreProvider), offline: () => ref.read(offlineProvider).value ?? false);
 
 @riverpod
 Stream<List<Game>> games(Ref ref) => ref.watch(gamesRepositoryProvider).watchAll();
