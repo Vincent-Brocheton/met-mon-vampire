@@ -67,6 +67,9 @@ void main() {
     expect(d.keys.toSet(),
         {'type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto', 'byUid', 'byName', 'createdAt', 'updatedAt', 'charName'});
     expect(d['charName'], 'Isaure');
+    // Nom de fiche sans limite : coupé à 80 caractères, sinon les règles refusent tout le lot (revue finale 9b).
+    expect((newEventData(e, 'lea', 'Léa', List.filled(100, 'x').join())['charName'] as String).length, 80);
+    expect(eventCharName(List.filled(90, 'y').join()), List.filled(80, 'y').join());
     expect(StoryEvent.fromMap('x', {'year': 1, 'charName': 'Isaure'}).charName, 'Isaure');
     expect((StoryEvent.fromMap('x', {'year': 1}).charName, (StoryEvent(id: '', year: 1)..charName = 'L').copy().charName), ('', 'L'));
     expect((d['type'], d['visibility'], d['day'], d['byUid']), ('other', 'player', null, 'lea'));

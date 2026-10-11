@@ -37,7 +37,7 @@ class EventsRepository {
       ...e.toMap(),
       'byUid': by.uid,
       'byName': by.name,
-      'charName': charName,
+      'charName': eventCharName(charName),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
