@@ -36,7 +36,7 @@ Maquettes (canvas Claude Design https://claude.ai/artifact/RMXAnPkQ4qP48GBCDKDSG
 | `version` | entier, 1 à la première publication |
 | `updatedAt`, `updatedByUid`, `updatedByName` | dernière publication |
 
-Identifiants : `r_{cat}_{entryId}` pour une page de règle, identifiant automatique pour une page libre. Une page de règle a toujours la rubrique de sa catégorie et le titre de son entrée.
+Identifiants : `r_{cat}_{clé}` pour une page de règle, identifiant automatique pour une page libre. La clé est l’identifiant de l’entrée ; une valeur de base du livre (pas encore enregistrée, donc sans identifiant) prend `base-` suivi de son nom simplifié (`base-presence`). Une page écrite sur une valeur de base devient orpheline si la catégorie est ensuite enregistrée dans le référentiel. Une page de règle a toujours la rubrique de sa catégorie et le titre de son entrée.
 
 ### `wikiDrafts/{id}` : brouillon en cours
 
@@ -85,7 +85,7 @@ Seules les entrées **proposées** du référentiel (`state.offered`) ont une pa
 - `audienceChanges(users, sheets)` : comptes dont la liste stockée diffère de la liste calculée (ce qu’il faut écrire).
 - `canRead(page, audiences, {staff})` : même test que les règles.
 - `wikiIndex(rulebook, pages, {staff})` : toutes les pages lisibles, virtuelles comprises, groupées par rubrique.
-- `progress(rulebook, pages)` : par groupe de rubriques, pages publiées non vides sur nombre d’entrées.
+- `progress(items)` : par rubrique, pages de règles publiées non vides sur nombre d’entrées.
 - `search(index, query)` : correspondance sans casse ni accents sur le titre, le nom VO, le corps et les données ; renvoie un extrait autour de la première occurrence ; titres d’abord, puis corps.
 - `resolveLink(title, index)` : page visible de ce titre (`nameKey`), sinon null.
 
@@ -142,12 +142,12 @@ Routes, à la place des deux `soon('Wiki')` de `lib/router.dart` :
 | `/conteur/wiki` | liste du conte | 9a |
 | `/conteur/wiki/edition/:id` (`nouvelle` pour une page libre) | édition | 9a |
 | `/conteur/wiki/edition/:id/historique` | historique | 9b |
-| `/conteur/wiki/page/:id`, `/conteur/wiki/rubrique/:rub`, `/conteur/wiki/recherche` | lecture, mêmes widgets que le joueur | 9a |
+| `/conteur/wiki/accueil`, `/conteur/wiki/page/:id`, `/conteur/wiki/rubrique/:rub`, `/conteur/wiki/recherche` | lecture, mêmes widgets que le joueur ; `?apercu=1` : aperçu joueur | 9a |
 
 ### Joueur : accueil (J-Wiki)
 
 - Titre « Wiki de la chronique », sous-titre « Les règles et le lore, au même endroit que vos fiches. Disponible hors ligne. »
-- « Copie hors ligne à jour · {date} » : date de la dernière réponse du serveur (`!metadata.isFromCache`), gardée dans les préférences ; sans réseau : « Hors ligne · copie du {date} ».
+- « Copie hors ligne à jour » ; sans réseau (`offlineProvider`) : « Hors ligne · copie de l’appareil ».
 - Champ de recherche (Entrée → page de recherche).
 - Cartes de rubrique : nom, nombre de pages visibles, description courte. Rubrique sans page visible : masquée.
 - « Mis à jour récemment » : les 5 pages publiées les plus récentes.
@@ -155,7 +155,7 @@ Routes, à la place des deux `soon('Wiki')` de `lib/router.dart` :
 
 ### Joueur : rubrique (J-WikiRubrique)
 
-Fil d’Ariane, titre, puces de filtre propres à la rubrique (Disciplines : Toutes, Communes, Peu communes, Rares ; ailleurs : aucune), cartes groupées. Une page « à rédiger » reste listée : ses données suffisent souvent.
+Fil d’Ariane, titre, puces de filtre propres à la rubrique (Disciplines : Toutes, Communes, Propres à un clan ; rubrique de plusieurs catégories : Toutes et une puce par catégorie ; ailleurs : aucune), cartes groupées par catégorie (« Pages du conte » pour les pages libres). Une page « à rédiger » reste listée : ses données suffisent souvent.
 
 ### Joueur : page (J-WikiPage, J-WikiLore)
 
@@ -177,7 +177,7 @@ Résultats : titre, rubrique, extrait. Puces Tout / Règles / Chronique avec com
 - Puces : Toutes · n, Règles, La chronique, Brouillons · n.
 - Panneau « Avancement de la rédaction » (`progress`) et bouton « Voir les pages vides » (filtre « À rédiger »).
 - Panneau « Règles de visibilité » (texte fixe).
-- Boutons « Voir comme un joueur » (lecture limitée aux pages `all`, sans personnalisation) et « Nouvelle page » (conteur et principal ; le narrateur lit seulement).
+- Boutons « Voir comme un joueur » (`/conteur/wiki/accueil?apercu=1` : lecture limitée aux pages `all` et aux entrées proposées, sans personnalisation) et « Nouvelle page » (conteur et principal ; le narrateur lit seulement).
 - Lance la synchronisation des `wikiAudiences` (conteur et principal seulement) ; la liste des fiches du conte la lance aussi.
 
 ### Conte : édition (C-WikiEdit)
@@ -185,7 +185,8 @@ Résultats : titre, rubrique, extrait. Puces Tout / Règles / Chronique avec com
 - Fil d’Ariane, titre (modifiable pour une page libre), lien « Historique des versions (n) » (9b).
 - Barre d’outils : Gras, Italique, Titre, Liste, Lien vers une page, Encadré règle, Tableau ; elle entoure la sélection ou insère un modèle.
 - Texte et aperçu côte à côte sur grand écran ; onglets Texte / Aperçu en dessous de 900 px.
-- Panneau « Publication » : Visible par (Tous les joueurs ; Un clan… → clans du référentiel ; Une secte… → sectes du référentiel ; Le conte seul), Rubrique (page libre seulement), Source.
+- Panneau « Publication » : Visible par (une seule liste : Tous les joueurs, chaque clan du référentiel, chaque secte du référentiel, Le conte seul), Rubrique (page libre seulement), Source.
+- Une page de règle réservée garde ses données visibles de tous (le référentiel est lisible par tout compte) ; seul son texte est réservé.
 - Panneau « Données du référentiel » (page de règle) avec lien « Modifier » vers le référentiel.
 - Boutons « Aperçu joueur », « Enregistrer le brouillon », « Publier » (boîte de dialogue : note facultative ; lot : page + version + suppression du brouillon).
 - Un brouillon existant est rouvert, avec le bandeau « Brouillon en cours, non publié. » et l’action « Abandonner le brouillon ».
