@@ -14,6 +14,7 @@ import 'package:portail_met/core/theme.dart';
 import 'package:portail_met/rulebook/rule_entry.dart';
 import 'package:portail_met/rulebook/rulebook.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
+import 'package:portail_met/wiki/wiki_repository.dart';
 
 import '../fakes.dart';
 
@@ -29,6 +30,7 @@ void main() {
         baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
         characterRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => Stream.value([
               Character(id: '1', name: 'Isaure', kind: CharacterKind.pj, playerName: 'Camille R.', status: CharacterStatus.active),
@@ -75,6 +77,7 @@ void main() {
             })),
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
         characterRepositoryProvider.overrideWith((ref) => FakeCharacterRepository()),
         allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
       ],
@@ -103,6 +106,7 @@ void main() {
         baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea, ines])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
         characterRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => Stream.value([
               Character(id: '1', name: 'Isaure', kind: CharacterKind.pj, playerName: 'Camille R.', status: CharacterStatus.active)
@@ -157,6 +161,7 @@ void main() {
         baseRulebook,
         currentUserProvider.overrideWith((ref) => Stream.value(lea)),
         allUsersProvider.overrideWith((ref) => Stream.value(const [lea, ines])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
         characterRepositoryProvider.overrideWith((ref) => repo),
         allCharactersProvider.overrideWith((ref) => chars.stream),
       ],

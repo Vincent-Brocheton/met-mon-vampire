@@ -10,6 +10,7 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
+import '../wiki/wiki_repository.dart';
 import 'character.dart';
 import 'character_filter.dart';
 import 'character_repository.dart';
@@ -44,6 +45,8 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Accès du wiki recalculés d'après les fiches (sous-projet 9a).
+    ref.watch(wikiAudienceSyncProvider);
     final t = Theme.of(context).textTheme;
     final canCreate = ref.watch(currentUserProvider).value?.role.managesAccounts ?? false;
     final rb = ref.watch(rulebookProvider) ?? const Rulebook();
