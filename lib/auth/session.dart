@@ -35,6 +35,7 @@ class AppUser {
     this.accessMessage,
     this.createdAt,
     this.lastLoginAt,
+    this.wikiAudiences = const [],
   });
 
   factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -47,6 +48,7 @@ class AppUser {
       accessMessage: m['accessMessage'] as String?,
       createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
       lastLoginAt: (m['lastLoginAt'] as Timestamp?)?.toDate(),
+      wikiAudiences: [for (final a in (m['wikiAudiences'] as List?) ?? const []) '$a'],
     );
   }
 
@@ -57,6 +59,9 @@ class AppUser {
   final String? accessMessage;
   final DateTime? createdAt;
   final DateTime? lastLoginAt;
+
+  /// Accès réservés du wiki (`clan:…`, `sect:…`), recalculés par le conte d'après les fiches (sous-projet 9a).
+  final List<String> wikiAudiences;
 }
 
 class ChronicleConfig {
