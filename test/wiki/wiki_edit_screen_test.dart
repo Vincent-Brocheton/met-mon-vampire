@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,10 +15,10 @@ import 'package:portail_met/wiki/wiki_repository.dart';
 import 'package:portail_met/wiki/wiki_routes.dart';
 
 import '../fakes.dart';
-import 'wiki_rules_test.dart' show draftsWiki, julienUser, leaUser, pagesWiki, rbWiki;
+import 'wiki_rules_test.dart' show draftsWiki, julienUser, leaUser, pagesWiki, pg, rbWiki;
 
 Future<void> pumpEdit(WidgetTester tester, String id,
-    {AppUser user = leaUser, FakeWikiRepository? repo, List<WikiPage>? drafts, double width = 1440}) async {
+    {AppUser user = leaUser, FakeWikiRepository? repo, List<WikiPage>? drafts, Stream<List<WikiPage>>? pages, double width = 1440}) async {
   tester.view.physicalSize = Size(width, 2000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -25,7 +27,7 @@ Future<void> pumpEdit(WidgetTester tester, String id,
     overrides: [
       currentUserProvider.overrideWith((ref) => Stream.value(user)),
       rulebookProvider.overrideWith((ref) => rbWiki),
-      wikiPagesProvider.overrideWith((ref) => Stream.value(pagesWiki())),
+      wikiPagesProvider.overrideWith((ref) => pages ?? Stream.value(pagesWiki())),
       wikiDraftsProvider.overrideWith((ref) => Stream.value(drafts ?? draftsWiki())),
       wikiRepositoryProvider.overrideWithValue(repo ?? FakeWikiRepository()),
       wikiAudienceSyncProvider.overrideWith((ref) async {}),
@@ -135,5 +137,44 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('wk-body')), findsNothing);
+  });
+
+  testWidgets('publication concurrente : la version de départ est celle du chargement (revue finale)', (tester) async {
+    final repo = FakeWikiRepository();
+    final pages = StreamController<List<WikiPage>>();
+    addTearDown(pages.close);
+    pages.add(pagesWiki());
+    await pumpEdit(tester, 'cour', repo: repo, pages: pages.stream);
+    await tester.enterText(find.byKey(const Key('wk-body')), 'Mon texte');
+    // Un autre conteur publie la version 2 pendant la saisie.
+    pages.add([for (final p in pagesWiki()) p.id == 'cour' ? pg('cour', title: 'La cour du Prince', body: 'Son texte', version: 2) : p]);
+    await tester.pump();
+    await publishWith(tester, '');
+    expect(repo.calls, ['publish:cour:1']);
+    expect(find.text('Mon texte'), findsWidgets);
+  });
+
+  testWidgets('deux publications de suite : la seconde part de la version publiée (revue finale)', (tester) async {
+    final repo = FakeWikiRepository();
+    await pumpEdit(tester, 'cour', repo: repo);
+    await publishWith(tester, '');
+    await publishWith(tester, '');
+    expect(repo.calls, ['publish:cour:1', 'publish:cour:2']);
+  });
+
+  testWidgets('page orpheline : le conte peut la supprimer (revue finale)', (tester) async {
+    final repo = FakeWikiRepository();
+    await pumpEdit(tester, 'r_disciplines_gone', repo: repo);
+    await tester.tap(find.byKey(const Key('wk-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Supprimer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['delete:r_disciplines_gone']);
+  });
+
+  testWidgets('longueurs bornées comme dans les règles (revue finale)', (tester) async {
+    await pumpEdit(tester, 'cour');
+    int? max(String key) => tester.widget<TextField>(find.byKey(Key(key))).maxLength;
+    expect((max('wk-title'), max('wk-source'), max('wk-body')), (80, 200, 50000));
   });
 }

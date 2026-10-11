@@ -37,6 +37,10 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
   var _loaded = false;
   var _busy = false;
   var _showPreview = false;
+
+  /// Version publiée sur laquelle part la saisie, fixée au chargement : une publication faite entre-temps
+  /// par un autre conteur fait refuser la nôtre au lieu de l'écraser.
+  var _baseVersion = 0;
   late final String _id = widget.pageId == newPageId ? ref.read(wikiRepositoryProvider).newId() : widget.pageId;
 
   @override
@@ -53,6 +57,7 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
     _source.text = from?.source ?? item?.entry?.source ?? '';
     _audience = from?.audience ?? audienceAll;
     _rubric = item?.rubric ?? 'systeme';
+    _baseVersion = from?.version ?? 0;
     _loaded = true;
   }
 
@@ -67,7 +72,7 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
       source: _source.text.trim(),
       cat: item?.cat,
       entryId: item?.entry != null ? entryKey(item!.entry!) : item?.page?.entryId ?? item?.draft?.entryId,
-      version: item?.draft?.version ?? item?.page?.version ?? 0,
+      version: _baseVersion,
     );
   }
 
@@ -109,8 +114,10 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
     if (!_valid(item)) return;
     final note = await showDialog<String>(context: context, builder: (_) => const _NoteDialog());
     if (note == null || !mounted) return;
-    if (await _run(() => ref.read(wikiRepositoryProvider).publish(_current(item), _by, note: note), 'Page publiée.',
+    final page = _current(item);
+    if (await _run(() => ref.read(wikiRepositoryProvider).publish(page, _by, note: note), 'Page publiée.',
         refused: 'Cette page a été publiée entre-temps. Rechargez-la avant de publier.')) {
+      _baseVersion = page.version + 1;
       _openSaved();
     }
   }
@@ -172,6 +179,7 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
     final field = TextField(
       key: const Key('wk-body'),
       controller: _body,
+      maxLength: 50000,
       readOnly: readOnly,
       minLines: 16,
       maxLines: null,
@@ -247,6 +255,7 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
             key: const Key('wk-source'),
             controller: _source,
             readOnly: readOnly,
+            maxLength: 200,
             decoration: const InputDecoration(labelText: 'Source', hintText: 'MET : VTM, p. 120'),
           ),
         ]),
@@ -265,7 +274,8 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
           ]),
         ),
       ],
-      if (manages && !rule && (item?.page != null || item?.draft != null)) ...[
+      if (manages && (!rule || item!.orphan) && (item?.page != null || item?.draft != null)) ...[
+        // Page libre, ou page d'une entrée supprimée du référentiel.
         const SizedBox(height: 20),
         Align(
           alignment: Alignment.centerLeft,
@@ -288,6 +298,7 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
           key: const Key('wk-title'),
           controller: _title,
           readOnly: readOnly,
+          maxLength: 80,
           onChanged: (_) => setState(() {}),
           style: t.headlineSmall,
           decoration: const InputDecoration(hintText: 'Titre de la page'),
