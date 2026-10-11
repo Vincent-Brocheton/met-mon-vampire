@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/events/events_repository.dart';
 import 'package:portail_met/offline/offline.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/wiki/wiki_repository.dart';
@@ -25,6 +26,7 @@ Future<void> pumpAdmin(WidgetTester tester, {AppUser user = leaUser, double widt
       wikiDraftsProvider.overrideWith((ref) => Stream.value(draftsWiki())),
       wikiAudienceSyncProvider.overrideWith((ref) async => onSync?.call()),
       offlineProvider.overrideWith((ref) => Stream.value(false)),
+      publicEventsProvider.overrideWith((ref) => Stream.value(const [])),
     ],
     child: MaterialApp.router(
       theme: buildTheme(withFonts: false),

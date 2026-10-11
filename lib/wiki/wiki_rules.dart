@@ -19,6 +19,9 @@ class Rubric {
 
 const chronicleRubric = 'chronique';
 
+/// Page virtuelle de la chronologie publique (sous-projet 9b).
+const chronologyId = 'chronologie';
+
 const rubrics = [
   Rubric('clans', 'Clans & sectes', 'Histoire, disciplines, faiblesses', ['clans', 'sects']),
   Rubric('disciplines', 'Disciplines', 'Pouvoirs niveau par niveau', ['disciplines']),
@@ -194,6 +197,7 @@ List<WikiItem> wikiIndex(Rulebook rb, List<WikiPage> pages, {required bool staff
       orphan: d.cat != null,
     ));
   }
+  if (seen.add(chronologyId)) items.add(const WikiItem(id: chronologyId, title: 'Chronologie publique', rubric: chronicleRubric));
   return items..sort((a, b) => fold(a.title).compareTo(fold(b.title)));
 }
 
@@ -211,13 +215,17 @@ enum WikiState {
   final String label;
 }
 
-WikiState stateOf(WikiItem i) => i.draft != null
+WikiState stateOf(WikiItem i) => i.id == chronologyId
+    ? WikiState.published
+    : i.draft != null
     ? WikiState.draft
     : i.page == null || (i.isRule && !i.written)
         ? WikiState.empty
         : WikiState.published;
 
-String originLabel(WikiItem i) => i.orphan
+String originLabel(WikiItem i) => i.id == chronologyId
+    ? 'Événements publics, automatique'
+    : i.orphan
     ? 'Entrée supprimée'
     : i.isRule
         ? 'Fiche du référentiel'

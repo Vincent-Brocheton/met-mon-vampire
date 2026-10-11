@@ -58,7 +58,8 @@ class _WikiAdminScreenState extends ConsumerState<WikiAdminScreen> {
           padding: EdgeInsets.zero,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (shown.isEmpty) Padding(padding: const EdgeInsets.all(20), child: Text('Aucune page ne correspond.', style: t.bodyMedium)),
-            for (final i in shown) _Row(i, rb, onTap: () => context.go('/conteur/wiki/edition/${i.id}')),
+            for (final i in shown)
+              _Row(i, rb, onTap: () => context.go(i.id == chronologyId ? '/conteur/wiki/page/$chronologyId' : '/conteur/wiki/edition/${i.id}')),
           ]),
         );
         final side = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

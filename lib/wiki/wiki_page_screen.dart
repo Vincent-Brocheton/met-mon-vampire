@@ -6,6 +6,7 @@ import '../auth/session_providers.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import 'wiki_chronology.dart';
 import 'wiki_markdown.dart';
 import 'wiki_page.dart';
 import 'wiki_rules.dart';
@@ -77,7 +78,9 @@ class _WikiPageScreenState extends ConsumerState<WikiPageScreen> {
             RuleDataView(cat: item.cat!, entry: e),
           ],
           const SizedBox(height: 18),
-          if (body.trim().isEmpty)
+          if (item.id == chronologyId)
+            const ChronologyView()
+          else if (body.trim().isEmpty)
             Text(item.isRule ? 'Le conte n’a pas encore rédigé cette page.' : 'Page vide.', style: t.bodyMedium?.copyWith(color: AppColors.textMuted))
           else
             WikiBody(body, headingKeys: keys, target: (title) => resolveLink(title, items)?.id, onOpen: (id) => context.go(nav.page(id))),

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/events/events_repository.dart';
+import 'package:portail_met/events/story_event.dart';
 import 'package:portail_met/offline/offline.dart';
 import 'package:portail_met/rulebook/rulebook_provider.dart';
 import 'package:portail_met/wiki/wiki_page.dart';
@@ -14,7 +16,7 @@ import 'package:portail_met/wiki/wiki_routes.dart';
 import 'wiki_rules_test.dart' show leaUser, pagesWiki, pagesZoe, rbWiki, zoeUser;
 
 Future<void> pumpReader(WidgetTester tester, String location,
-    {AppUser user = zoeUser, List<WikiPage>? pages, bool offline = false, double width = 1440}) async {
+    {AppUser user = zoeUser, List<WikiPage>? pages, bool offline = false, List<StoryEvent> publicEvents = const [], double width = 1440}) async {
   tester.view.physicalSize = Size(width, 1800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -25,6 +27,7 @@ Future<void> pumpReader(WidgetTester tester, String location,
       rulebookProvider.overrideWith((ref) => rbWiki),
       wikiPagesProvider.overrideWith((ref) => Stream.value(pages ?? pagesZoe())),
       offlineProvider.overrideWith((ref) => Stream.value(offline)),
+      publicEventsProvider.overrideWith((ref) => Stream.value(publicEvents)),
     ],
     child: MaterialApp.router(
       theme: buildTheme(withFonts: false),
