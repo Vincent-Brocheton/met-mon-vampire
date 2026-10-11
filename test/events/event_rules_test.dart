@@ -63,8 +63,12 @@ void main() {
     final back = StoryEvent.fromMap('e1', e.toMap());
     expect((back.id, back.type, back.title, back.description, back.year, back.month, back.day, back.visibility, back.auto),
         ('e1', EventType.other, 'Chasse', 'Au musée.', 2026, 8, null, EventVisibility.player, false));
-    final d = newEventData(e, 'lea', 'Léa');
-    expect(d.keys.toSet(), {'type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto', 'byUid', 'byName', 'createdAt', 'updatedAt'});
+    final d = newEventData(e, 'lea', 'Léa', 'Isaure');
+    expect(d.keys.toSet(),
+        {'type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto', 'byUid', 'byName', 'createdAt', 'updatedAt', 'charName'});
+    expect(d['charName'], 'Isaure');
+    expect(StoryEvent.fromMap('x', {'year': 1, 'charName': 'Isaure'}).charName, 'Isaure');
+    expect((StoryEvent.fromMap('x', {'year': 1}).charName, (StoryEvent(id: '', year: 1)..charName = 'L').copy().charName), ('', 'L'));
     expect((d['type'], d['visibility'], d['day'], d['byUid']), ('other', 'player', null, 'lea'));
     expect(EventType.parse('inconnu'), EventType.other);
     expect(StoryEvent.blank(DateTime(2026, 10, 12)).year, 2026);

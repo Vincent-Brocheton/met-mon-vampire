@@ -44,7 +44,7 @@ class BondsRepository {
     for (final e in w.erased) {
       batch.set(_col.doc(e.id), bondData(e, by), SetOptions(merge: true));
     }
-    batch.set(_db.collection('characters').doc(w.after.thrallId).collection('events').doc(), newEventData(w.event, by.uid, by.name));
+    batch.set(_db.collection('characters').doc(w.after.thrallId).collection('events').doc(), newEventData(w.event, by.uid, by.name, w.after.thrallName));
     return batch.commit();
   }
 

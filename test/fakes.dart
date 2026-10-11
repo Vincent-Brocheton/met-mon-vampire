@@ -479,11 +479,14 @@ class FakeEventsRepository implements EventsRepository {
   StoryEvent? lastSaved;
   Object? error;
 
+  String? lastCharName;
+
   @override
-  Future<void> save(String characterId, StoryEvent e, Actor by) async {
+  Future<void> save(String characterId, String charName, StoryEvent e, Actor by) async {
     calls.add('save:$characterId:${e.id.isEmpty ? 'new' : e.id}');
     if (error != null) throw error!;
     lastSaved = e;
+    lastCharName = charName;
   }
 
   @override

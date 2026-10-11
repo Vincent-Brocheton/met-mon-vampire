@@ -51,6 +51,7 @@ class StoryEvent {
     this.visibility = EventVisibility.player,
     this.auto = false,
     this.byName = '',
+    this.charName = '',
     this.createdAt,
   });
 
@@ -68,6 +69,7 @@ class StoryEvent {
         visibility: EventVisibility.parse(m['visibility'] as String?),
         auto: m['auto'] == true,
         byName: m['byName'] as String? ?? '',
+        charName: m['charName'] as String? ?? '',
         createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
       );
 
@@ -81,6 +83,9 @@ class StoryEvent {
   EventVisibility visibility;
   bool auto;
   String byName;
+
+  /// Nom du personnage, pour la chronologie publique du wiki (sous-projet 9b) ; vide sur les anciens événements.
+  String charName;
 
   /// Null tant que l'écriture n'est pas confirmée par le serveur.
   final DateTime? createdAt;
@@ -108,12 +113,13 @@ class StoryEvent {
         visibility: visibility,
         auto: auto,
         byName: byName,
+        charName: charName,
         createdAt: createdAt,
       );
 }
 
 /// Document d'un nouvel événement : exactement les clés permises par les règles.
-Map<String, dynamic> newEventData(StoryEvent e, String byUid, String byName) {
+Map<String, dynamic> newEventData(StoryEvent e, String byUid, String byName, String charName) {
   final now = FieldValue.serverTimestamp();
-  return {...e.toMap(), 'byUid': byUid, 'byName': byName, 'createdAt': now, 'updatedAt': now};
+  return {...e.toMap(), 'byUid': byUid, 'byName': byName, 'charName': charName, 'createdAt': now, 'updatedAt': now};
 }
