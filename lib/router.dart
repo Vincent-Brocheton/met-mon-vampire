@@ -258,7 +258,6 @@ GoRouter router(Ref ref) {
           page('/conteur/pnj', const NpcLoansScreen()),
           page('/conteur/xp', const XpAdminScreen()),
           page('/conteur/xp/corrections', const CorrectionsScreen()),
-          page('/conteur/wiki', soon('Wiki')),
           page('/conteur/referentiel', const ReferentialScreen()),
           GoRoute(
             path: '/conteur/referentiel/:cat',
