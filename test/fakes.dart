@@ -33,6 +33,8 @@ import 'package:portail_met/rulebook/rules_repository.dart';
 import 'package:portail_met/servants/servant_file.dart';
 import 'package:portail_met/servants/servants_repository.dart';
 import 'package:portail_met/titles/titles_repository.dart';
+import 'package:portail_met/wiki/wiki_page.dart';
+import 'package:portail_met/wiki/wiki_repository.dart';
 import 'package:portail_met/xp/xp_corrections.dart';
 import 'package:portail_met/xp/xp_gain.dart';
 import 'package:portail_met/xp/xp_repository.dart';
@@ -696,6 +698,47 @@ class FakeOfflineGameRepository implements OfflineGameRepository {
     calls.add('sync');
     if (error != null) throw error!;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeWikiRepository implements WikiRepository {
+  final calls = <String>[];
+  WikiPage? lastPage;
+  String? lastNote;
+  Object? error;
+
+  Future<void> _record(String call) async {
+    calls.add(call);
+    if (error != null) throw error!;
+  }
+
+  @override
+  String newId() => 'neuve';
+
+  @override
+  Future<void> saveDraft(WikiPage page, Actor by) {
+    lastPage = page;
+    return _record('draft:${page.id}:${page.version}');
+  }
+
+  @override
+  Future<void> discardDraft(String id) => _record('discard:$id');
+
+  @override
+  Future<void> publish(WikiPage page, Actor by, {String note = ''}) {
+    lastPage = page;
+    lastNote = note;
+    return _record('publish:${page.id}:${page.version}');
+  }
+
+  @override
+  Future<void> delete(String id) => _record('delete:$id');
+
+  @override
+  Future<void> setAudiences(Map<String, List<String>> changes) =>
+      _record('audiences:${[for (final e in changes.entries) '${e.key}=${e.value.join(',')}'].join(';')}');
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

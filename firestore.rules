@@ -67,6 +67,12 @@ service cloud.firestore {
       );
     }
 
+    // Wiki (sous-projet 9a) : accès par clan et par secte, recalculés par le conte d'après les fiches.
+    function wikiAudiencesUpdate() {
+      return managesAccounts() && changedOnly(['wikiAudiences'])
+        && request.resource.data.wikiAudiences is list && request.resource.data.wikiAudiences.size() <= 29;
+    }
+
     match /chronicle/config {
       allow read: if true;
       allow create: if signedIn()
@@ -129,7 +135,7 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && validName(request.resource.data.displayName)
         && (request.resource.data.role == 'pending' || isFirstPrincipal());
-      allow update: if signedIn() && (selfUpdate(uid) || accountManagerUpdate(uid));
+      allow update: if signedIn() && (selfUpdate(uid) || accountManagerUpdate(uid) || wikiAudiencesUpdate());
     }
 
     // Appareils connectés (sous-projet 8c) : chacun les siens, personne d'autre.
@@ -468,6 +474,54 @@ service cloud.firestore {
     // Toutes les catégories en une requête (écran du référentiel, moteurs du plan B).
     match /{path=**}/ruleEntries/{id} {
       allow read: if signedIn();
+    }
+
+    // Wiki (sous-projet 9a) : pages publiées lues selon leur audience ; brouillons et versions réservés à l'équipe.
+    // Publier : la page passe à la version suivante et sa copie `versions/{n}` est créée dans le même lot.
+    function wikiPagePath(id) { return /databases/$(database)/documents/wiki/$(id); }
+    function wikiContentValid(d) {
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 80
+        && d.rubric is string && d.rubric.size() <= 40
+        && d.audience is string && (d.audience in ['all', 'staff'] || d.audience.matches('(clan|sect):.{1,60}'))
+        && d.body is string && d.body.size() <= 50000
+        && d.source is string && d.source.size() <= 200
+        && (d.get('cat', null) == null || d.cat is string)
+        && (d.get('entryId', null) == null || d.entryId is string);
+    }
+    function wikiAuthorOk(d) {
+      return d.updatedByUid == request.auth.uid && d.updatedAt == request.time && validName(d.updatedByName);
+    }
+    match /wiki/{id} {
+      allow read: if isStaff()
+        || (signedIn() && (resource.data.audience == 'all'
+            || resource.data.audience in get(userPath(request.auth.uid)).data.get('wikiAudiences', [])));
+      allow create, update: if managesAccounts()
+        && request.resource.data.keys().hasOnly(['title', 'rubric', 'audience', 'body', 'source', 'cat', 'entryId',
+            'version', 'updatedAt', 'updatedByUid', 'updatedByName'])
+        && wikiContentValid(request.resource.data) && wikiAuthorOk(request.resource.data)
+        && request.resource.data.version == (resource == null ? 0 : resource.data.version) + 1
+        && existsAfter(/databases/$(database)/documents/wiki/$(id)/versions/$(request.resource.data.version));
+      allow delete: if managesAccounts();
+
+      match /versions/{n} {
+        allow read: if isStaff();
+        allow create: if managesAccounts()
+          && request.resource.data.keys().hasOnly(['title', 'rubric', 'audience', 'body', 'source', 'cat', 'entryId',
+              'note', 'byUid', 'byName', 'at'])
+          && wikiContentValid(request.resource.data)
+          && request.resource.data.note is string && request.resource.data.note.size() <= 80
+          && request.resource.data.byUid == request.auth.uid && request.resource.data.at == request.time
+          && getAfter(wikiPagePath(id)).data.version == int(n);
+      }
+    }
+    match /wikiDrafts/{id} {
+      allow read: if isStaff();
+      allow create, update: if managesAccounts()
+        && request.resource.data.keys().hasOnly(['title', 'rubric', 'audience', 'body', 'source', 'cat', 'entryId',
+            'baseVersion', 'updatedAt', 'updatedByUid', 'updatedByName'])
+        && wikiContentValid(request.resource.data) && wikiAuthorOk(request.resource.data)
+        && request.resource.data.baseVersion is int;
+      allow delete: if managesAccounts();
     }
 
     // Lieux d'intérêt (sous-projet 6a) : privés ; résumé public à part.
