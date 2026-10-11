@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../auth/session_providers.dart';
+import '../characters/character.dart';
+import '../characters/character_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -12,6 +14,7 @@ import '../rulebook/rule_entry.dart';
 import '../rulebook/rulebook.dart';
 import '../rulebook/rulebook_provider.dart';
 import 'wiki_markdown.dart';
+import 'wiki_personal.dart';
 import 'wiki_repository.dart';
 import 'wiki_rules.dart';
 
@@ -30,6 +33,9 @@ class WikiNav {
   String page(String id) => _q('$_base/page/$id');
   String search(String query) => _q('$_base/recherche?q=${Uri.encodeQueryComponent(query)}');
 }
+
+/// Fiches qui personnalisent la lecture : les PJ actifs du joueur ; aucune dans l'espace du conte (aperçu compris).
+List<Character> mineFor(WidgetRef ref, WikiNav nav) => nav.staff ? const [] : activeSheets(ref.watch(myCharactersProvider).value ?? const []);
 
 /// Charge le référentiel et les pages, puis construit avec les éléments lisibles.
 class WikiLoader extends ConsumerWidget {
@@ -166,10 +172,13 @@ class WikiBody extends StatelessWidget {
 }
 
 /// Données de l'entrée du référentiel, en tête d'une page de règle ; les pouvoirs d'une discipline niveau par niveau.
+/// Avec [focus] (première fiche active du joueur) : « Vous l’avez » et coût de chaque niveau.
 class RuleDataView extends StatelessWidget {
-  const RuleDataView({super.key, required this.cat, required this.entry});
+  const RuleDataView({super.key, required this.cat, required this.entry, this.focus, this.rb = const Rulebook()});
   final String cat;
   final RuleEntry entry;
+  final Character? focus;
+  final Rulebook rb;
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +210,11 @@ class RuleDataView extends StatelessWidget {
                 Text(p.elder ? 'Ancien' : '●' * p.level, style: t.titleSmall?.copyWith(color: AppColors.gold)),
                 Text(p.name, style: t.titleSmall),
                 if (p.vo.isNotEmpty) Text(p.vo, style: t.bodySmall?.copyWith(fontStyle: FontStyle.italic, color: AppColors.textMuted)),
+                if (focus case final c?) ...[
+                  if (owns(c, p, entry.name))
+                    Text('Vous l’avez', key: Key('wk-owned-${p.level}'), style: t.bodySmall?.copyWith(color: AppColors.success, fontWeight: FontWeight.w600)),
+                  if (!p.elder) Text(powerCost(c, p, entry.name, rb), style: t.bodySmall?.copyWith(color: AppColors.textMuted)),
+                ],
               ]),
               if (p.effect.isNotEmpty) Text(p.effect, style: t.bodyMedium?.copyWith(color: AppColors.textSoft)),
             ]),

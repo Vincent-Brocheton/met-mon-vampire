@@ -9,6 +9,7 @@ import '../core/widgets.dart';
 import 'wiki_chronology.dart';
 import 'wiki_markdown.dart';
 import 'wiki_page.dart';
+import 'wiki_personal.dart';
 import 'wiki_rules.dart';
 import 'wiki_view.dart';
 
@@ -18,8 +19,8 @@ String pageFooter(WikiPage p) => [
       'mis à jour le ${formatDay(p.updatedAt)}${p.updatedByName == null ? '' : ' par ${p.updatedByName}'}',
     ].join(' · ');
 
-/// Page du wiki (J-WikiPage, J-WikiLore) : données du référentiel, texte, sommaire.
-/// Une page inexistante ou cachée affiche le même message.
+/// Page du wiki (J-WikiPage, J-WikiLore) : données du référentiel, texte, sommaire ; pour une discipline,
+/// un encadré par fiche active du joueur. Une page inexistante ou cachée affiche le même message.
 class WikiPageScreen extends ConsumerStatefulWidget {
   const WikiPageScreen({super.key, required this.nav, required this.pageId});
   final WikiNav nav;
@@ -44,6 +45,7 @@ class _WikiPageScreenState extends ConsumerState<WikiPageScreen> {
     final t = Theme.of(context).textTheme;
     final nav = widget.nav;
     final manages = ref.watch(currentUserProvider.select((u) => u.value?.role.managesAccounts ?? false));
+    final mine = mineFor(ref, nav);
     return WikiLoader(
       nav: nav,
       builder: (context, items, rb) {
@@ -57,6 +59,7 @@ class _WikiPageScreenState extends ConsumerState<WikiPageScreen> {
         final keys = _keysFor(heads.length);
         final r = rubricById(item.rubric);
         final banner = page == null ? null : reservedBanner(page.audience, rb);
+        final discipline = item.cat == 'disciplines' ? item.entry : null;
         final article = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           WikiCrumbs([('Wiki', nav.home), (r.label, nav.rubric(r.id))], item.title),
           const SizedBox(height: 8),
@@ -73,9 +76,31 @@ class _WikiPageScreenState extends ConsumerState<WikiPageScreen> {
               child: Text(banner, style: t.bodyMedium?.copyWith(color: AppColors.narrator)),
             ),
           ],
+          if (discipline != null)
+            for (final c in mine)
+              if (nextStep(c, discipline, rb) case final step) ...[
+                const SizedBox(height: 14),
+                Panel(
+                  key: Key('wk-next-${c.id}'),
+                  padding: const EdgeInsets.all(18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(step.heading, style: t.titleSmall),
+                    if (step.next case final next?) ...[
+                      const SizedBox(height: 4),
+                      Text(next, style: t.bodyMedium?.copyWith(color: AppColors.textSoft)),
+                      const SizedBox(height: 10),
+                      OutlinedButton(
+                        key: Key('wk-buy-${c.id}'),
+                        onPressed: () => context.go('/joueur/personnages/${c.id}/xp'),
+                        child: const Text('Préparer l’achat'),
+                      ),
+                    ],
+                  ]),
+                ),
+              ],
           if (item.entry case final e?) ...[
             const SizedBox(height: 18),
-            RuleDataView(cat: item.cat!, entry: e),
+            RuleDataView(cat: item.cat!, entry: e, focus: mine.firstOrNull, rb: rb),
           ],
           const SizedBox(height: 18),
           if (item.id == chronologyId)

@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../offline/offline.dart';
 import '../rulebook/schema.dart';
+import 'wiki_personal.dart';
 import 'wiki_rules.dart';
 import 'wiki_view.dart';
 
@@ -50,7 +51,7 @@ Widget _grid(List<Widget> cards, {int columns = 2}) => LayoutBuilder(builder: (c
       return Wrap(spacing: 14, runSpacing: 14, children: [for (final card in cards) SizedBox(width: w, child: card)]);
     });
 
-/// Accueil du wiki (J-Wiki) : recherche, rubriques, pages mises à jour récemment.
+/// Accueil du wiki (J-Wiki) : recherche, rubriques, blocs « Pour {nom} », pages mises à jour récemment.
 class WikiHomeScreen extends ConsumerStatefulWidget {
   const WikiHomeScreen({super.key, required this.nav});
   final WikiNav nav;
@@ -73,6 +74,8 @@ class _WikiHomeScreenState extends ConsumerState<WikiHomeScreen> {
     final t = Theme.of(context).textTheme;
     final nav = widget.nav;
     final offline = ref.watch(offlineProvider).value ?? false;
+    final mine = mineFor(ref, nav);
+    final muted = t.bodySmall?.copyWith(color: AppColors.textMuted);
     return WikiLoader(
       nav: nav,
       builder: (context, items, rb) {
@@ -82,33 +85,56 @@ class _WikiHomeScreenState extends ConsumerState<WikiHomeScreen> {
             if (items.where((i) => i.rubric == r.id).length case final n when n > 0)
               _Card(key: Key('wk-rub-${r.id}'), title: r.label, trailing: '$n', subtitle: r.blurb, onTap: () => context.go(nav.rubric(r.id))),
         ];
-        final side = Panel(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const SectionTitle('Mis à jour récemment'),
-            const SizedBox(height: 8),
-            if (recent.isEmpty) Text('Aucune page publiée pour l’instant.', style: t.bodyMedium),
-            for (final i in recent)
-              InkWell(
-                key: Key('wk-recent-${i.id}'),
-                onTap: () => context.go(nav.page(i.id)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(children: [
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(children: [
-                          TextSpan(text: i.title),
-                          TextSpan(text: ' · ${rubricById(i.rubric).label}', style: t.bodySmall?.copyWith(color: AppColors.textMuted)),
-                        ]),
-                        style: t.bodyMedium,
-                      ),
+        final side = Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (final c in mine) ...[
+            Panel(
+              key: Key('wk-mine-${c.id}'),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                SectionTitle('Pour ${c.name}'),
+                const SizedBox(height: 6),
+                for (final l in mineLines(c, items))
+                  InkWell(
+                    onTap: l.item == null ? null : () => context.go(nav.page(l.item!.id)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        Expanded(child: Text(l.title, style: t.bodyMedium)),
+                        Text(l.note, style: muted),
+                      ]),
                     ),
-                    Text(formatDay(i.page?.updatedAt), style: t.bodySmall?.copyWith(color: AppColors.textMuted)),
-                  ]),
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 20),
+          ],
+          Panel(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const SectionTitle('Mis à jour récemment'),
+              const SizedBox(height: 8),
+              if (recent.isEmpty) Text('Aucune page publiée pour l’instant.', style: t.bodyMedium),
+              for (final i in recent)
+                InkWell(
+                  key: Key('wk-recent-${i.id}'),
+                  onTap: () => context.go(nav.page(i.id)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(children: [
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(children: [
+                            TextSpan(text: i.title),
+                            TextSpan(text: ' · ${rubricById(i.rubric).label}', style: muted),
+                          ]),
+                          style: t.bodyMedium,
+                        ),
+                      ),
+                      Text(formatDay(i.page?.updatedAt), style: muted),
+                    ]),
+                  ),
                 ),
-              ),
-          ]),
-        );
+            ]),
+          ),
+        ]);
         return PageBody(children: [
           PageTitle(
             'Wiki de la chronique',
@@ -144,30 +170,36 @@ class _WikiHomeScreenState extends ConsumerState<WikiHomeScreen> {
   }
 }
 
-/// Rubrique du wiki (J-WikiRubrique) : cartes groupées par catégorie, puces de filtre.
-class WikiRubricScreen extends StatefulWidget {
+/// Rubrique du wiki (J-WikiRubrique) : cartes groupées par catégorie, puces de filtre (« En clan pour {nom} » pour les disciplines).
+class WikiRubricScreen extends ConsumerStatefulWidget {
   const WikiRubricScreen({super.key, required this.nav, required this.rubricId});
   final WikiNav nav;
   final String rubricId;
 
   @override
-  State<WikiRubricScreen> createState() => _WikiRubricScreenState();
+  ConsumerState<WikiRubricScreen> createState() => _WikiRubricScreenState();
 }
 
-class _WikiRubricScreenState extends State<WikiRubricScreen> {
+class _WikiRubricScreenState extends ConsumerState<WikiRubricScreen> {
   var _filter = 0;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final nav = widget.nav;
+    final mine = mineFor(ref, nav);
     final r = findRubric(widget.rubricId);
     if (r == null) return const EmptyState(kind: EmptyKind.notFound, title: 'Rubrique introuvable', message: 'Cette rubrique n’existe pas.');
-    final filters = rubricFilters(r);
     return WikiLoader(
       nav: nav,
       builder: (context, items, rb) {
-        final keep = filters[_filter].$2;
+        final filters = [
+          ...rubricFilters(r),
+          if (r.id == 'disciplines')
+            for (final c in mine) ('En clan pour ${c.name}', (WikiItem i) => inClanFor(c, i, rb)),
+        ];
+        final selected = _filter < filters.length ? _filter : 0;
+        final keep = filters[selected].$2;
         final shown = [for (final i in items) if (i.rubric == r.id && keep(i)) i];
         final groups = [for (final c in r.cats) categoryById(c)?.label ?? c, 'Pages du conte'];
         return PageBody(children: [
@@ -178,7 +210,7 @@ class _WikiRubricScreenState extends State<WikiRubricScreen> {
             const SizedBox(height: 16),
             Wrap(spacing: 10, runSpacing: 8, children: [
               for (final (n, (label, _)) in filters.indexed)
-                ChoiceChip(key: Key('wk-filter-$n'), label: Text(label), selected: n == _filter, onSelected: (_) => setState(() => _filter = n)),
+                ChoiceChip(key: Key('wk-filter-$n'), label: Text(label), selected: n == selected, onSelected: (_) => setState(() => _filter = n)),
             ]),
           ],
           const SizedBox(height: 20),
@@ -189,7 +221,13 @@ class _WikiRubricScreenState extends State<WikiRubricScreen> {
               const SizedBox(height: 10),
               _grid([
                 for (final i in list)
-                  _Card(key: Key('wk-item-${i.id}'), title: i.title, subtitle: itemSubtitle(i, rb), onTap: () => context.go(nav.page(i.id))),
+                  _Card(
+                    key: Key('wk-item-${i.id}'),
+                    title: i.title,
+                    trailing: mine.isEmpty ? null : cardMention(mine.first, i, rb),
+                    subtitle: itemSubtitle(i, rb),
+                    onTap: () => context.go(nav.page(i.id)),
+                  ),
               ], columns: 3),
               const SizedBox(height: 24),
             ],
