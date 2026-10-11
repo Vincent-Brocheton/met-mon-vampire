@@ -31,6 +31,10 @@ class WikiRepository {
 
   Stream<List<WikiPage>> watchDrafts() => _drafts.snapshots().map(_list);
 
+  /// Versions publiées de la page, la plus récente d'abord (équipe seulement).
+  Stream<List<WikiVersion>> watchVersions(String id) => _pages.doc(id).collection('versions').snapshots().map(
+      (q) => [for (final d in q.docs) WikiVersion.fromMap(id, d.id, d.data())]..sort((a, b) => b.n.compareTo(a.n)));
+
   String newId() => _pages.doc().id;
 
   Map<String, dynamic> _by(Actor by) => {'updatedAt': FieldValue.serverTimestamp(), 'updatedByUid': by.uid, 'updatedByName': by.name};
@@ -87,6 +91,9 @@ Stream<List<WikiPage>> wikiPages(Ref ref) {
 
 @riverpod
 Stream<List<WikiPage>> wikiDrafts(Ref ref) => ref.watch(wikiRepositoryProvider).watchDrafts();
+
+@riverpod
+Stream<List<WikiVersion>> wikiVersions(Ref ref, String id) => ref.watch(wikiRepositoryProvider).watchVersions(id);
 
 /// Recalcule `wikiAudiences` des comptes d'après les fiches et écrit les différences (conteur et principal).
 /// Lancé par la liste des fiches et par le wiki du conte ; sans différence, rien n'est écrit.

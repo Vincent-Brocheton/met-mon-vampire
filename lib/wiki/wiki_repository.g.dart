@@ -133,6 +133,83 @@ final class WikiDraftsProvider
 
 String _$wikiDraftsHash() => r'0eb4f43c07f95754468c38ff637c67d829408324';
 
+@ProviderFor(wikiVersions)
+final wikiVersionsProvider = WikiVersionsFamily._();
+
+final class WikiVersionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<WikiVersion>>,
+          List<WikiVersion>,
+          Stream<List<WikiVersion>>
+        >
+    with
+        $FutureModifier<List<WikiVersion>>,
+        $StreamProvider<List<WikiVersion>> {
+  WikiVersionsProvider._({
+    required WikiVersionsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'wikiVersionsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$wikiVersionsHash();
+
+  @override
+  String toString() {
+    return r'wikiVersionsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<WikiVersion>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<WikiVersion>> create(Ref ref) {
+    final argument = this.argument as String;
+    return wikiVersions(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WikiVersionsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$wikiVersionsHash() => r'79ddd9428166d6027b0663e2368fe970d92a4ad1';
+
+final class WikiVersionsFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<WikiVersion>>, String> {
+  WikiVersionsFamily._()
+    : super(
+        retry: null,
+        name: r'wikiVersionsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WikiVersionsProvider call(String id) =>
+      WikiVersionsProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'wikiVersionsProvider';
+}
+
 /// Recalcule `wikiAudiences` des comptes d'après les fiches et écrit les différences (conteur et principal).
 /// Lancé par la liste des fiches et par le wiki du conte ; sans différence, rien n'est écrit.
 
