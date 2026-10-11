@@ -46,6 +46,7 @@ import 'servants/servants_screen.dart';
 import 'servants/servants_section.dart';
 import 'shell/app_shell.dart';
 import 'titles/court_screen.dart';
+import 'wiki/wiki_routes.dart';
 import 'xp/corrections_screen.dart';
 import 'xp/my_requests_screen.dart';
 import 'xp/spend_screen.dart';
@@ -199,7 +200,7 @@ GoRouter router(Ref ref) {
             path: '/joueur/demandes',
             builder: (_, s) => MyRequestsScreen(selectedId: s.uri.queryParameters['d']),
           ),
-          page('/joueur/wiki', soon('Wiki')),
+          ...wikiRoutes(),
           page('/joueur/notifications', soon('Notifications')),
           page('/conteur', const StorytellerHome()),
           page('/conteur/demarrage', const StartupScreen()),
