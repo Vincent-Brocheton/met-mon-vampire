@@ -15,6 +15,7 @@ class WikiPage {
     this.version = 0,
     this.updatedAt,
     this.updatedByName,
+    this.updatedByUid,
   });
 
   factory WikiPage.fromMap(String id, Map<String, dynamic> m) => WikiPage(
@@ -29,6 +30,7 @@ class WikiPage {
         version: ((m['version'] ?? m['baseVersion']) as num?)?.toInt() ?? 0,
         updatedAt: (m['updatedAt'] as Timestamp?)?.toDate(),
         updatedByName: m['updatedByName'] as String?,
+        updatedByUid: m['updatedByUid'] as String?,
       );
 
   final String id;
@@ -44,6 +46,7 @@ class WikiPage {
   final int version;
   final DateTime? updatedAt;
   final String? updatedByName;
+  final String? updatedByUid;
 
   /// Contenu commun à la page publiée, au brouillon et aux versions.
   Map<String, dynamic> contentMap() => {

@@ -36,6 +36,7 @@ class AppUser {
     this.createdAt,
     this.lastLoginAt,
     this.wikiAudiences = const [],
+    this.notifSeenAt,
   });
 
   factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -49,6 +50,7 @@ class AppUser {
       createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
       lastLoginAt: (m['lastLoginAt'] as Timestamp?)?.toDate(),
       wikiAudiences: [for (final a in (m['wikiAudiences'] as List?) ?? const []) '$a'],
+      notifSeenAt: (m['notifSeenAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -62,6 +64,9 @@ class AppUser {
 
   /// Accès réservés du wiki (`clan:…`, `sect:…`), recalculés par le conte d'après les fiches (sous-projet 9a).
   final List<String> wikiAudiences;
+
+  /// Dernière visite des notifications (« Tout marquer comme lu », heure du serveur ; sous-projet 10a).
+  final DateTime? notifSeenAt;
 }
 
 class ChronicleConfig {
