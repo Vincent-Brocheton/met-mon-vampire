@@ -7,6 +7,7 @@ import '../auth/session_providers.dart';
 import '../chronicle/chronicle_repository.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
+import '../notifications/notifications_repository.dart';
 
 class Destination {
   const Destination(this.label, this.path, this.icon, {this.shortLabel, this.iconOnly = false, this.mobileTab = false});
@@ -73,6 +74,7 @@ class AppShell extends ConsumerWidget {
     final role = user?.role ?? Role.joueur;
     final title = ref.watch(chronicleProvider).value?.displayName ?? 'Portail MET';
     final pending = role.managesAccounts ? ref.watch(pendingUsersProvider).value?.length ?? 0 : 0;
+    final unread = ref.watch(unreadNotificationsProvider);
     final items = destinationsFor(role);
     final data = _ShellData(
       title: title,
@@ -80,6 +82,7 @@ class AppShell extends ConsumerWidget {
       items: items,
       selected: selectedIndex(items, location),
       pending: pending,
+      unread: unread,
     );
     return LayoutBuilder(
       builder: (context, c) => c.maxWidth >= kWideBreakpoint ? _WideShell(data, child) : _NarrowShell(data, child),
@@ -88,15 +91,23 @@ class AppShell extends ConsumerWidget {
 }
 
 class _ShellData {
-  const _ShellData({required this.title, required this.user, required this.items, required this.selected, required this.pending});
+  const _ShellData({required this.title, required this.user, required this.items, required this.selected, required this.pending, required this.unread});
   final String title;
   final AppUser? user;
   final List<Destination> items;
   final int? selected;
   final int pending;
+  final int unread;
 
   bool isSelected(Destination d) => selected != null && items[selected!] == d;
   int badgeFor(Destination d) => d.path == '/conteur/comptes' ? pending : 0;
+}
+
+/// Icône d'une destination ; la cloche porte un point rouge s'il y a des notifications non lues (sous-projet 10a).
+Widget _iconOf(Destination d, _ShellData data, {Color? color}) {
+  final icon = Icon(d.icon, color: color);
+  if (!d.path.endsWith('/notifications')) return icon;
+  return Badge(key: const Key('nt-bell'), isLabelVisible: data.unread > 0, smallSize: 9, backgroundColor: AppColors.accentIcon, child: icon);
 }
 
 class _WideShell extends StatelessWidget {
@@ -134,7 +145,7 @@ class _WideShell extends StatelessWidget {
               IconButton(
                 tooltip: d.label,
                 onPressed: () => context.go(d.path),
-                icon: Icon(d.icon, color: data.isSelected(d) ? AppColors.text : AppColors.textSecondary),
+                icon: _iconOf(d, data, color: data.isSelected(d) ? AppColors.text : AppColors.textSecondary),
               ),
             const SizedBox(width: 8),
             _AccountButton(data.user),
@@ -235,7 +246,7 @@ class _NarrowShell extends StatelessWidget {
           Flexible(child: Text(data.title, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall)),
         ]),
         actions: [
-          for (final d in icons) IconButton(tooltip: d.label, onPressed: () => context.go(d.path), icon: Icon(d.icon)),
+          for (final d in icons) IconButton(tooltip: d.label, onPressed: () => context.go(d.path), icon: _iconOf(d, data)),
           _AccountButton(data.user, compact: true),
           const SizedBox(width: 12),
         ],

@@ -5,6 +5,7 @@ import 'package:portail_met/auth/session.dart';
 import 'package:portail_met/auth/session_providers.dart';
 import 'package:portail_met/chronicle/chronicle_repository.dart';
 import 'package:portail_met/core/theme.dart';
+import 'package:portail_met/notifications/notifications_repository.dart';
 import 'package:portail_met/shell/app_shell.dart';
 
 void main() {
@@ -20,16 +21,18 @@ void main() {
     expect(destinationsFor(Role.conteur).map((d) => d.label), contains('Comptes'));
   });
 
-  Future<void> pumpShell(WidgetTester tester, Size size) async {
+  Future<void> pumpShell(WidgetTester tester, Size size, {int unread = 0}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     const user = AppUser(uid: 'm', displayName: 'Marc D.', email: 'm@ex.fr', role: Role.conteur);
     await tester.pumpWidget(ProviderScope(
+      key: UniqueKey(),
       overrides: [
         currentUserProvider.overrideWith((ref) => Stream.value(user)),
         chronicleProvider.overrideWith((ref) => Stream.value(null)),
         pendingUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        unreadNotificationsProvider.overrideWith((ref) => unread),
       ],
       child: MaterialApp(
         theme: buildTheme(withFonts: false),
@@ -51,5 +54,14 @@ void main() {
     await pumpShell(tester, const Size(390, 844));
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Plus'), findsOneWidget);
+  });
+
+  testWidgets('cloche : point rouge s’il y a des notifications non lues (Web et mobile)', (tester) async {
+    await pumpShell(tester, const Size(1440, 900));
+    expect(tester.widget<Badge>(find.byKey(const Key('nt-bell'))).isLabelVisible, isFalse);
+    await pumpShell(tester, const Size(1440, 900), unread: 2);
+    expect(tester.widget<Badge>(find.byKey(const Key('nt-bell'))).isLabelVisible, isTrue);
+    await pumpShell(tester, const Size(390, 800), unread: 1);
+    expect(tester.widget<Badge>(find.byKey(const Key('nt-bell'))).isLabelVisible, isTrue);
   });
 }
