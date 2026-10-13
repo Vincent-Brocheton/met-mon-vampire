@@ -169,10 +169,11 @@ service cloud.firestore {
       allow read: if signedIn()
         && (resource.data.get('playerUid', null) == request.auth.uid || isStaff());
 
+      // PJ : amorce en brouillon, ou fiche existante reprise directement active (10c).
       allow create: if managesAccounts()
         && request.resource.data.version == 1
         && historyOk(id, ['creation'])
-        && ((request.resource.data.kind == 'pj' && request.resource.data.status == 'draft'
+        && ((request.resource.data.kind == 'pj' && request.resource.data.status in ['draft', 'active']
               && request.resource.data.playerUid is string
               && request.resource.data.playerUid != request.auth.uid)
           || (request.resource.data.kind == 'pnj' && request.resource.data.status == 'active'

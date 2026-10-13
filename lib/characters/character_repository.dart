@@ -71,13 +71,14 @@ class CharacterRepository {
         'byUid': by.uid,
       });
 
-  /// PJ : amorce en brouillon, le joueur la remplira. PNJ : fiche active, remplie par le conte.
+  /// PJ : amorce en brouillon, le joueur la remplira ; [resumed] : fiche existante reprise, active, recopiée par le conte (10c). PNJ : fiche active, remplie par le conte.
   Future<String> create({
     required String name,
     required CharacterKind kind,
     String? playerUid,
     String? playerName,
     GhoulState? ghoul,
+    bool resumed = false,
     required Actor by,
   }) async {
     final ref = _col.doc();
@@ -88,7 +89,7 @@ class CharacterRepository {
       kind: kind,
       playerUid: kind == CharacterKind.pj ? playerUid : null,
       playerName: kind == CharacterKind.pj ? playerName : null,
-      status: kind == CharacterKind.pj ? CharacterStatus.draft : CharacterStatus.active,
+      status: kind == CharacterKind.pj && !resumed ? CharacterStatus.draft : CharacterStatus.active,
     )
       ..version = 1
       ..lastHistoryId = h.id
@@ -96,7 +97,7 @@ class CharacterRepository {
     final now = FieldValue.serverTimestamp();
     await (_db.batch()
           ..set(ref, {...c.toMap(), 'createdAt': now, 'updatedAt': now})
-          ..set(h, _entry(by, 'creation', [c.ghoul != null ? 'Fiche de goule créée' : 'Fiche créée'], '')))
+          ..set(h, _entry(by, 'creation', ['${c.ghoul != null ? 'Fiche de goule' : 'Fiche'} ${kind == CharacterKind.pj && resumed ? 'reprise' : 'créée'}'], '')))
         .commit();
     return ref.id;
   }
