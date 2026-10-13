@@ -36,12 +36,15 @@ class AppUser {
     this.createdAt,
     this.lastLoginAt,
     this.wikiAudiences = const [],
+    this.notifSeenAt,
   });
 
-  factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final m = doc.data()!;
+  factory AppUser.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) => AppUser.fromMap(doc.id, doc.data()!, pending: doc.metadata.hasPendingWrites);
+
+  /// [pending] : le document porte une écriture locale pas encore confirmée par le serveur.
+  factory AppUser.fromMap(String uid, Map<String, dynamic> m, {bool pending = false}) {
     return AppUser(
-      uid: doc.id,
+      uid: uid,
       displayName: m['displayName'] as String? ?? '',
       email: m['email'] as String? ?? '',
       role: Role.parse(m['role']) ?? Role.pending,
@@ -49,6 +52,8 @@ class AppUser {
       createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
       lastLoginAt: (m['lastLoginAt'] as Timestamp?)?.toDate(),
       wikiAudiences: [for (final a in (m['wikiAudiences'] as List?) ?? const []) '$a'],
+      // « Tout marquer comme lu » pas encore confirmé : l'heure du serveur vaut null en local ; on l'estime, sinon tout redevient non lu.
+      notifSeenAt: (m['notifSeenAt'] as Timestamp?)?.toDate() ?? (m.containsKey('notifSeenAt') && pending ? DateTime.now() : null),
     );
   }
 
@@ -62,6 +67,9 @@ class AppUser {
 
   /// Accès réservés du wiki (`clan:…`, `sect:…`), recalculés par le conte d'après les fiches (sous-projet 9a).
   final List<String> wikiAudiences;
+
+  /// Dernière visite des notifications (« Tout marquer comme lu », heure du serveur ; sous-projet 10a).
+  final DateTime? notifSeenAt;
 }
 
 class ChronicleConfig {

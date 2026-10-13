@@ -32,6 +32,7 @@ class NpcLoan {
     this.notesAt,
     this.version = 0,
     this.updatedByName,
+    this.createdAt,
   });
 
   factory NpcLoan.fromMap(String id, Map<String, dynamic> m) => NpcLoan(
@@ -53,6 +54,7 @@ class NpcLoan {
         notesAt: _date(m['notesAt']),
         version: (m['version'] as num?)?.toInt() ?? 0,
         updatedByName: m['updatedByName'] as String?,
+        createdAt: _date(m['createdAt']),
       );
 
   final String id;
@@ -68,6 +70,9 @@ class NpcLoan {
   String goals;
   String limits;
   DateTime? sheetAt;
+
+  /// Création du prêt (heure du serveur) ; lue seulement, jamais réécrite par `toMap`.
+  final DateTime? createdAt;
   DateTime? revokedAt;
   String playerNotes;
   DateTime? notesAt;

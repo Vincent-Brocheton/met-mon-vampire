@@ -19,6 +19,7 @@ import 'package:portail_met/morality/sin.dart';
 import 'package:portail_met/morality/sins_repository.dart';
 import 'package:portail_met/npcs/npc_loan.dart';
 import 'package:portail_met/npcs/npc_loans_repository.dart';
+import 'package:portail_met/notifications/notifications_repository.dart';
 import 'package:portail_met/offline/devices_repository.dart';
 import 'package:portail_met/offline/night.dart';
 import 'package:portail_met/offline/night_repository.dart';
@@ -742,6 +743,20 @@ class FakeWikiRepository implements WikiRepository {
   @override
   Future<void> setAudiences(Map<String, List<String>> changes) =>
       _record('audiences:${[for (final e in changes.entries) '${e.key}=${e.value.join(',')}'].join(';')}');
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeNotificationsRepository implements NotificationsRepository {
+  final calls = <String>[];
+  Object? error;
+
+  @override
+  Future<void> markAllRead(String uid) async {
+    calls.add('read:$uid');
+    if (error != null) throw error!;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

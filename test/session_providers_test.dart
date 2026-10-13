@@ -20,6 +20,8 @@ class _FakeMeta implements SnapshotMetadata {
   @override
   final bool isFromCache;
   @override
+  bool get hasPendingWrites => false;
+  @override
   dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
 }
 

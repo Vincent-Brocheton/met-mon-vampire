@@ -30,6 +30,7 @@ import 'games/games_repository.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
 import 'morality/morality_screen.dart';
+import 'notifications/notifications_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
 import 'npcs/npc_loans_screen.dart';
 import 'offline/device_session.dart';
@@ -93,7 +94,6 @@ GoRouter router(Ref ref) {
   ref.listen(offlineProvider, (_, _) {});
 
   GoRoute page(String path, Widget child) => GoRoute(path: path, builder: (_, _) => child);
-  Widget soon(String feature) => EmptyState.comingSoon(feature);
 
   return GoRouter(
     initialLocation: '/',
@@ -201,7 +201,7 @@ GoRouter router(Ref ref) {
             builder: (_, s) => MyRequestsScreen(selectedId: s.uri.queryParameters['d']),
           ),
           ...wikiRoutes(),
-          page('/joueur/notifications', soon('Notifications')),
+          page('/joueur/notifications', const NotificationsScreen()),
           page('/conteur', const StorytellerHome()),
           page('/conteur/demarrage', const StartupScreen()),
           page('/conteur/comptes', const AccountsScreen()),
@@ -265,7 +265,7 @@ GoRouter router(Ref ref) {
           ),
           page('/conteur/parametres', const ParametersScreen()),
           page('/conteur/parametres/xp', const XpSettingsScreen()),
-          page('/conteur/notifications', soon('Notifications')),
+          page('/conteur/notifications', const NotificationsScreen()),
         ],
       ),
     ],
