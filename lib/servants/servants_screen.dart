@@ -525,7 +525,7 @@ class _ServantEditorState extends ConsumerState<_ServantEditor> {
                       if (!await confirm(context, title: 'Supprimer « ${_d.name} » ?', body: 'Cette suppression est définitive.', action: 'Supprimer')) return;
                       setState(() => _busy = true);
                       try {
-                        await ref.read(servantsRepositoryProvider).delete(_base.id);
+                        await ref.read(servantsRepositoryProvider).delete(_base.id, _base.name, actorOf(ref.read(currentUserProvider).value)!);
                         widget.onDeleted();
                       } catch (_) {
                         messenger.showSnackBar(const SnackBar(content: Text('Suppression refusée : réessayez.')));

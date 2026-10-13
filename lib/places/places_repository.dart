@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
 import '../core/trace.dart';
+import '../journal/journal_rules.dart';
 import 'place.dart';
 import 'place_rules.dart';
 
@@ -73,7 +74,7 @@ class PlacesRepository {
   }
 
   /// Supprime le lieu, son résumé public, sa note et son historique.
-  Future<void> delete(String id) => deleteTraced(_db, _col.doc(id), also: [_public.doc(id)]);
+  Future<void> delete(String id, String name, Actor by) => deleteTraced(_db, _col.doc(id), also: [_public.doc(id)], journal: journalData(deletedNote('places', name), by));
 }
 
 @Riverpod(keepAlive: true)

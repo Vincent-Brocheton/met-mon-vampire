@@ -55,7 +55,7 @@ final class NotificationsRepositoryProvider
 }
 
 String _$notificationsRepositoryHash() =>
-    r'a331796425cc09c2055c854b2094ef7dd03176ba';
+    r'fb3a00c48b2db3ba5db1ffbd16bb2e5e79dbb639';
 
 /// Fil du lecteur, calculé à partir des données que l'application lit déjà (conte ou joueur selon le rôle).
 
@@ -107,7 +107,7 @@ final class NotificationsProvider
   }
 }
 
-String _$notificationsHash() => r'a27870b62b9096bb2ad63bade35027eee9b469b4';
+String _$notificationsHash() => r'db8e885b45fe1694a68243b6929ffc3c4ac0cccb';
 
 /// Nombre de notifications non lues (point rouge de la cloche).
 

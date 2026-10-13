@@ -83,7 +83,9 @@ void stageTraced(
 }
 
 /// Supprime [ref], sa note secrète, son historique et les documents [also], en un seul lot.
-Future<void> deleteTraced(FirebaseFirestore db, DocumentReference<Map<String, dynamic>> ref, {List<DocumentReference> also = const []}) async {
+/// [journal] : document `journal/{id}` écrit dans le même lot (l'historique disparaît, la suppression reste tracée).
+Future<void> deleteTraced(FirebaseFirestore db, DocumentReference<Map<String, dynamic>> ref,
+    {List<DocumentReference> also = const [], Map<String, dynamic>? journal}) async {
   // ponytail: un seul lot, limité à 500 écritures (≈ 495 entrées d'historique) ; découper si un document en a davantage.
   final history = await ref.collection('history').get();
   final batch = db.batch()
@@ -92,5 +94,6 @@ Future<void> deleteTraced(FirebaseFirestore db, DocumentReference<Map<String, dy
   for (final d in [...also, for (final h in history.docs) h.reference]) {
     batch.delete(d);
   }
+  if (journal != null) batch.set(db.collection('journal').doc(), journal);
   await batch.commit();
 }

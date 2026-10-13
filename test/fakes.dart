@@ -221,6 +221,7 @@ class FakeRulesRepository implements RulesRepository {
   final calls = <String>[];
   RuleEntry? lastSaved;
   String? lastNote;
+  RuleEntry? lastBefore;
   Map<String, dynamic>? lastSettings;
   Object? importError;
   int noteWatches = 0;
@@ -235,15 +236,16 @@ class FakeRulesRepository implements RulesRepository {
   }
 
   @override
-  Future<String> save(String cat, RuleEntry e, Actor by, {String? note}) async {
+  Future<String> save(String cat, RuleEntry e, Actor by, {String? note, RuleEntry? before}) async {
     calls.add('save:$cat:${e.name}:${e.state.name}');
     lastSaved = e;
     lastNote = note;
+    lastBefore = before;
     return e.id.isEmpty ? 'new-rule' : e.id;
   }
 
   @override
-  Future<void> delete(String cat, String id) async => calls.add('delete:$cat:$id');
+  Future<void> delete(String cat, RuleEntry e, Actor by) async => calls.add('delete:$cat:${e.id}');
 
   @override
   Future<void> saveSettings(String cat, Map<String, dynamic> values, Actor by) async {
@@ -291,7 +293,7 @@ class FakePlacesRepository implements PlacesRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }
@@ -340,7 +342,7 @@ class FakeServantsRepository implements ServantsRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }
@@ -419,7 +421,7 @@ class FakeItemsRepository implements ItemsRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }

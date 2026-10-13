@@ -65,7 +65,7 @@ Future<String?> embraceFollower(
       await chars.saveEdit(d, d.clone()..servants.removeWhere((s) => s.id == row.id), reason, by);
       if (row.file != null) await servants.release(row.id, by, rank: row.rank);
     } else if (row.file != null) {
-      await servants.delete(row.file!.id);
+      await servants.delete(row.file!.id, row.file!.name, by);
     }
   } catch (_) {
     return 'Fiche de ${row.name} créée, mais l’ancienne fiche n’a pas été mise à jour : retirez-la à la main.';
@@ -91,7 +91,7 @@ Future<String?> mortalToGhoul(
     by: by,
   );
   try {
-    await servants.delete(mortal.id);
+    await servants.delete(mortal.id, mortal.name, by);
   } catch (_) {
     return 'Fiche de goule créée, mais celle du mortel reste : supprimez-la.';
   }

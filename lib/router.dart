@@ -29,6 +29,7 @@ import 'games/freeze_screen.dart';
 import 'games/games_repository.dart';
 import 'items/character_items_screen.dart';
 import 'items/items_screen.dart';
+import 'journal/journal_screen.dart';
 import 'morality/morality_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'npcs/my_npc_loans_screen.dart';
@@ -265,6 +266,7 @@ GoRouter router(Ref ref) {
           ),
           page('/conteur/parametres', const ParametersScreen()),
           page('/conteur/parametres/xp', const XpSettingsScreen()),
+          page('/conteur/parametres/journal', const JournalScreen()),
           page('/conteur/notifications', const NotificationsScreen()),
         ],
       ),

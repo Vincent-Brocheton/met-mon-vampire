@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../characters/character_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -38,8 +39,10 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
   AccountFilter _filter = AccountFilter.all;
 
   Future<void> _setRole(AppUser u, Role role) async {
+    final by = actorOf(ref.read(currentUserProvider).value);
+    if (by == null) return;
     try {
-      await ref.read(chronicleRepositoryProvider).setRole(u.uid, role);
+      await ref.read(chronicleRepositoryProvider).setRole(u, role, by);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Action refusée ou impossible. Réessayez.')));

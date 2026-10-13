@@ -149,7 +149,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
     }
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final id = await ref.read(rulesRepositoryProvider).save(cat.id, edited, by, note: note);
+      final id = await ref.read(rulesRepositoryProvider).save(cat.id, edited, by, note: note, before: latest ?? opened);
       if (!mounted) return;
       setState(() {
         _selectedId = id;
@@ -188,7 +188,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
     try {
       if (choice == 'forbid') {
         final forbidden = e.copy()..state = RuleState.forbidden;
-        await repo.save(cat.id, forbidden, by);
+        await repo.save(cat.id, forbidden, by, before: e);
         if (!mounted) return;
         setState(() {
           _formEntry = forbidden;
@@ -199,7 +199,7 @@ class _ReferentialScreenState extends ConsumerState<ReferentialScreen> {
           _formVersion++;
         });
       } else {
-        await repo.delete(cat.id, e.id);
+        await repo.delete(cat.id, e, by);
         if (mounted) setState(() => _selectedId = null);
       }
     } catch (_) {

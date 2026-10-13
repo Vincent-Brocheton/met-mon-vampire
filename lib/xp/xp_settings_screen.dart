@@ -19,13 +19,14 @@ class ParametersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final principal = ref.watch(currentUserProvider).value?.role == Role.principal;
+    final role = ref.watch(currentUserProvider).value?.role;
+    final principal = role == Role.principal;
     final entries = [
       ('Expérience', 'XP de création, gain mensuel par paliers.', '/conteur/parametres/xp'),
       ('Liste de démarrage', 'Les étapes pour ouvrir la chronique.', '/conteur/demarrage'),
       // L'équipe est gérée par le principal seul (redirect.dart).
       if (principal) ('Équipe de conteurs', 'Rôles et invitations.', '/conteur/equipe'),
-      ('Journal de la chronique', 'À venir.', null),
+      if (role?.managesAccounts ?? false) ('Journal de la chronique', 'Toutes les modifications du conte.', '/conteur/parametres/journal'),
     ];
     return PageBody(children: [
       const PageTitle('Paramètres de la chronique'),
@@ -36,9 +37,8 @@ class ParametersScreen extends ConsumerWidget {
           child: ListTile(
             title: Text(title),
             subtitle: Text(subtitle),
-            trailing: path == null ? null : const Icon(Icons.chevron_right),
-            enabled: path != null,
-            onTap: path == null ? null : () => context.go(path),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go(path),
           ),
         ),
         const SizedBox(height: 12),
