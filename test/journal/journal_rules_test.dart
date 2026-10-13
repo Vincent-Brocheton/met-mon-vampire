@@ -58,7 +58,8 @@ void main() {
       expect(lines.first.at, DateTime(2026, 10, 1, 6, 0, 3));
       expect(lines.first.action, 'Gain mensuel');
       expect(lines.first.cat, JournalCat.xp);
-      expect(lines.first.detail, 'XP ajoutée selon le palier de chaque fiche');
+      expect(lines.first.detail, 'XP ajoutée selon le palier de chaque fiche (Gain mensuel · oct. 2026)');
+      expect(lines.last.detail, 'XP ajoutée selon le palier de chaque fiche (Gain mensuel · sept. 2026)');
       expect(lines.first.link, isNull);
     });
 
@@ -171,6 +172,12 @@ void main() {
   });
 
   group('écritures du journal', () {
+    test('suppression d’un lieu, d’un objet, d’un serviteur : une ligne « Supprimé » sans lien (revue)', () {
+      expect(deletedNote('places', 'Le salon de l’Opéra'), (cat: JournalCat.sheets, action: 'Lieu', target: 'Le salon de l’Opéra', detail: 'Supprimé', link: null));
+      expect(deletedNote('servants', 'Marcel').action, 'Goule ou serviteur');
+      expect(journalData(deletedNote('items', 'Dague'), const Actor('lea', 'Léa G.'))['cat'], 'sheets');
+    });
+
     test('référentiel : créée, changement d’état, modifiée, supprimée, import', () {
       final before = RuleEntry(id: 'm1', name: 'Vrai Brujah');
       final forbidden = RuleEntry(id: 'm1', name: 'Vrai Brujah', state: RuleState.forbidden);

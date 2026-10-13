@@ -41,7 +41,7 @@ Une ligne : catégorie, date, auteur, action, cible (« Sur »), détail, lien f
 
 | Champ | Contenu |
 |---|---|
-| `cat` | `rules` ou `accounts` |
+| `cat` | `sheets` (suppressions), `rules` ou `accounts` |
 | `action` | 1 à 80 caractères |
 | `target` | 0 à 120 caractères |
 | `detail` | 0 à 300 caractères |
@@ -63,6 +63,7 @@ Une ligne : catégorie, date, auteur, action, cible (« Sur »), détail, lien f
   - changement de rôle (`setRole`, ce qui couvre l’accès accordé et la désactivation) : action « Rôle », cible le nom du compte, détail « {ancien} → {nouveau} » avec les libellés français des rôles ;
   - invitation envoyée : action « Invitation », cible l’adresse, détail le rôle proposé ;
   - invitation annulée : détail « Annulée ».
+- **Suppressions (ajout de la revue) :** supprimer un lieu, un objet ou un serviteur efface aussi son historique. Le lot de suppression écrit donc une ligne : catégorie `sheets`, action le type de l’élément, cible son nom, détail « Supprimé », sans lien.
 
 ## Lecture
 

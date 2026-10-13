@@ -744,13 +744,13 @@ service cloud.firestore {
       }
     }
 
-    // Journal de la chronique (sous-projet 10b) : traces du référentiel et des comptes, en ajout seul.
+    // Journal de la chronique (sous-projet 10b) : traces du référentiel, des comptes et des suppressions, en ajout seul.
     // Lu et écrit par le conteur et le principal ; ni modifié ni effacé, par personne.
     match /journal/{id} {
       allow read: if managesAccounts();
       allow create: if managesAccounts()
         && request.resource.data.keys().hasOnly(['cat', 'action', 'target', 'detail', 'link', 'byUid', 'byName', 'at'])
-        && request.resource.data.cat in ['rules', 'accounts']
+        && request.resource.data.cat in ['sheets', 'rules', 'accounts']
         && request.resource.data.action is string
         && request.resource.data.action.size() > 0 && request.resource.data.action.size() <= 80
         && request.resource.data.target is string && request.resource.data.target.size() <= 120

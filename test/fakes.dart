@@ -293,7 +293,7 @@ class FakePlacesRepository implements PlacesRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }
@@ -342,7 +342,7 @@ class FakeServantsRepository implements ServantsRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }
@@ -421,7 +421,7 @@ class FakeItemsRepository implements ItemsRepository {
   }
 
   @override
-  Future<void> delete(String id) async {
+  Future<void> delete(String id, String name, Actor by) async {
     calls.add('delete:$id');
     if (error != null) throw error!;
   }

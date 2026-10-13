@@ -7,7 +7,7 @@ import '../games/game.dart';
 import '../rulebook/rule_entry.dart';
 import '../rulebook/schema.dart';
 
-/// Catégories du journal ; le nom est la valeur stockée (`journal.cat`) pour `rules` et `accounts`.
+/// Catégories du journal ; le nom est la valeur stockée (`journal.cat`) pour `sheets` (suppressions), `rules` et `accounts`.
 enum JournalCat {
   sheets('Fiches'),
   xp('XP'),
@@ -140,7 +140,8 @@ List<JournalLine> historyLines(List<RawHistory> rows, Map<String, String> names)
       who: _who(g.first.byName),
       action: 'Gain mensuel',
       target: g.length == 1 ? '1 fiche' : '${g.length} fiches',
-      detail: 'XP ajoutée selon le palier de chaque fiche',
+      // Le motif porte le ou les mois : deux versements du même lancement restent distincts.
+      detail: g.first.reason.trim().isEmpty ? 'XP ajoutée selon le palier de chaque fiche' : 'XP ajoutée selon le palier de chaque fiche (${g.first.reason.trim()})',
     ));
   }
   return out;
@@ -270,6 +271,10 @@ JournalNote roleNote(AppUser u, Role to) =>
 /// Sans lien : l'écran Équipe est réservé au principal, le conteur lit aussi le journal.
 JournalNote inviteNote(String email, Role role) =>
     (cat: JournalCat.accounts, action: 'Invitation', target: email.trim().toLowerCase(), detail: role.label, link: null);
+
+/// Suppression d'un lieu, d'un objet ou d'un serviteur : son historique part avec lui, le journal en garde la trace.
+JournalNote deletedNote(String col, String name) =>
+    (cat: JournalCat.sheets, action: _owners[col]?.$1 ?? 'Élément', target: name, detail: 'Supprimé', link: null);
 
 JournalNote inviteCancelNote(String email) => (cat: JournalCat.accounts, action: 'Invitation', target: email, detail: 'Annulée', link: null);
 

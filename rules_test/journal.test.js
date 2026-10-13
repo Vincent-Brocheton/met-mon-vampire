@@ -37,6 +37,8 @@ test('journal : créé par un conteur ou le principal, à son nom et à l’heur
   await assertSucceeds(setDoc(doc(as('lea'), 'journal/a'), entry('lea')));
   const { link, ...noLink } = entry('marc', { cat: 'rules' });
   await assertSucceeds(setDoc(doc(as('marc'), 'journal/b'), noLink));
+  // Suppression d’un lieu, d’un objet ou d’un serviteur (revue) : catégorie « Fiches ».
+  await assertSucceeds(setDoc(doc(as('lea'), 'journal/k'), entry('lea', { cat: 'sheets', action: 'Lieu', detail: 'Supprimé', link: null })));
   await assertFails(setDoc(doc(as('julien'), 'journal/c'), entry('julien')));
   await assertFails(setDoc(doc(as('zoe'), 'journal/d'), entry('zoe')));
   await assertFails(setDoc(doc(as('lea'), 'journal/e'), entry('marc')));

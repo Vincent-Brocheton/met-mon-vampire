@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
 import '../core/trace.dart';
+import '../journal/journal_rules.dart';
 import 'item.dart';
 import 'item_rules.dart';
 
@@ -89,7 +90,7 @@ class ItemsRepository {
   }
 
   /// Conte : supprime l'objet, sa note et son historique.
-  Future<void> delete(String id) => deleteTraced(_db, _col.doc(id));
+  Future<void> delete(String id, String name, Actor by) => deleteTraced(_db, _col.doc(id), journal: journalData(deletedNote('items', name), by));
 
   /// Joueur : supprime sa demande (en attente ou refusée).
   Future<void> deleteRequest(String id) => _col.doc(id).delete();

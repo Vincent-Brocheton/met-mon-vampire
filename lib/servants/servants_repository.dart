@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../auth/session_providers.dart';
 import '../characters/character_repository.dart';
 import '../core/trace.dart';
+import '../journal/journal_rules.dart';
 import 'servant_file.dart';
 import 'servant_rules.dart';
 
@@ -89,7 +90,7 @@ class ServantsRepository {
   }
 
   /// Supprime la fiche, sa note et son historique.
-  Future<void> delete(String id) => deleteTraced(_db, _col.doc(id));
+  Future<void> delete(String id, String name, Actor by) => deleteTraced(_db, _col.doc(id), journal: journalData(deletedNote('servants', name), by));
 }
 
 @Riverpod(keepAlive: true)
