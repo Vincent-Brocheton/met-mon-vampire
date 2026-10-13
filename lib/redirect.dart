@@ -30,5 +30,6 @@ String? redirectFor(Uri uri, Session s) {
   if (!path.startsWith(home)) return home;
   if (path.startsWith('/conteur/comptes') && !role.managesAccounts) return home;
   if (path.startsWith('/conteur/equipe') && role != Role.principal) return home;
+  if (path.startsWith('/conteur/parametres/journal') && !role.managesAccounts) return home;
   return null;
 }

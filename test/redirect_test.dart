@@ -53,6 +53,10 @@ void main() {
     expect(go('/conteur/comptes', as(Role.conteur)), isNull);
     expect(go('/conteur/equipe', as(Role.conteur)), '/conteur');
     expect(go('/conteur/equipe', as(Role.principal)), isNull);
+    expect(go('/conteur/parametres/journal', as(Role.narrateur)), '/conteur');
+    expect(go('/conteur/parametres/journal', as(Role.joueur)), '/joueur');
+    expect(go('/conteur/parametres/journal', as(Role.conteur)), isNull);
+    expect(go('/conteur/parametres/journal', as(Role.principal)), isNull);
   });
 
   test('principal, chronique sans nom : démarrage obligatoire', () {
