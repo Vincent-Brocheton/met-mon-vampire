@@ -51,11 +51,14 @@ function edit(uid, id, fromVersion, changes, { reason = 'Correction', withEntry 
   return b.commit();
 }
 
-test('création : amorce de PJ en brouillon, PNJ actif, toujours avec historique', async () => {
+test('création : amorce de PJ en brouillon, PJ repris actif, PNJ actif, toujours avec historique', async () => {
   await assertSucceeds(create('lea', 'a1', { name: 'Nikolaï', kind: 'pj', playerUid: 'zoe', playerName: 'Zoé', status: 'draft' }));
   await assertSucceeds(create('lea', 'a2', { name: 'Sœur Agathe', kind: 'pnj', playerUid: null, playerName: null, status: 'active' }));
-  await assertFails(create('lea', 'a3', { name: 'X', kind: 'pj', playerUid: 'zoe', status: 'active' }));
+  await assertSucceeds(create('lea', 'a3', { name: 'Corentin', kind: 'pj', playerUid: 'zoe', playerName: 'Zoé', status: 'active' }));
   await assertFails(create('lea', 'a4', { name: 'X', kind: 'pj', playerUid: 'lea', status: 'draft' }));
+  await assertFails(create('lea', 'a7', { name: 'X', kind: 'pj', playerUid: 'lea', status: 'active' }));
+  await assertFails(create('julien', 'a8', { name: 'X', kind: 'pj', playerUid: 'zoe', status: 'active' }));
+  await assertFails(create('lea', 'a9', { name: 'X', kind: 'pj', playerUid: 'zoe', status: 'retired' }));
   await assertFails(create('julien', 'a5', { name: 'X', kind: 'pnj', playerUid: null, status: 'active' }));
   await assertFails(setDoc(doc(as('lea'), 'characters/a6'), { name: 'X', kind: 'pnj', playerUid: null, status: 'active', version: 1, lastHistoryId: 'h1' }));
 });
