@@ -46,6 +46,8 @@ service cloud.firestore {
           && validName(request.resource.data.displayName)
           && request.resource.data.email == request.auth.token.email)
         || acceptsInvitation()
+        // Notifications (sous-projet 10a) : dernière visite, à l'heure du serveur.
+        || (changedOnly(['notifSeenAt']) && request.resource.data.notifSeenAt == request.time)
       );
     }
 
