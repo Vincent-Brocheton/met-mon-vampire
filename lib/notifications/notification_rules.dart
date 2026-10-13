@@ -2,6 +2,7 @@ import '../auth/session.dart';
 import '../characters/character.dart';
 import '../core/dates.dart';
 import '../games/game.dart';
+import '../games/game_rules.dart';
 import '../npcs/npc_loan.dart';
 import '../wiki/wiki_page.dart';
 import '../xp/xp_request.dart';
@@ -102,10 +103,10 @@ List<AppNotification> xpReceived(Character c, List<HistoryEntry> history) => [
           AppNotification(kind: NotifKind.xp, title: 'XP reçue : +${e.xpEarned}', detail: c.name, at: at, link: '/joueur/personnages/${c.id}/historique'),
     ];
 
-/// Parties dont le gel est en cours : ni levé, ni dépassé.
-List<AppNotification> freeze(List<Game> games, DateTime now) => [
+/// Parties dont le gel est en cours (ni levé, ni dépassé) et fige au moins une des fiches [mine].
+List<AppNotification> freeze(List<Game> games, DateTime now, List<String> mine) => [
       for (final g in games)
-        if (g.liftedAt == null && now.isBefore(g.until))
+        if (isRunning(g, now) && g.sheetIds.any(mine.contains))
           AppNotification(
             kind: NotifKind.freeze,
             title: 'Fiches figées pour la partie du ${formatDay(g.date)}',
@@ -118,7 +119,7 @@ List<AppNotification> freeze(List<Game> games, DateTime now) => [
 List<AppNotification> npcLoans(List<NpcLoan> loans) => [
       for (final l in loans)
         if (l.revokedAt == null)
-          AppNotification(kind: NotifKind.npc, title: 'Un PNJ vous a été confié', detail: l.characterName, at: l.from, link: '/joueur/pnj/${l.id}'),
+          AppNotification(kind: NotifKind.npc, title: 'Un PNJ vous a été confié', detail: l.characterName, at: l.createdAt ?? l.from, link: '/joueur/pnj/${l.id}'),
     ];
 
 /// Pages lisibles par le joueur (la requête du wiki les filtre déjà).

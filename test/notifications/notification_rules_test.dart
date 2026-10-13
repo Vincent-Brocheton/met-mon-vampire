@@ -18,6 +18,8 @@ WikiPage wp(String id, {String? by, int version = 1, DateTime? at}) =>
 HistoryEntry hist(String id, int earned, DateTime at) => HistoryEntry(id: id, at: at, byName: 'Léa', kind: 'xp', summary: const [], reason: '', xpEarned: earned);
 
 void main() {
+  reviewFixes();
+
   test('demandes d’accès : nom, message entre guillemets, sinon texte par défaut', () {
     final n = accessRequests([
       AppUser(uid: 'p', displayName: 'Paul V.', email: 'p@ex.fr', role: Role.pending, accessMessage: ' Je reprends. ', createdAt: DateTime(2026, 9, 28)),
@@ -58,11 +60,11 @@ void main() {
     final x = xpReceived(c, [hist('h1', 3, DateTime(2026, 10, 1)), hist('h2', 0, DateTime(2026, 10, 2)), hist('h3', -2, DateTime(2026, 10, 3))]);
     expect((x.single.title, x.single.detail, x.single.link), ('XP reçue : +3', 'Isaure', '/joueur/personnages/c1/historique'));
     final games = [
-      Game(id: 'g1', date: DateTime(2026, 10, 3), frozenAt: DateTime(2026, 9, 29, 20), until: DateTime(2026, 10, 14, 6)),
+      Game(id: 'g1', date: DateTime(2026, 10, 3), frozenAt: DateTime(2026, 9, 29, 20), until: DateTime(2026, 10, 14, 6), sheetIds: const ['c1']),
       Game(id: 'g0', date: DateTime(2026, 9, 1), frozenAt: DateTime(2026, 8, 30), until: DateTime(2026, 9, 2)),
       Game(id: 'g2', date: DateTime(2026, 10, 10), frozenAt: DateTime(2026, 10, 9), until: DateTime(2026, 10, 20), liftedAt: DateTime(2026, 10, 11)),
     ];
-    final f = freeze(games, now);
+    final f = freeze(games, now, ['c1']);
     expect((f.single.title, f.single.detail, f.single.at),
         ('Fiches figées pour la partie du 3 oct.', 'Jusqu’au 14 oct. à 06:00, vos demandes restent en attente.', DateTime(2026, 9, 29, 20)));
     final l = npcLoans([
@@ -87,5 +89,18 @@ void main() {
   test('compte : pas de date de visite par défaut ; page : auteur de la publication', () {
     expect(const AppUser(uid: 'u', displayName: 'U', email: 'u@ex.fr', role: Role.joueur).notifSeenAt, isNull);
     expect(WikiPage.fromMap('x', {'updatedByUid': 'lea'}).updatedByUid, 'lea');
+  });
+}
+
+void reviewFixes() {
+  test('revue : PNJ daté de la création du prêt, pas du début de la période', () {
+    final l = npcLoans([NpcLoan(id: 'l1', characterName: 'Agathe', from: DateTime(2026, 11, 1), until: DateTime(2026, 12, 1), createdAt: DateTime(2026, 10, 12, 15))]);
+    expect(l.single.at, DateTime(2026, 10, 12, 15));
+  });
+
+  test('revue : fiches figées seulement pour le joueur dont une fiche est dans la partie', () {
+    final g = Game(id: 'g1', date: DateTime(2026, 10, 3), frozenAt: DateTime(2026, 9, 29), until: DateTime(2026, 10, 14), sheetIds: const ['c1']);
+    expect(freeze([g], now, ['c2']), isEmpty);
+    expect(freeze([g], now, ['c2', 'c1']), hasLength(1));
   });
 }
