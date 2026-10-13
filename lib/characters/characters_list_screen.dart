@@ -28,13 +28,13 @@ class _CharactersListScreenState extends ConsumerState<CharactersListScreen> {
   CharacterFilter _filter = const CharacterFilter();
 
   Future<void> _newCharacter() async {
-    final result = await showDialog<(String, CharacterKind, String)>(
+    final result = await showDialog<(String, CharacterKind, String, bool)>(
       context: context,
       builder: (_) => const NewCharacterDialog(),
     );
     if (result == null || !mounted) return;
-    final (id, kind, name) = result;
-    if (kind == CharacterKind.pnj) {
+    final (id, kind, name, resumed) = result;
+    if (kind == CharacterKind.pnj || resumed) {
       context.go('/conteur/fiches/$id');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,8 +224,8 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// Nouvelle fiche : amorce de PJ (le joueur la remplira) ou PNJ (rempli par le conte).
-/// Renvoie (id, type, nom).
+/// Nouvelle fiche : amorce de PJ (le joueur la remplira), PJ repris actif (recopié par le conte) ou PNJ (rempli par le conte).
+/// Renvoie (id, type, nom, reprise).
 class NewCharacterDialog extends ConsumerStatefulWidget {
   const NewCharacterDialog({super.key});
 
@@ -239,6 +239,8 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
   CharacterKind _kind = CharacterKind.pj;
   AppUser? _player;
   bool _ghoul = false;
+  /// Fiche existante (10c) : PJ actif tout de suite, recopié par le conte.
+  bool _resumed = false;
   /// Identifiant : la liste des fiches se renouvelle à chaque écriture, ses instances changent.
   String? _domitorId;
   bool _busy = false;
@@ -276,9 +278,10 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
             playerUid: _player?.uid,
             playerName: _player?.displayName,
             ghoul: _ghoul ? _domitor() : null,
+            resumed: _resumed && _kind == CharacterKind.pj,
             by: by,
           );
-      if (mounted) Navigator.pop(context, (id, _kind, _name.text.trim()));
+      if (mounted) Navigator.pop(context, (id, _kind, _name.text.trim(), _resumed && _kind == CharacterKind.pj));
     } catch (_) {
       if (mounted) setState(() => _error = 'Création impossible. Réessayez.');
     } finally {
@@ -313,9 +316,21 @@ class _NewCharacterDialogState extends ConsumerState<NewCharacterDialog> {
                 _kind = s.first == 'pnj' ? CharacterKind.pnj : CharacterKind.pj;
               }),
             ),
+            if (_kind == CharacterKind.pj)
+              CheckboxListTile(
+                key: const Key('new-resume'),
+                value: _resumed,
+                onChanged: (v) => setState(() => _resumed = v ?? false),
+                title: const Text('Fiche existante (reprise)', style: TextStyle(fontSize: 15)),
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
             const SizedBox(height: 10),
             Text(
-              _ghoul
+              _kind == CharacterKind.pj && _resumed
+                  ? 'La fiche est active tout de suite, sans création guidée : vous la recopiez ensuite dans l’éditeur.'
+                  : _ghoul
                   ? 'Une goule jouée : choisissez son joueur et son domitor. Le joueur remplira sa fiche par la création guidée.'
                   : _kind == CharacterKind.pj
                   ? 'Vous créez l’amorce : le joueur remplira sa fiche par la création guidée, puis la soumettra au conte.'

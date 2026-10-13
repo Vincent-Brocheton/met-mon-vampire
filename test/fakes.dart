@@ -118,10 +118,13 @@ class FakeCharacterRepository implements CharacterRepository {
 
   GhoulState? lastGhoul;
 
+  bool? lastResumed;
+
   @override
-  Future<String> create({required String name, required CharacterKind kind, String? playerUid, String? playerName, GhoulState? ghoul, required Actor by}) async {
+  Future<String> create({required String name, required CharacterKind kind, String? playerUid, String? playerName, GhoulState? ghoul, bool resumed = false, required Actor by}) async {
     calls.add('create:${kind.name}:$name');
     lastGhoul = ghoul;
+    lastResumed = resumed;
     return 'new-id';
   }
 

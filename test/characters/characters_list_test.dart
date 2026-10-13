@@ -196,4 +196,112 @@ void main() {
     expect(repo.calls, ['create:pj:Mila Ferreira']);
     expect((repo.lastGhoul!.domitorName, repo.lastGhoul!.domitorClan), ('Isaure', 'Toreador'));
   });
+
+  testWidgets('C2 : reprise d’une fiche existante, PJ actif tout de suite (10c)', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = FakeCharacterRepository();
+    const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
+    const ines = AppUser(uid: 'u2', displayName: 'Inès T.', email: 'i@ex.fr', role: Role.joueur);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        baseRulebook,
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea, ines])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
+        characterRepositoryProvider.overrideWith((ref) => repo),
+        allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
+      ],
+      child: MaterialApp.router(
+        theme: buildTheme(withFonts: false),
+        routerConfig: GoRouter(routes: [
+          GoRoute(path: '/', builder: (_, _) => const Scaffold(body: CharactersListScreen())),
+          GoRoute(path: '/conteur/fiches/:id', builder: (_, s) => Text('édition ${s.pathParameters['id']}')),
+        ]),
+      ),
+    ));
+    await tester.pump();
+    await tester.tap(find.text('Nouvelle fiche'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('new-resume')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('new-resume')));
+    await tester.pump();
+    expect(find.text('La fiche est active tout de suite, sans création guidée : vous la recopiez ensuite dans l’éditeur.'), findsOneWidget);
+
+    // Le joueur reste obligatoire.
+    await tester.enterText(find.byType(TextFormField).first, 'Corentin Mallet');
+    await tester.tap(find.text('Créer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choisissez le joueur.'), findsOneWidget);
+    expect(repo.calls, isEmpty);
+
+    await tester.tap(find.byKey(const Key('new-player')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inès T.').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Créer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['create:pj:Corentin Mallet']);
+    expect(repo.lastResumed, isTrue);
+    expect(find.text('édition new-id'), findsOneWidget);
+  });
+
+  testWidgets('C2 : case de reprise absente pour un PNJ, jamais transmise (10c)', (tester) async {
+    tester.view.physicalSize = const Size(1440, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = FakeCharacterRepository();
+    const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        baseRulebook,
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        wikiAudienceSyncProvider.overrideWith((ref) async {}),
+        characterRepositoryProvider.overrideWith((ref) => repo),
+        allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
+      ],
+      child: MaterialApp.router(
+        theme: buildTheme(withFonts: false),
+        routerConfig: GoRouter(routes: [
+          GoRoute(path: '/', builder: (_, _) => const Scaffold(body: CharactersListScreen())),
+          GoRoute(path: '/conteur/fiches/:id', builder: (_, s) => Text('édition ${s.pathParameters['id']}')),
+        ]),
+      ),
+    ));
+    await tester.pump();
+    await tester.tap(find.text('Nouvelle fiche'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('new-resume')));
+    await tester.pump();
+    await tester.tap(find.text('PNJ').last);
+    await tester.pump();
+    expect(find.byKey(const Key('new-resume')), findsNothing);
+    expect(find.text('Le PNJ est actif tout de suite ; vous le remplissez ensuite.'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).last, 'Le Shérif Ansel');
+    await tester.tap(find.text('Créer'));
+    await tester.pumpAndSettle();
+    expect(repo.calls, ['create:pnj:Le Shérif Ansel']);
+    expect(repo.lastResumed, isFalse);
+  });
+
+  testWidgets('C2 : dialogue de reprise à 390 px (10c)', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const lea = AppUser(uid: 'lea', displayName: 'Léa G.', email: 'l@ex.fr', role: Role.conteur);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => Stream.value(lea)),
+        allUsersProvider.overrideWith((ref) => Stream.value(const [lea])),
+        allCharactersProvider.overrideWith((ref) => Stream.value(const <Character>[])),
+      ],
+      child: MaterialApp(theme: buildTheme(withFonts: false), home: const Scaffold(body: NewCharacterDialog())),
+    ));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('new-resume')));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
 }
