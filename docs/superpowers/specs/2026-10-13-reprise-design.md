@@ -38,5 +38,5 @@ La règle `create` de `characters` accepte un PJ en `draft` **ou** en `active`, 
 ## Tests
 
 - **Règles** (`rules_test/characters.test.js`) : PJ actif créé par le conte avec historique accepté ; PJ actif pour soi-même refusé ; PJ actif par le narrateur refusé. L’assertion actuelle « PJ actif refusé » est remplacée.
-- **Dépôt** : `resumed` donne `active` et « Fiche reprise » ; sans `resumed`, `draft` comme avant ; un PNJ ignore `resumed`.
+- **Dépôt** : le dépôt n’a pas de test unitaire dans ce projet (pas de faux Firestore) ; la forme de son écriture (PJ actif, historique `creation`) est fixée par le test des règles. Le faux dépôt enregistre `resumed`.
 - **Dialogue** : la case est visible pour PJ et Goule, absente pour PNJ ; cochée, la création passe `resumed: true`. Mise en page vérifiée à 390 px.
