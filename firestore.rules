@@ -128,6 +128,12 @@ service cloud.firestore {
       allow read: if isStaff();
     }
 
+    // Chronologie publique du wiki (sous-projet 9b) : les événements « Public » de toutes les fiches, lus par tout compte.
+    // La requête porte le filtre `visibility == 'public'`, sinon elle est refusée.
+    match /{path=**}/events/{e} {
+      allow read: if signedIn() && resource.data.visibility == 'public';
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || managesAccounts());
       allow create: if signedIn() && request.auth.uid == uid
@@ -305,7 +311,7 @@ service cloud.firestore {
         function eventValid() {
           let d = request.resource.data;
           return d.keys().hasOnly(['type', 'title', 'description', 'year', 'month', 'day', 'visibility', 'auto',
-              'byUid', 'byName', 'createdAt', 'updatedAt'])
+              'byUid', 'byName', 'createdAt', 'updatedAt', 'charName'])
             && d.type in ['diablerie', 'titleGained', 'titleLost', 'sectChange', 'pathAdopted', 'morality', 'bond', 'bloodHunt', 'torpor',
                 'awakening', 'finalDeath', 'embrace', 'sheet', 'intrigue', 'renown', 'other']
             && d.title is string && d.title.size() > 0 && d.title.size() <= 80
@@ -316,6 +322,7 @@ service cloud.firestore {
                 || (d.day is int && d.day >= 1 && d.day <= 31 && d.get('month', null) != null))
             && d.visibility in ['public', 'player', 'staff']
             && d.auto is bool
+            && (d.get('charName', null) == null || (d.charName is string && d.charName.size() <= 80))
             && d.byUid == request.auth.uid;
         }
         // getAfter : la fiche peut être créée dans le même lot (étreinte). Jamais sur sa propre fiche.

@@ -56,3 +56,37 @@ class WikiPage {
         if (entryId != null) 'entryId': entryId,
       };
 }
+
+/// Copie d'une publication (`wiki/{id}/versions/{n}`).
+class WikiVersion {
+  WikiVersion({required this.n, required this.page, this.note = '', this.byName = '', this.at});
+
+  factory WikiVersion.fromMap(String pageId, String id, Map<String, dynamic> m) => WikiVersion(
+        n: int.tryParse(id) ?? 0,
+        page: WikiPage.fromMap(pageId, m),
+        note: m['note'] as String? ?? '',
+        byName: m['byName'] as String? ?? '',
+        at: (m['at'] as Timestamp?)?.toDate(),
+      );
+
+  final int n;
+
+  /// Contenu publié (sa `version` n'a pas de sens ici : voir [n]).
+  final WikiPage page;
+  final String note;
+  final String byName;
+  final DateTime? at;
+}
+
+/// Contenu de la version [v], à republier par-dessus la version publiée [current].
+WikiPage restoredPage(WikiVersion v, int current) => WikiPage(
+      id: v.page.id,
+      title: v.page.title,
+      rubric: v.page.rubric,
+      audience: v.page.audience,
+      body: v.page.body,
+      source: v.page.source,
+      cat: v.page.cat,
+      entryId: v.page.entryId,
+      version: current,
+    );

@@ -51,6 +51,7 @@ class StoryEvent {
     this.visibility = EventVisibility.player,
     this.auto = false,
     this.byName = '',
+    this.charName = '',
     this.createdAt,
   });
 
@@ -68,6 +69,7 @@ class StoryEvent {
         visibility: EventVisibility.parse(m['visibility'] as String?),
         auto: m['auto'] == true,
         byName: m['byName'] as String? ?? '',
+        charName: m['charName'] as String? ?? '',
         createdAt: (m['createdAt'] as Timestamp?)?.toDate(),
       );
 
@@ -81,6 +83,9 @@ class StoryEvent {
   EventVisibility visibility;
   bool auto;
   String byName;
+
+  /// Nom du personnage, pour la chronologie publique du wiki (sous-projet 9b) ; vide sur les anciens événements.
+  String charName;
 
   /// Null tant que l'écriture n'est pas confirmée par le serveur.
   final DateTime? createdAt;
@@ -108,12 +113,17 @@ class StoryEvent {
         visibility: visibility,
         auto: auto,
         byName: byName,
+        charName: charName,
         createdAt: createdAt,
       );
 }
 
+/// Nom du personnage écrit sur l'événement, coupé à 80 caractères comme le veulent les règles :
+/// un nom de fiche plus long ne doit pas faire refuser tout le lot (validation, titres…).
+String eventCharName(String name) => name.length > 80 ? name.substring(0, 80) : name;
+
 /// Document d'un nouvel événement : exactement les clés permises par les règles.
-Map<String, dynamic> newEventData(StoryEvent e, String byUid, String byName) {
+Map<String, dynamic> newEventData(StoryEvent e, String byUid, String byName, String charName) {
   final now = FieldValue.serverTimestamp();
-  return {...e.toMap(), 'byUid': byUid, 'byName': byName, 'createdAt': now, 'updatedAt': now};
+  return {...e.toMap(), 'byUid': byUid, 'byName': byName, 'charName': eventCharName(charName), 'createdAt': now, 'updatedAt': now};
 }

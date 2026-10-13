@@ -114,7 +114,7 @@ class CharacterRepository {
       ..set(ref, {...sheet.toMap(), 'createdAt': now, 'updatedAt': now})
       ..set(h, _entry(by, 'creation', [summary], ''));
     for (final e in events) {
-      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name));
+      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name, sheet.name));
     }
     await batch.commit();
     return ref.id;
@@ -231,7 +231,7 @@ class CharacterRepository {
       ..set(h, _entry(by, kind, withConversion(c, summary), reason, delta));
     c.legacyServants = false;
     for (final e in events) {
-      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name));
+      batch.set(ref.collection('events').doc(), newEventData(e, by.uid, by.name, c.name));
     }
   }
 

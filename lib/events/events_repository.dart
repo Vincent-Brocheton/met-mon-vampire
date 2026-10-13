@@ -30,15 +30,21 @@ class EventsRepository {
       .map(_list);
 
   /// Crée ([e] sans identifiant) ou modifie l'événement. Pas de version : la dernière écriture l'emporte.
-  Future<void> save(String characterId, StoryEvent e, Actor by) {
-    if (e.id.isEmpty) return _col(characterId).doc().set(newEventData(e, by.uid, by.name));
+  /// [charName] : nom du personnage, repris par la chronologie publique du wiki.
+  Future<void> save(String characterId, String charName, StoryEvent e, Actor by) {
+    if (e.id.isEmpty) return _col(characterId).doc().set(newEventData(e, by.uid, by.name, charName));
     return _col(characterId).doc(e.id).update({
       ...e.toMap(),
       'byUid': by.uid,
       'byName': by.name,
+      'charName': eventCharName(charName),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  /// Chronologie publique : événements « Public » de toutes les fiches (le filtre que testent les règles).
+  Stream<List<StoryEvent>> watchPublic() =>
+      _db.collectionGroup('events').where('visibility', isEqualTo: EventVisibility.public.name).snapshots().map(_list);
 
   Future<void> delete(String characterId, String id) => _col(characterId).doc(id).delete();
 }
@@ -57,3 +63,7 @@ Stream<List<StoryEvent>> characterEvents(Ref ref, String characterId) {
   final all = me.role.isStaff && c != null && c.playerUid != me.uid;
   return all ? repo.watchAll(characterId) : repo.watchVisible(characterId);
 }
+
+/// Événements « Public » de toutes les fiches (chronologie publique du wiki, sous-projet 9b).
+@riverpod
+Stream<List<StoryEvent>> publicEvents(Ref ref) => ref.watch(eventsRepositoryProvider).watchPublic();

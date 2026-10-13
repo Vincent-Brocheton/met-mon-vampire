@@ -305,8 +305,14 @@ class _WikiEditScreenState extends ConsumerState<WikiEditScreen> {
         ),
       const SizedBox(height: 12),
       Wrap(spacing: 10, runSpacing: 10, children: [
-        if (item?.page != null)
+        if (item?.page != null) ...[
+          TextButton(
+            key: const Key('wk-history'),
+            onPressed: () => context.go('/conteur/wiki/edition/$_id/historique'),
+            child: Text('Historique des versions (${item!.page!.version})'),
+          ),
           OutlinedButton(onPressed: () => context.go(const WikiNav(staff: true, preview: true).page(_id)), child: const Text('Aperçu joueur')),
+        ],
         if (manages) ...[
           OutlinedButton(key: const Key('wk-save-draft'), onPressed: _busy ? null : () => _saveDraft(item), child: const Text('Enregistrer le brouillon')),
           FilledButton(key: const Key('wk-publish'), onPressed: _busy ? null : () => _publish(item), child: const Text('Publier')),

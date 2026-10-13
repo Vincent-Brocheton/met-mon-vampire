@@ -177,4 +177,11 @@ void main() {
     int? max(String key) => tester.widget<TextField>(find.byKey(Key(key))).maxLength;
     expect((max('wk-title'), max('wk-source'), max('wk-body')), (80, 200, 50000));
   });
+
+  testWidgets('lien vers l’historique : page publiée seulement', (tester) async {
+    await pumpEdit(tester, 'cour');
+    expect(find.text('Historique des versions (1)'), findsOneWidget);
+    await pumpEdit(tester, 'nouvelle', drafts: [draftsWiki().first]);
+    expect(find.byKey(const Key('wk-history')), findsNothing);
+  });
 }

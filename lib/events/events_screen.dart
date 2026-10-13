@@ -99,7 +99,7 @@ class _CharacterEventsScreenState extends ConsumerState<CharacterEventsScreen> {
     final editing = _open ?? (canEdit && wide ? StoryEvent.blank(DateTime.now()) : null);
     final form = editing == null
         ? null
-        : Panel(child: EventForm(key: ValueKey('ev-form-$_form'), characterId: c.id, initial: editing, onDone: _close));
+        : Panel(child: EventForm(key: ValueKey('ev-form-$_form'), characterId: c.id, charName: c.name, initial: editing, onDone: _close));
     final header = CharacterHeader(c, basePath: '/conteur/fiches/${c.id}', tab: CharacterTab.events);
 
     if (!wide) {
@@ -124,8 +124,9 @@ class _CharacterEventsScreenState extends ConsumerState<CharacterEventsScreen> {
 
 /// Formulaire d'un événement : ajout ([initial] sans identifiant) ou modification, avec suppression.
 class EventForm extends ConsumerStatefulWidget {
-  const EventForm({super.key, required this.characterId, required this.initial, required this.onDone});
+  const EventForm({super.key, required this.characterId, required this.charName, required this.initial, required this.onDone});
   final String characterId;
+  final String charName;
   final StoryEvent initial;
   final VoidCallback onDone;
 
@@ -162,7 +163,7 @@ class _EventFormState extends ConsumerState<EventForm> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      await ref.read(eventsRepositoryProvider).save(widget.characterId, _e, by);
+      await ref.read(eventsRepositoryProvider).save(widget.characterId, widget.charName, _e, by);
       messenger.showSnackBar(SnackBar(content: Text(_isNew ? 'Événement ajouté.' : 'Événement enregistré.')));
       widget.onDone();
     } catch (_) {

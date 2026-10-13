@@ -138,3 +138,47 @@ final class CharacterEventsFamily extends $Family
   @override
   String toString() => r'characterEventsProvider';
 }
+
+/// Événements « Public » de toutes les fiches (chronologie publique du wiki, sous-projet 9b).
+
+@ProviderFor(publicEvents)
+final publicEventsProvider = PublicEventsProvider._();
+
+/// Événements « Public » de toutes les fiches (chronologie publique du wiki, sous-projet 9b).
+
+final class PublicEventsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<StoryEvent>>,
+          List<StoryEvent>,
+          Stream<List<StoryEvent>>
+        >
+    with $FutureModifier<List<StoryEvent>>, $StreamProvider<List<StoryEvent>> {
+  /// Événements « Public » de toutes les fiches (chronologie publique du wiki, sous-projet 9b).
+  PublicEventsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'publicEventsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$publicEventsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<StoryEvent>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<StoryEvent>> create(Ref ref) {
+    return publicEvents(ref);
+  }
+}
+
+String _$publicEventsHash() => r'44710e8053ccc2d223748f207a0ec36637ea6cbe';
