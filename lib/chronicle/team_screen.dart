@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/forms.dart';
 import '../auth/session.dart';
 import '../auth/session_providers.dart';
+import '../characters/character_repository.dart';
 import '../core/empty_state.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
@@ -61,6 +62,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
   Widget build(BuildContext context) {
     final repo = ref.read(chronicleRepositoryProvider);
     final me = ref.watch(currentUserProvider).value;
+    final by = actorOf(me);
     final t = Theme.of(context).textTheme;
     final muted = t.bodyMedium?.copyWith(color: AppColors.textSecondary);
 
@@ -97,7 +99,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
                         ),
                     ],
                     onChanged: (r) {
-                      if (r != null && r != u.role) _guard(() => repo.setRole(u.uid, r), '${u.displayName} : ${r.label}.');
+                      if (r != null && r != u.role) _guard(() => repo.setRole(u, r, by!), '${u.displayName} : ${r.label}.');
                     },
                   ),
               ]),
@@ -127,7 +129,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
               onPressed: _promoteUid == null
                   ? null
                   : () async {
-                      if (await _guard(() => repo.setRole(_promoteUid!, _promoteRole), 'Rôle attribué.') && mounted) {
+                      if (await _guard(() => repo.setRole(players.firstWhere((p) => p.uid == _promoteUid), _promoteRole, by!), 'Rôle attribué.') && mounted) {
                         setState(() => _promoteUid = null);
                       }
                     },
@@ -162,7 +164,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
             FilledButton(
               onPressed: () async {
                 if (!_inviteForm.currentState!.validate()) return;
-                if (await _guard(() => repo.invite(_inviteEmail.text, _inviteRole, me!.uid), 'Invitation enregistrée.')) {
+                if (await _guard(() => repo.invite(_inviteEmail.text, _inviteRole, by!), 'Invitation enregistrée.')) {
                   _inviteEmail.clear();
                 }
               },
@@ -178,7 +180,7 @@ class _TeamScreenState extends ConsumerState<TeamScreen> {
                   title: Text(inv.email),
                   subtitle: Text(inv.role.label, style: TextStyle(color: roleColor(inv.role))),
                   trailing: TextButton(
-                    onPressed: () => _guard(() => repo.cancelInvitation(inv.email), 'Invitation annulée.'),
+                    onPressed: () => _guard(() => repo.cancelInvitation(inv.email, by!), 'Invitation annulée.'),
                     child: const Text('Annuler'),
                   ),
                 ),
